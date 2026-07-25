@@ -2055,6 +2055,15 @@ export class DocumentStore {
               AND documents_fts MATCH ?
             ORDER BY fts_score
             LIMIT ?
+          ),
+          candidates AS (
+            -- Union of vector and full-text candidate ids so the final query is
+            -- driven by the small match set instead of scanning the entire
+            -- documents table. Keeps search cost proportional to matches, not
+            -- total database size.
+            SELECT id FROM vec_distances
+            UNION
+            SELECT id FROM fts_scores
           )
           SELECT
             d.id,
@@ -2066,15 +2075,15 @@ export class DocumentStore {
             p.content_type as content_type,
             COALESCE(1 / (1 + v.vec_distance), 0) as vec_score,
             COALESCE(-MIN(f.fts_score, 0), 0) as fts_score
-          FROM documents d
+          FROM candidates c
+          JOIN documents d ON d.id = c.id
           JOIN pages p ON d.page_id = p.id
           LEFT JOIN vec_distances v ON d.id = v.id
           LEFT JOIN fts_scores f ON d.id = f.id
-          WHERE (v.id IS NOT NULL OR f.id IS NOT NULL)
-            AND NOT EXISTS (
-              SELECT 1 FROM json_each(json_extract(d.metadata, '$.types')) je
-              WHERE je.value = 'structural'
-            )
+          WHERE NOT EXISTS (
+            SELECT 1 FROM json_each(json_extract(d.metadata, '$.types')) je
+            WHERE je.value = 'structural'
+          )
         `);
 
         const rawResults = stmt.all(
