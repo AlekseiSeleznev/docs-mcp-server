@@ -1,3 +1,10 @@
+## [2.4.5](https://github.com/arabold/docs-mcp-server/compare/v2.4.4...v2.4.5) (2026-07-25)
+
+
+### Bug Fixes
+
+* **store:** materialize vector knn cte to fix search performance regression ([8c460f0](https://github.com/arabold/docs-mcp-server/commit/8c460f0dcc91553a3e0208f7f52e49174637426e)), closes [#454](https://github.com/arabold/docs-mcp-server/issues/454)
+
 ## [2.4.4](https://github.com/arabold/docs-mcp-server/compare/v2.4.3...v2.4.4) (2026-07-22)
 
 
