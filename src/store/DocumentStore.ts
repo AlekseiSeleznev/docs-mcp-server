@@ -2044,7 +2044,7 @@ export class DocumentStore {
               AND dv.k = ?
             ORDER BY dv.distance
           ),
-          fts_scores AS (
+          fts_scores AS MATERIALIZED (
             SELECT
               f.rowid as id,
               bm25(documents_fts, 10.0, 1.0, 5.0, 1.0) as fts_score
@@ -2061,6 +2061,11 @@ export class DocumentStore {
             -- driven by the small match set instead of scanning the entire
             -- documents table. Keeps search cost proportional to matches, not
             -- total database size.
+            --
+            -- Both source CTEs are referenced twice (here and in the LEFT JOINs
+            -- below) and are pinned with MATERIALIZED so they are evaluated
+            -- exactly once. Leaving this to the query planner is what caused
+            -- the search regression in #454.
             SELECT id FROM vec_distances
             UNION
             SELECT id FROM fts_scores
