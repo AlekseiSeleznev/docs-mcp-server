@@ -2033,7 +2033,7 @@ export class DocumentStore {
         const vectorSearchK = overfetchLimit * this.vectorSearchMultiplier;
 
         const stmt = this.db.prepare(`
-          WITH vec_distances AS NOT MATERIALIZED (
+          WITH vec_distances AS MATERIALIZED (
             SELECT
               dv.rowid as id,
               dv.distance as vec_distance
