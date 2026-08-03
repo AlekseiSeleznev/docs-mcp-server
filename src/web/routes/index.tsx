@@ -16,7 +16,7 @@ export function registerIndexRoute(
 
     // Determine if we're using a remote worker
     const useRemoteWorker = Boolean(externalWorkerUrl);
-    const trpcUrl = externalWorkerUrl ? `${externalWorkerUrl}/api` : undefined;
+    const trpcUrl = externalWorkerUrl?.replace(/\/$/, "");
 
     // Use the Layout component and define the main content within it
     return (
