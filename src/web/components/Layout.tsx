@@ -14,24 +14,14 @@ interface LayoutProps extends PropsWithChildren {
   title: string;
   /** Optional version string to display next to the title. */
   version?: string;
-  /** Event client configuration for real-time updates */
-  eventClientConfig?: {
-    useRemoteWorker: boolean;
-    trpcUrl?: string;
-  };
 }
 
 /**
  * Base HTML layout component for all pages.
  * Includes common head elements, header, and scripts.
- * @param props - Component props including title, version, children, and eventClientConfig.
+ * @param props - Component props including title, version, and children.
  */
-const Layout = ({
-  title,
-  version,
-  children,
-  eventClientConfig,
-}: LayoutProps) => {
+const Layout = ({ title, version, children }: LayoutProps) => {
   // Use provided version prop, or fall back to build-time injected version
   const versionString = version || __APP_VERSION__;
   const versionInitializer = `versionUpdate({ currentVersion: ${
@@ -281,11 +271,6 @@ const Layout = ({
         <div class="container max-w-2xl mx-auto px-4 py-6">
           <main>{children}</main>
         </div>
-
-        {/* Event client configuration */}
-        <script>
-          {`window.__EVENT_CLIENT_CONFIG__ = ${JSON.stringify(eventClientConfig)};`}
-        </script>
 
         {/* Bundled JS (includes Flowbite, HTMX, AlpineJS, and initialization) */}
         <script type="module" src="/assets/main.js"></script>

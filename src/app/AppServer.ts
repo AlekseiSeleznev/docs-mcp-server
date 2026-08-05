@@ -392,7 +392,6 @@ export class AppServer {
       this.pipeline,
       this.eventBus,
       this.appConfig,
-      this.serverConfig.externalWorkerUrl,
     );
 
     logger.debug("Web interface service enabled");
