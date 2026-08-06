@@ -617,7 +617,10 @@ export class AppServer {
 
     // Determine the main service name
     if (isWorkerOnly) {
-      logger.info(`🚀 Worker available at ${address}`);
+      // Advertise the tRPC API endpoint (mounted under /api, see trpcService),
+      // not the bare origin, so it can be pasted straight into another
+      // instance's `web --server-url`.
+      logger.info(`🚀 Worker available at ${address}/api`);
     } else if (isWebOnly) {
       logger.info(`🚀 Web interface available at ${address}`);
     } else if (isMcpOnly) {
