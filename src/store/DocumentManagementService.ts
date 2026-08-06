@@ -20,6 +20,7 @@ import {
   VersionNotFoundInStoreError,
 } from "./errors";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
   FindVersionResult,
   LibrarySummary,
@@ -567,5 +568,15 @@ export class DocumentManagementService {
   async getVersionStats(ref: VersionRef): Promise<VersionChunkStats> {
     const normalized = normalizeVersionRef(ref);
     return this.store.getVersionStats(normalized.library, normalized.version);
+  }
+
+  /**
+   * Returns per-day indexing activity across the whole store over a trailing
+   * window, derived from stored page/chunk creation timestamps. Powers the
+   * Overview "Indexing activity" chart.
+   * @param days Window length in days; defaults to 90, clamped to 1..366.
+   */
+  async getActivityHistory(days = 90): Promise<ActivityHistory> {
+    return this.store.getActivityHistory(days);
   }
 }

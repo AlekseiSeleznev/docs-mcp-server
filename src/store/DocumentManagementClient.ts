@@ -10,6 +10,7 @@ import type { EmbeddingModelConfig } from "./embeddings/EmbeddingConfig";
 import type { IDocumentManagement } from "./trpc/interfaces";
 import type { DataRouter } from "./trpc/router";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
   FindVersionResult,
   LibrarySummary,
@@ -148,5 +149,9 @@ export class DocumentManagementClient implements IDocumentManagement {
       library: ref.library,
       version: ref.version,
     });
+  }
+
+  async getActivityHistory(days?: number): Promise<ActivityHistory> {
+    return this.client.getActivityHistory.query({ days });
   }
 }

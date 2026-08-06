@@ -21,6 +21,7 @@ import {
   StoreError,
 } from "./errors";
 import type {
+  ActivityHistory,
   DbChunkMetadata,
   DbChunkRank,
   ListVersionChunksOptions,
@@ -2555,6 +2556,78 @@ export class DocumentStore {
       };
     } catch (error) {
       throw new ConnectionError("Failed to get version stats", error);
+    }
+  }
+
+  /**
+   * Returns per-day indexing activity over the trailing `days`-day window,
+   * derived from the `created_at` timestamps already stored on pages and
+   * chunks. Days with no activity are zero-filled so the returned series is
+   * contiguous.
+   *
+   * Rows are grouped by UTC calendar day to match SQLite's `date('now')`.
+   * `created_at` reflects first insertion, so a refresh that only updates
+   * existing pages does not inflate the counts (it is genuinely new content,
+   * not re-touched content, that registers as activity).
+   *
+   * @param days - Window length in days; clamped to 1..366.
+   */
+  async getActivityHistory(days: number): Promise<ActivityHistory> {
+    try {
+      const windowDays = Math.max(1, Math.min(366, Math.floor(days) || 1));
+      // A recursive calendar drives the zero-fill: every day in the window is
+      // emitted even when neither `pages` nor `documents` has a row for it.
+      const stmt = this.db.prepare(
+        `WITH RECURSIVE calendar(day) AS (
+           SELECT date('now', '-' || (@days - 1) || ' days')
+           UNION ALL
+           SELECT date(day, '+1 day') FROM calendar WHERE day < date('now')
+         )
+         SELECT
+           calendar.day AS date,
+           COALESCE(pg.cnt, 0) AS pages,
+           COALESCE(ch.cnt, 0) AS chunks
+         FROM calendar
+         LEFT JOIN (
+           SELECT date(created_at) AS d, COUNT(*) AS cnt
+           FROM pages
+           WHERE created_at >= date('now', '-' || (@days - 1) || ' days')
+           GROUP BY d
+         ) pg ON pg.d = calendar.day
+         LEFT JOIN (
+           SELECT date(created_at) AS d, COUNT(*) AS cnt
+           FROM documents
+           WHERE created_at >= date('now', '-' || (@days - 1) || ' days')
+           GROUP BY d
+         ) ch ON ch.d = calendar.day
+         ORDER BY calendar.day`,
+      );
+      const rows = stmt.all({ days: windowDays }) as Array<{
+        date: string;
+        pages: number;
+        chunks: number;
+      }>;
+
+      let totalPages = 0;
+      let totalChunks = 0;
+      for (const row of rows) {
+        totalPages += row.pages;
+        totalChunks += row.chunks;
+      }
+
+      return {
+        days: rows.map((row) => ({
+          date: row.date,
+          pages: row.pages,
+          chunks: row.chunks,
+        })),
+        since: rows[0]?.date ?? "",
+        until: rows[rows.length - 1]?.date ?? "",
+        totalPages,
+        totalChunks,
+      };
+    } catch (error) {
+      throw new ConnectionError("Failed to get activity history", error);
     }
   }
 }

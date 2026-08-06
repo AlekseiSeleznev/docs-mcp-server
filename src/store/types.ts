@@ -347,6 +347,35 @@ export interface ListVersionChunksResult {
  * Aggregate chunk/page/embedding statistics for a single library version,
  * used by the chunk explorer's header strip.
  */
+/** One calendar day of indexing activity, derived from row-creation timestamps (UTC). */
+export interface ActivityDay {
+  /** Calendar day in `YYYY-MM-DD` (UTC). */
+  date: string;
+  /** Pages first indexed on this day. */
+  pages: number;
+  /** Chunks first stored on this day. */
+  chunks: number;
+}
+
+/**
+ * Per-day indexing activity over a trailing window, derived from the
+ * `created_at` timestamps already stored on pages and chunks. Days with no
+ * activity are present with zero counts, so the series is contiguous and safe
+ * to chart directly.
+ */
+export interface ActivityHistory {
+  /** One entry per day in the window, oldest first, zero-filled. */
+  days: ActivityDay[];
+  /** Inclusive lower bound of the window (`YYYY-MM-DD`, UTC). */
+  since: string;
+  /** Inclusive upper bound of the window — "today" in UTC (`YYYY-MM-DD`). */
+  until: string;
+  /** Total pages indexed across the window. */
+  totalPages: number;
+  /** Total chunks indexed across the window. */
+  totalChunks: number;
+}
+
 export interface VersionChunkStats {
   /** Number of distinct pages (unique URLs) indexed for this version. */
   pageCount: number;

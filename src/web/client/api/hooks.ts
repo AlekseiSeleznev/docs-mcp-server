@@ -75,6 +75,15 @@ export function useVersionStats(
 }
 
 /**
+ * Fetches per-day indexing activity (pages/chunks added) over a trailing
+ * window for the Overview "Indexing activity" chart.
+ * @param days - Window length in days; defaults to the server's 90-day window.
+ */
+export function useActivityHistory(days?: number) {
+  return trpc.getActivityHistory.useQuery({ days });
+}
+
+/**
  * Fetches an honest snapshot of the running server's configuration (which
  * services are enabled, worker wiring, active embedding provider, MCP/auth
  * exposure, app version). Powers the Overview system-health panel, the

@@ -5,6 +5,7 @@
 import type { ScraperOptions } from "../../scraper/types";
 import type { EmbeddingModelConfig } from "../embeddings/EmbeddingConfig";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
   FindVersionResult,
   LibrarySummary,
@@ -62,4 +63,5 @@ export interface IDocumentManagement {
     options?: Partial<ListVersionChunksOptions>,
   ): Promise<ListVersionChunksResult>;
   getVersionStats(ref: VersionRef): Promise<VersionChunkStats>;
+  getActivityHistory(days?: number): Promise<ActivityHistory>;
 }

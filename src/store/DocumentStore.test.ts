@@ -250,6 +250,56 @@ describe("DocumentStore - With Embeddings", () => {
       expect(await store.checkDocumentExists("removelib", "1.0.0")).toBe(false);
     });
 
+    it("aggregates per-day indexing activity from page and chunk timestamps", async () => {
+      await store.addDocuments(
+        "activitylib",
+        "1.0.0",
+        1,
+        createScrapeResult("Page One", "https://example.com/one", "First activity page", [
+          "a",
+        ]),
+      );
+      await store.addDocuments(
+        "activitylib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Page Two",
+          "https://example.com/two",
+          "Second activity page",
+          ["b"],
+        ),
+      );
+
+      const history = await store.getActivityHistory(7);
+
+      // Contiguous, zero-filled window of the requested length.
+      expect(history.days).toHaveLength(7);
+      // Both pages (and their single chunk each) were just indexed.
+      expect(history.totalPages).toBe(2);
+      expect(history.totalChunks).toBe(2);
+      // Per-day counts sum to the totals and land on the most recent day (today).
+      const summedPages = history.days.reduce((sum, day) => sum + day.pages, 0);
+      const summedChunks = history.days.reduce((sum, day) => sum + day.chunks, 0);
+      expect(summedPages).toBe(2);
+      expect(summedChunks).toBe(2);
+      expect(history.days[history.days.length - 1]).toMatchObject({
+        pages: 2,
+        chunks: 2,
+      });
+      // Window bounds are present and correctly ordered.
+      expect(history.since <= history.until).toBe(true);
+    });
+
+    it("clamps the activity window and zero-fills empty stores", async () => {
+      const history = await store.getActivityHistory(0);
+      // A non-positive window is clamped to a single day, still zero-filled.
+      expect(history.days).toHaveLength(1);
+      expect(history.totalPages).toBe(0);
+      expect(history.totalChunks).toBe(0);
+      expect(history.days[0]).toMatchObject({ pages: 0, chunks: 0 });
+    });
+
     it("should remove version but keep library when other versions exist", async () => {
       // Add two versions
       await store.addDocuments(

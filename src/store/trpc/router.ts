@@ -299,6 +299,20 @@ export function createDataRouter(trpc: unknown) {
           });
         },
       ),
+
+    getActivityHistory: tt.procedure
+      .input(z.object({ days: z.number().int().min(1).max(366).optional() }).optional())
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: { days?: number } | undefined;
+        }) => {
+          return await ctx.docService.getActivityHistory(input?.days);
+        },
+      ),
   });
 }
 

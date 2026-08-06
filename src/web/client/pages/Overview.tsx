@@ -1,14 +1,21 @@
 /**
  * Overview (dashboard) page: KPI totals derived from the library index, an
- * honest empty-state placeholder for indexing activity (no time-series data
- * is available yet — see backlog note below), the system-health snapshot,
- * and a compact glance at currently active (running/queued) pipeline jobs.
+ * indexing-activity chart (per-day pages/chunks over a trailing window, from
+ * stored `created_at` timestamps), the system-health snapshot, and a compact
+ * glance at currently active (running/queued) pipeline jobs.
  */
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { type PipelineJob, PipelineJobStatus } from "../../../pipeline/types";
 import type { SystemHealth } from "../../../services/systemHealthRouter";
-import { useGetJobs, useListLibraries, useSystemHealth } from "../api/hooks";
+import type { ActivityDay } from "../../../store/types";
+import {
+  useActivityHistory,
+  useGetJobs,
+  useListLibraries,
+  useSystemHealth,
+} from "../api/hooks";
+import { AreaChart } from "../components/AreaChart";
 import { Card } from "../components/Card";
 import { Chip } from "../components/Chip";
 import { EmptyState } from "../components/EmptyState";
@@ -158,12 +165,51 @@ function SystemHealthCard() {
   );
 }
 
+/** Trailing window (days) for the Overview indexing-activity chart. */
+const ACTIVITY_WINDOW_DAYS = 90;
+
+/** Formats a `YYYY-MM-DD` (UTC) day as e.g. "Aug 6" for axis labels. */
+function formatDayLabel(isoDate: string): string {
+  const parsed = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Picks `count` evenly spaced x-axis labels (first and last always included). */
+function pickXLabels(days: ActivityDay[], count = 4): string[] {
+  if (days.length <= count) return days.map((d) => formatDayLabel(d.date));
+  return Array.from({ length: count }, (_, i) => {
+    const index = Math.round((i / (count - 1)) * (days.length - 1));
+    return formatDayLabel(days[index].date);
+  });
+}
+
+/** Builds `count` y-axis gridline labels from `max` down to 0. */
+function buildYLabels(max: number, count = 4): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const value = (max * (count - 1 - i)) / (count - 1);
+    return Math.round(value).toLocaleString();
+  });
+}
+
+const CHART_NUM_STYLE = { fontFamily: "var(--mono)", color: "var(--text)" } as const;
+
 /**
- * "Pages processed" activity card. There is no time-series/history endpoint
- * yet, so this renders an honest empty state instead of a fabricated chart.
- * Backlog: wire up once a history API exists.
+ * "Indexing activity" card: pages indexed per day over the trailing window,
+ * derived from the `created_at` timestamps stored on pages and chunks. Renders
+ * an honest empty state only when nothing has been indexed in the window.
  */
 function ActivityCard() {
+  const { data, isLoading, isError, error } = useActivityHistory(ACTIVITY_WINDOW_DAYS);
+
+  const values = data?.days.map((day) => day.pages) ?? [];
+  const hasActivity = data ? data.totalPages > 0 : false;
+  const maxPages = values.length > 0 ? Math.max(...values) : 0;
+
   return (
     <Card className="panel chart-wrap">
       <div className="panel__head">
@@ -171,12 +217,36 @@ function ActivityCard() {
           <span className="eyebrow">Indexing activity</span>
           <h3 style={{ marginTop: 2 }}>Pages processed</h3>
         </div>
+        {hasActivity && data ? (
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+            <b style={CHART_NUM_STYLE}>{data.totalPages.toLocaleString()}</b> pages ·{" "}
+            <b style={CHART_NUM_STYLE}>{data.totalChunks.toLocaleString()}</b> chunks ·
+            last {ACTIVITY_WINDOW_DAYS}d
+          </span>
+        ) : null}
       </div>
-      <EmptyState
-        icon="i-file"
-        title="Activity history isn't available yet"
-        description="Per-day indexing throughput isn't tracked yet, so there's nothing to chart."
-      />
+      {isLoading ? (
+        <Loading label="Loading indexing activity…" />
+      ) : isError ? (
+        <EmptyState
+          icon="i-file"
+          title="Couldn't load indexing activity"
+          description={error ? error.message : "Please try again."}
+        />
+      ) : hasActivity && data ? (
+        <AreaChart
+          values={values}
+          yLabels={buildYLabels(maxPages)}
+          xLabels={pickXLabels(data.days)}
+          label={`Pages indexed per day over the last ${ACTIVITY_WINDOW_DAYS} days`}
+        />
+      ) : (
+        <EmptyState
+          icon="i-file"
+          title="No indexing activity yet"
+          description={`Nothing has been indexed in the last ${ACTIVITY_WINDOW_DAYS} days. Add a library to start building history.`}
+        />
+      )}
     </Card>
   );
 }
