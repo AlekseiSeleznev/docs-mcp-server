@@ -81,11 +81,16 @@ export function Sidebar() {
       <div className="sidebar__spacer" />
 
       <div className="side-card">
-        <div className="side-row">
-          <StatusDot variant={worker.variant} pulse={worker.pulse} />
-          <span className="k">Worker</span>
-          <span className="v">{health?.worker.mode ?? "—"}</span>
-        </div>
+        {/* Worker row only matters when it's remote (connection status). An
+            embedded worker is the default and just takes space here, so hide
+            it — the Overview system-health card still shows it in full. */}
+        {health?.worker.mode === "remote" ? (
+          <div className="side-row">
+            <StatusDot variant={worker.variant} pulse={worker.pulse} />
+            <span className="k">Worker</span>
+            <span className="v">{health.worker.url}</span>
+          </div>
+        ) : null}
         <div className="side-row">
           <Icon name="i-bolt" size="xs" style={{ color: "var(--text-faint)" }} />
           <span className="k">Embeddings</span>
