@@ -365,7 +365,12 @@ export class DocumentStore {
           v.progress_pages as progressPages,
           v.progress_max_pages as progressMaxPages,
           v.source_url as sourceUrl,
-          MIN(p.created_at) as indexedAt,
+          -- "Last indexed" = when the version was last (re)indexed. Use the
+          -- version's updated_at (bumped on every status/progress change during
+          -- a run, including refreshes) rather than MIN(p.created_at), which is
+          -- the *first*-index time and never moves on refresh. Fall back to the
+          -- oldest page for versions that predate status tracking.
+          COALESCE(v.updated_at, MIN(p.created_at)) as indexedAt,
           COUNT(d.id) as documentCount,
           COUNT(DISTINCT p.url) as uniqueUrlCount
         FROM versions v
