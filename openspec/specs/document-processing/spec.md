@@ -1,7 +1,7 @@
 # document-processing Specification
 
 ## Purpose
-Defines how binary documents are routed (distinguishing archives from ZIP-based documents) and how text is extracted from supported document formats via the Kreuzberg library.
+Defines how binary documents are routed (distinguishing archives from ZIP-based documents) and how text is extracted from supported document formats via the Xberg library.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ The archive detection system SHALL NOT treat ZIP-based document formats as archi
 #### Scenario: DOCX file not treated as archive
 - **WHEN** `getArchiveAdapter()` is called with a path ending in `.docx`
 - **THEN** it SHALL return `null`
-- **AND** the file SHALL be processed by `DocumentPipeline` via Kreuzberg
+- **AND** the file SHALL be processed by `DocumentPipeline` via Xberg
 
 #### Scenario: XLSX file not treated as archive
 - **WHEN** `getArchiveAdapter()` is called with a path ending in `.xlsx`
@@ -38,12 +38,12 @@ The archive detection system SHALL NOT treat ZIP-based document formats as archi
 - **THEN** it SHALL return `null`
 - **AND** the file SHALL NOT be opened or inspected for magic bytes
 
-### Requirement: Document text extraction via Kreuzberg
-The system SHALL use the Kreuzberg library (`@kreuzberg/node`) to extract text content from binary document formats. The extraction SHALL accept in-memory buffers with a MIME type and return Markdown-formatted content for downstream splitting. The system SHALL request Markdown output from Kreuzberg via `outputFormat: "markdown"` in the extraction configuration.
+### Requirement: Document text extraction via Xberg
+The system SHALL use the Xberg library (`@xberg-io/xberg`) to extract text content from binary document formats. The extraction SHALL accept in-memory buffers with a MIME type and return Markdown-formatted content for downstream splitting. The system SHALL request Markdown output from Xberg via `outputFormat: OutputFormat.Markdown` in the extraction configuration.
 
 #### Scenario: PDF text extraction
 - **WHEN** a PDF document buffer is passed to the DocumentPipeline
-- **THEN** the system SHALL extract text content using Kreuzberg's `extractBytes()` API with `outputFormat: "markdown"`
+- **THEN** the system SHALL extract text content using Xberg's `extract()` API with a `bytes` input and `outputFormat: OutputFormat.Markdown`
 - **AND** the result SHALL contain the document's text content
 - **AND** the content type SHALL be `text/markdown`
 
@@ -53,29 +53,39 @@ The system SHALL use the Kreuzberg library (`@kreuzberg/node`) to extract text c
 - **AND** the content type SHALL be `text/markdown`
 
 #### Scenario: Extraction failure handling
-- **WHEN** Kreuzberg fails to extract content from a document
+- **WHEN** Xberg fails to extract content from a document
 - **THEN** the system SHALL return a `PipelineResult` with an error and null text content
 - **AND** the system SHALL NOT crash or throw unhandled exceptions
 
-### Requirement: Prefer structured Markdown tables over flat text
-The system SHALL prefer pre-rendered Markdown from `tables[].markdown` over `result.content` when Kreuzberg's extraction result contains non-empty structured tables. This ensures spreadsheet-type documents (XLSX, XLS, ODS) produce properly formatted Markdown tables rather than flat space-separated text.
+#### Scenario: Envelope without a result
+- **WHEN** Xberg's `extract()` resolves with an empty `results` array and a populated `errors` array
+- **THEN** the system SHALL treat the extraction as failed
+- **AND** the system SHALL include the per-input error message in the failure log
+
+### Requirement: Prefer rendered Markdown content over per-table Markdown
+The system SHALL use `content` from Xberg's extracted document as the extracted text whenever it is non-empty, falling back to the concatenated `tables[].markdown` only when `content` is empty. Xberg's Markdown renderer emits the full document structure in `content` — including sheet headings and Markdown tables for spreadsheets — so `content` is a superset of the per-table Markdown.
 
 #### Scenario: Spreadsheet with tabular data
-- **WHEN** an XLSX document with tabular data across one or more sheets is extracted
-- **THEN** the system SHALL use the concatenated `tables[].markdown` content as the extracted text
+- **WHEN** an XLSX or ODS document with tabular data across one or more sheets is extracted
+- **THEN** the system SHALL use `content` as the extracted text
 - **AND** each sheet SHALL appear as a Markdown heading followed by a Markdown table
 
 #### Scenario: Document with inline tables
 - **WHEN** a DOCX document containing inline tables is extracted
-- **AND** Kreuzberg populates both `content` (with full Markdown structure) and `tables` (with table-only data)
-- **THEN** the system SHALL use `result.content` because it includes the full document structure (headings, paragraphs, lists) alongside the tables
+- **AND** Xberg populates both `content` (with full Markdown structure) and `tables` (with table-only data)
+- **THEN** the system SHALL use `content` because it includes the full document structure (headings, paragraphs, lists) alongside the tables
 
 #### Scenario: Document without tables
-- **WHEN** a document is extracted and `result.tables` is empty
-- **THEN** the system SHALL use `result.content` as the extracted text
+- **WHEN** a document is extracted and `tables` is empty or absent
+- **THEN** the system SHALL use `content` as the extracted text
+
+#### Scenario: Empty rendered content with structured tables
+- **WHEN** a document is extracted and `content` is empty or whitespace-only
+- **AND** `tables` contains at least one entry with non-empty Markdown
+- **THEN** the system SHALL use the concatenated `tables[].markdown` as the extracted text
 
 ### Requirement: Legacy Office format support
-The system SHALL support extraction of legacy Microsoft Office formats (DOC, XLS, PPT) that Kreuzberg handles natively without requiring external tools like LibreOffice.
+The system SHALL support extraction of legacy Microsoft Office formats (DOC, XLS, PPT) that Xberg handles natively without requiring external tools like LibreOffice.
 
 #### Scenario: DOC file extraction
 - **WHEN** a `.doc` file with MIME type `application/msword` is processed
@@ -123,7 +133,7 @@ The system SHALL support extraction of eBook formats (EPUB, FB2).
 - **THEN** the `DocumentPipeline` SHALL accept and extract text content from it
 
 ### Requirement: Document metadata extraction
-The system SHALL extract document metadata (title) from Kreuzberg's extraction result when available, falling back to filename-based title extraction.
+The system SHALL extract document metadata (title) from Xberg's extraction result when available, falling back to filename-based title extraction.
 
 #### Scenario: Title from document metadata
 - **WHEN** a document with embedded title metadata is extracted

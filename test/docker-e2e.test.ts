@@ -5,7 +5,7 @@
  *   1. Container starts and runs as a non-root user (security hardening).
  *   2. Chromium is installed where the runtime expects it (Playwright path).
  *   3. The Playwright-backed scrape pipeline can fetch a real web page.
- *   4. The Kreuzberg-backed PDF pipeline can extract a PDF from a mounted volume.
+ *   4. The Xberg-backed PDF pipeline can extract a PDF from a mounted volume.
  *
  * Skipped automatically when Docker is not available on the host.
  *
@@ -186,7 +186,7 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     }
   }, 240_000);
 
-  it("extracts a PDF from a mounted volume via Kreuzberg", async () => {
+  it("extracts a PDF from a mounted volume via Xberg", async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-docker-pdf-"));
     fs.chmodSync(dataDir, 0o777);
     const fixtureDir = path.join(PROJECT_ROOT, "test", "fixtures");

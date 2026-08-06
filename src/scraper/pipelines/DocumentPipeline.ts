@@ -1,5 +1,5 @@
 /**
- * DocumentPipeline - Processes binary document formats using Kreuzberg for text extraction,
+ * DocumentPipeline - Processes binary document formats using Xberg for text extraction,
  * then splits semantically.
  *
  * Supported formats:
@@ -11,16 +11,22 @@
  * - eBooks: EPUB (.epub), FictionBook (.fb2)
  * - Jupyter Notebook (.ipynb)
  *
- * The pipeline requests Markdown output from Kreuzberg (`@kreuzberg/node`) via
- * `outputFormat: "markdown"`, aligning with the project's Markdown-first processing
- * pipeline. For spreadsheet-type documents where `result.content` is flat text,
- * the pipeline prefers pre-rendered Markdown from `tables[].markdown` which includes
- * sheet names as headings and properly formatted Markdown tables.
+ * The pipeline requests Markdown output from Xberg (`@xberg-io/xberg`) via
+ * `outputFormat: OutputFormat.Markdown`, aligning with the project's Markdown-first
+ * processing pipeline. Xberg's Markdown renderer emits fully structured output for
+ * every format — including spreadsheets, where each sheet appears as a heading
+ * followed by a Markdown table — so `content` is the preferred representation and
+ * `tables[].markdown` only serves as a fallback when `content` comes back empty.
  *
  * Documents exceeding the configured maximum size are skipped with a warning.
  */
 
-import { extractBytes } from "@kreuzberg/node";
+import {
+  type ExtractedDocument,
+  ExtractInputKind,
+  extract,
+  OutputFormat,
+} from "@xberg-io/xberg";
 import { GreedySplitter } from "../../splitter/GreedySplitter";
 import { SemanticMarkdownSplitter } from "../../splitter/SemanticMarkdownSplitter";
 import type { AppConfig } from "../../utils/config";
@@ -97,11 +103,25 @@ export class DocumentPipeline extends BasePipeline {
     }
 
     try {
-      const result = await extractBytes(buffer, mimeType, {
-        outputFormat: "markdown",
-      });
+      const result = await extract(
+        { kind: ExtractInputKind.Bytes, bytes: buffer, mimeType },
+        { outputFormat: OutputFormat.Markdown },
+      );
 
-      const content = this.extractContent(result, mimeType);
+      // `extract` returns an envelope that can carry several documents. A
+      // single-input call yields at most one; a per-input failure is reported
+      // in `errors` instead of throwing.
+      const document = result.results?.[0];
+      if (!document) {
+        const reason = result.errors?.[0]?.message;
+        throw new Error(
+          reason
+            ? `Extraction produced no result: ${reason}`
+            : "Extraction produced no result",
+        );
+      }
+
+      const content = this.extractContent(document);
 
       if (!content) {
         logger.warn(`No content extracted from document: ${rawContent.source}`);
@@ -115,10 +135,10 @@ export class DocumentPipeline extends BasePipeline {
         };
       }
 
-      // Use title from Kreuzberg metadata, fall back to filename
-      const title = result.metadata?.title || this.extractFilename(rawContent.source);
+      // Use title from Xberg metadata, fall back to filename
+      const title = document.metadata?.title || this.extractFilename(rawContent.source);
 
-      // Split the content (Kreuzberg output is Markdown)
+      // Split the content (Xberg output is Markdown)
       const chunks = await this.splitter.splitText(content, "text/markdown");
 
       return {
@@ -153,54 +173,25 @@ export class DocumentPipeline extends BasePipeline {
   }
 
   /**
-   * Selects the best content representation from a Kreuzberg extraction result.
-   * For spreadsheet-type documents, prefer pre-rendered Markdown from `tables[].markdown`.
-   * For other documents, prefer `result.content` and only fall back to tables when needed.
+   * Selects the best content representation from an Xberg extraction result.
+   *
+   * `content` is preferred for every format: Xberg's Markdown renderer emits the
+   * full document structure there, including sheet headings and Markdown tables
+   * for spreadsheets, so it is always a superset of `tables[].markdown`. The
+   * concatenated table Markdown is only used when `content` comes back empty.
    */
-  private extractContent(
-    result: Awaited<ReturnType<typeof extractBytes>>,
-    mimeType: string,
-  ): string | null {
-    // Kreuzberg's per-table markdown no longer includes the sheet name as a
-    // heading, so reconstruct it here using the workbook-level sheet name
-    // list. Only trust the 1:1 positional mapping when the counts agree —
-    // a sheet can contain zero or multiple tables.
-    const sheetNames = result.metadata?.sheetNames;
-    const tableContent = result.tables
-      .map((t, i) => {
-        const sheetName =
-          sheetNames?.length === result.tables.length ? sheetNames[i] : null;
-        return sheetName ? `# ${sheetName}\n\n${t.markdown}` : t.markdown;
-      })
-      .join("\n\n");
-    const hasTableContent = tableContent.trim().length > 0;
-    const content = result.content ?? "";
-    const hasContent = content.trim().length > 0;
-
-    if (this.isSpreadsheetMimeType(mimeType)) {
-      if (hasTableContent) {
-        return tableContent;
-      }
-      return hasContent ? content : null;
-    }
-
-    if (hasContent) {
+  private extractContent(document: ExtractedDocument): string | null {
+    const content = document.content ?? "";
+    if (content.trim().length > 0) {
       return content;
     }
 
-    if (hasTableContent) {
-      return tableContent;
-    }
+    const tableContent = (document.tables ?? [])
+      .map((t) => t.markdown ?? "")
+      .filter((markdown) => markdown.trim().length > 0)
+      .join("\n\n");
 
-    return null;
-  }
-
-  private isSpreadsheetMimeType(mimeType: string): boolean {
-    return (
-      mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-      mimeType === "application/vnd.ms-excel" ||
-      mimeType === "application/vnd.oasis.opendocument.spreadsheet"
-    );
+    return tableContent.length > 0 ? tableContent : null;
   }
 
   /**
@@ -238,7 +229,7 @@ export class DocumentPipeline extends BasePipeline {
 
 /**
  * Maximum length (in characters) of any single error message included in
- * extraction failure logs. Kreuzberg errors may embed parts of the input
+ * extraction failure logs. Xberg errors may embed parts of the input
  * document; truncating defends the logs against accidental binary dumps
  * while still surfacing enough text to diagnose the root cause.
  */
@@ -247,7 +238,7 @@ const MAX_ERROR_DETAIL_LENGTH = 500;
 /**
  * Walks an `Error.cause` chain and returns a deduplicated, truncated list
  * of each link's `message`. Used to surface the underlying cause of a
- * Kreuzberg extraction failure (e.g. "GLIBC_2.38 not found") rather than
+ * Xberg extraction failure (e.g. "GLIBC_2.38 not found") rather than
  * just the wrapper's generic name.
  */
 function collectErrorReasons(error: unknown): string[] {

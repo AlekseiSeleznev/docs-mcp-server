@@ -1,11 +1,11 @@
 /**
  * Tests for DocumentPipeline - processes PDF, Office documents, OpenDocument,
- * RTF, eBooks, and Jupyter notebooks using Kreuzberg.
+ * RTF, eBooks, and Jupyter notebooks using Xberg.
  */
 
 import fs from "node:fs";
 import path from "node:path";
-import { extractBytes } from "@kreuzberg/node";
+import { extract } from "@xberg-io/xberg";
 import { describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../../utils/config";
 import { FetchStatus, type RawContent } from "../fetcher/types";
@@ -13,13 +13,24 @@ import type { ScraperOptions } from "../types";
 import { ScrapeMode } from "../types";
 import { DocumentPipeline } from "./DocumentPipeline";
 
-vi.mock("@kreuzberg/node", async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import("@kreuzberg/node");
+vi.mock("@xberg-io/xberg", async (importOriginal) => {
+  const actual = (await importOriginal()) as typeof import("@xberg-io/xberg");
   return {
     ...actual,
-    extractBytes: vi.fn(actual.extractBytes),
+    extract: vi.fn(actual.extract),
   };
 });
+
+/** Wraps a single extracted document in Xberg's `ExtractionResult` envelope. */
+function envelope(
+  document: Record<string, unknown>,
+): Awaited<ReturnType<typeof extract>> {
+  return {
+    results: [document],
+    errors: [],
+    summary: { inputs: 1, results: 1, errors: 0 },
+  } as unknown as Awaited<ReturnType<typeof extract>>;
+}
 
 const appConfig = loadConfig();
 const pipeline = new DocumentPipeline(appConfig);
@@ -176,13 +187,14 @@ describe("DocumentPipeline", () => {
     it("should prefer full markdown content for DOCX with tables", async () => {
       const docxMimeType =
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      const extractBytesMock = vi.mocked(extractBytes);
-      extractBytesMock.mockResolvedValueOnce({
-        content:
-          "# Sample DOCX\n\nIntro paragraph before table.\n\n| A | B |\n| - | - |\n| 1 | 2 |",
-        tables: [{ markdown: "| A | B |\n| - | - |\n| 1 | 2 |" }],
-        metadata: { title: "Sample DOCX" },
-      } as Awaited<ReturnType<typeof extractBytes>>);
+      vi.mocked(extract).mockResolvedValueOnce(
+        envelope({
+          content:
+            "# Sample DOCX\n\nIntro paragraph before table.\n\n| A | B |\n| - | - |\n| 1 | 2 |",
+          tables: [{ markdown: "| A | B |\n| - | - |\n| 1 | 2 |" }],
+          metadata: { title: "Sample DOCX" },
+        }),
+      );
 
       const rawContent = createRawContent(
         "sample.docx",
@@ -292,7 +304,7 @@ describe("DocumentPipeline", () => {
       expect(result.chunks).toHaveLength(0);
     });
 
-    it("should process PDF with any source URL since Kreuzberg uses MIME type directly", async () => {
+    it("should process PDF with any source URL since Xberg uses MIME type directly", async () => {
       const content = loadFixture("sample.pdf");
       const rawContent: RawContent = {
         content,
@@ -303,7 +315,7 @@ describe("DocumentPipeline", () => {
 
       const result = await pipeline.process(rawContent, baseOptions);
 
-      // Should succeed because Kreuzberg uses MIME type, not file extension
+      // Should succeed because Xberg uses MIME type, not file extension
       expect(result.errors).toHaveLength(0);
       expect(result.textContent).toBeTruthy();
       expect(result.contentType).toBe("text/markdown");
@@ -363,7 +375,7 @@ describe("DocumentPipeline", () => {
     });
 
     it("should produce Markdown formatting for DOCX with structure", async () => {
-      // The sample.docx has paragraphs; Kreuzberg with outputFormat: "markdown"
+      // The sample.docx has paragraphs; Xberg with OutputFormat.Markdown
       // preserves document structure in Markdown format
       const content = loadFixture("sample.docx");
       const rawContent = createRawContent(
@@ -392,9 +404,11 @@ describe("DocumentPipeline", () => {
 
       expect(result.errors).toHaveLength(0);
       expect(result.textContent).toBeTruthy();
-      // tables[].markdown includes sheet name as heading and separator row
-      expect(result.textContent).toContain("Sheet1");
-      expect(result.textContent).toContain("---");
+      // Xberg renders each sheet as a Markdown heading followed by its table,
+      // so `content` already carries the sheet name — the pipeline no longer
+      // reconstructs headings from separate sheet-name metadata.
+      expect(result.textContent).toContain("## Sheet1");
+      expect(result.textContent).toContain("| --- | --- |");
     });
 
     it("should resolve application/octet-stream from URL extension and process document", async () => {
@@ -446,21 +460,20 @@ describe("DocumentPipeline", () => {
     });
 
     it("should log the underlying cause chain when extraction throws", async () => {
-      // Regression guard for issue #394: when @kreuzberg/node failed to load
-      // its native binding (glibc mismatch in Docker), the original log line
+      // Regression guard for issue #394: when the native extraction binding
+      // failed to load (glibc mismatch in Docker), the original log line
       // only said "Failed to convert document: Error" with no clue about the
       // actual underlying problem (`GLIBC_2.38 not found`). This test pins
       // the behavior that the wrapped Error.cause chain reaches the log.
       const { logger } = await import("../../utils/logger");
       const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
-      const wrapped = new Error("Failed to load Kreuzberg native bindings", {
+      const wrapped = new Error("Failed to load Xberg native bindings", {
         cause: new Error(
           "/lib/aarch64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found",
         ),
       });
-      const mockedExtractBytes = vi.mocked(extractBytes);
-      mockedExtractBytes.mockRejectedValueOnce(wrapped);
+      vi.mocked(extract).mockRejectedValueOnce(wrapped);
 
       const rawContent = createRawContent(
         "sample.pdf",
@@ -475,7 +488,7 @@ describe("DocumentPipeline", () => {
       expect(errorSpy).toHaveBeenCalledTimes(1);
       const logged = errorSpy.mock.calls[0][0];
       expect(logged).toContain("Failed to convert document");
-      expect(logged).toContain("Failed to load Kreuzberg native bindings");
+      expect(logged).toContain("Failed to load Xberg native bindings");
       expect(logged).toContain("GLIBC_2.38");
       expect(logged).toContain("application/pdf");
 
@@ -486,11 +499,11 @@ describe("DocumentPipeline", () => {
       const { logger } = await import("../../utils/logger");
       const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
-      // Simulate a Kreuzberg error whose message embeds a huge blob (could be
+      // Simulate an Xberg error whose message embeds a huge blob (could be
       // binary from the malformed input document). The log must not contain
       // the full blob.
       const huge = "X".repeat(50_000);
-      vi.mocked(extractBytes).mockRejectedValueOnce(new Error(huge));
+      vi.mocked(extract).mockRejectedValueOnce(new Error(huge));
 
       const rawContent = createRawContent(
         "sample.pdf",
@@ -505,6 +518,69 @@ describe("DocumentPipeline", () => {
       expect(logged.length).toBeLessThan(2_000);
 
       errorSpy.mockRestore();
+    });
+
+    it("should surface per-input errors when the envelope carries no result", async () => {
+      // Xberg's `extract` returns an envelope: a failure can arrive as an empty
+      // `results` array plus a populated `errors` array instead of a rejection.
+      const { logger } = await import("../../utils/logger");
+      const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+
+      vi.mocked(extract).mockResolvedValueOnce({
+        results: [],
+        errors: [
+          {
+            index: 0,
+            code: 42,
+            errorType: "parsing_error",
+            source: "sample.pdf",
+            message: "pdf_oxide: failed to load bytes",
+          },
+        ],
+        summary: { inputs: 1, results: 0, errors: 1 },
+      } as unknown as Awaited<ReturnType<typeof extract>>);
+
+      const rawContent = createRawContent(
+        "sample.pdf",
+        "application/pdf",
+        Buffer.from("%PDF-1.4 fake"),
+      );
+
+      const result = await pipeline.process(rawContent, baseOptions);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors![0].message).toContain("Failed to convert document");
+      expect(result.textContent).toBeNull();
+      expect(result.chunks).toHaveLength(0);
+      expect(errorSpy.mock.calls[0][0]).toContain("pdf_oxide: failed to load bytes");
+
+      errorSpy.mockRestore();
+    });
+
+    it("should fall back to table markdown when content is empty", async () => {
+      vi.mocked(extract).mockResolvedValueOnce(
+        envelope({
+          content: "   ",
+          tables: [
+            { markdown: "| A | B |\n| --- | --- |\n| 1 | 2 |" },
+            { markdown: "| C | D |\n| --- | --- |\n| 3 | 4 |" },
+          ],
+          metadata: {},
+        }),
+      );
+
+      const rawContent = createRawContent(
+        "sample.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        Buffer.from("fake xlsx"),
+      );
+
+      const result = await pipeline.process(rawContent, baseOptions);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.textContent).toContain("| A | B |");
+      expect(result.textContent).toContain("| C | D |");
+      expect(result.contentType).toBe("text/markdown");
     });
   });
 });
