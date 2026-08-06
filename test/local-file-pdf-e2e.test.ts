@@ -11,7 +11,7 @@
  * `textContent`.
  *
  * If this test passes → the in-process pipeline works; the production bug is
- * environmental (likely Kreuzberg native deps missing in the Docker image, or
+ * environmental (likely Xberg native deps missing in the Docker image, or
  * the `document.maxSize` 10 MB cap).
  * If this test fails → we have an in-code regression and the assertions show
  * exactly where it broke.

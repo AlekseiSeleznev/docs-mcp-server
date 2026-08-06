@@ -91,7 +91,7 @@ Transform raw content using middleware chains and content-type-specific logic:
 - **HtmlPipeline**: Converts HTML to clean markdown via middleware, then applies semantic splitting
 - **MarkdownPipeline**: Processes markdown with metadata extraction and semantic splitting
 - **JsonPipeline**: Validates JSON structure and applies hierarchical splitting
-- **DocumentPipeline**: Extracts text from binary documents (PDF, Office, EPUB, RTF, etc.) via Kreuzberg, converting to markdown
+- **DocumentPipeline**: Extracts text from binary documents (PDF, Office, EPUB, RTF, etc.) via Xberg, converting to markdown
 - **SourceCodePipeline**: Handles programming languages with language detection and line-based splitting
 - **TextPipeline**: Fallback for generic text content with basic processing
 
@@ -258,7 +258,7 @@ graph TD
     end
 
     subgraph "Document Processing"
-        A5[Raw Document] --> B5[Kreuzberg Extraction]
+        A5[Raw Document] --> B5[Xberg Extraction]
         B5 --> C5[Markdown Conversion]
         C5 --> D5[SemanticMarkdownSplitter]
     end
@@ -284,7 +284,7 @@ graph TD
 - **JSON**: Structural validation with hierarchical object/array splitting
 - **Source Code**: Tree-sitter semantic boundary detection with language-specific parsing
 - **Markdown**: Direct semantic splitting with metadata preservation
-- **Documents**: Binary extraction via Kreuzberg with Markdown output and table-aware content handling
+- **Documents**: Binary extraction via Xberg with Markdown output and table-aware content handling
 
 All content types converge on GreedySplitter for universal size optimization while preserving content-specific semantic boundaries.
 

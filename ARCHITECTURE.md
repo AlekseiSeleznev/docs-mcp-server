@@ -255,7 +255,7 @@ Content processing follows a modular strategy-pipeline-splitter architecture:
 1. **Scraper Strategies**: Handle different source types (web, local files, package registries)
 2. **Content Fetchers**: Retrieve raw content from various sources (HTTP, filesystem, APIs)
 3. **Processing Pipelines**: Transform content using middleware chains and content-type-specific logic
-4. **Document Processing**: Extract text from binary documents (PDF, Office, EPUB, etc.) using Kreuzberg
+4. **Document Processing**: Extract text from binary documents (PDF, Office, EPUB, etc.) using Xberg
 5. **Document Splitters**: Segment content into semantic chunks preserving document structure
 6. **Size Optimization**: Apply universal chunk sizing for optimal embedding generation
 7. **Embedders**: Generate vector embeddings using configured provider

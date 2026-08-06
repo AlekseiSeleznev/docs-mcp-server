@@ -10,7 +10,7 @@ Content is routed to the first pipeline whose `canProcess()` method matches the 
 |----------|----------|---------|--------|
 | 1 | JsonPipeline | JSON documents | JSON (structural splitting) |
 | 2 | SourceCodePipeline | Programming languages | Source code (AST-aware or line-based splitting) |
-| 3 | DocumentPipeline | Binary and rich documents | Markdown (converted via Kreuzberg) |
+| 3 | DocumentPipeline | Binary and rich documents | Markdown (converted via Xberg) |
 | 4 | HtmlPipeline | Web pages | Markdown (converted via middleware chain) |
 | 5 | MarkdownPipeline | Markdown files | Markdown (passthrough with metadata extraction) |
 | 6 | TextPipeline | Universal fallback | Plain text (line-based splitting) |
@@ -39,7 +39,7 @@ Archives are supported as input for both local file scraping (`file://` URLs) an
 
 ## Documents
 
-The DocumentPipeline uses [Kreuzberg](https://github.com/nichochar/kreuzberg) (`@kreuzberg/node`) to extract content from binary and rich document formats. All documents are converted to Markdown. For spreadsheets, Kreuzberg's pre-rendered table Markdown is preferred over flat text extraction.
+The DocumentPipeline uses [Xberg](https://github.com/xberg-io/xberg) (`@xberg-io/xberg`) to extract content from binary and rich document formats. All documents are converted to Markdown. Xberg's Markdown renderer emits the full document structure — for spreadsheets, each sheet appears as a heading followed by a Markdown table — so the rendered content is used directly; per-table Markdown serves only as a fallback when the rendered content is empty.
 
 Documents are subject to a configurable size limit (`scraper.document.maxSize`, default 10 MB).
 
@@ -61,7 +61,7 @@ Documents are subject to a configurable size limit (`scraper.document.maxSize`, 
 | Jupyter Notebook | `.ipynb` | `application/x-ipynb+json` |
 
 **Code Reference:**
-- `src/scraper/pipelines/DocumentPipeline.ts` - Kreuzberg integration and content extraction
+- `src/scraper/pipelines/DocumentPipeline.ts` - Xberg integration and content extraction
 - `src/utils/mimeTypeUtils.ts` - `isSupportedDocument()` gate function
 
 ## Web Pages

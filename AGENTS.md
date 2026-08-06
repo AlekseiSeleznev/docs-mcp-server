@@ -37,6 +37,7 @@
 - Use `npm ci` (not `npm install`) when you just need `node_modules`; it installs from the lockfile without mutating it. Reserve `npm install` for intentional dependency changes.
 - Keep Node 22 — `better-sqlite3` ships a Node-ABI-pinned native binary. Do not bump the engine floor to v24+.
 - For occasional CLI tools that aren't part of the runtime (e.g. `promptfoo` for search evals), invoke them via `npx -y <pkg>@<version>` from `package.json` scripts rather than declaring them as dependencies — keeps the dep tree and lockfile clean.
+- npm 10 does not record `libc` in `package-lock.json`, so `npm ci` on Linux installs **both** the glibc and musl builds of every prebuilt native package (`@xberg-io/xberg`, `@biomejs/cli`, `lightningcss`, …). The `Dockerfile` prunes the musl copies after `npm ci`. If the lockfile is ever regenerated from scratch with npm 11+, the `libc` fields appear and that prune becomes redundant.
 
 ### Commit Messages
 
@@ -125,11 +126,11 @@ Unit + integration tests live next to the code they cover (`src/foo.ts` ↔ `src
 | `html-pipeline-live-e2e.test.ts` | HTML pipeline against real documentation sites (anti-scrape, JS-heavy) | network; slow & flaky | **no** — `npm run test:live` |
 | `refresh-pipeline-e2e.test.ts` | Refresh handling: 200/304/404, broken links, etag flow | none (mock server) | yes |
 | `archive-integration.test.ts` | `LocalFileStrategy` archive (zip) traversal and extraction | fixture archive | yes |
-| `local-file-pdf-e2e.test.ts` | PDF in a `file://` directory is indexed alongside `.txt`/`.md` (regression for issue #394) | Kreuzberg native deps | yes |
+| `local-file-pdf-e2e.test.ts` | PDF in a `file://` directory is indexed alongside `.txt`/`.md` (regression for issue #394) | Xberg native deps | yes |
 | `vector-persistence-e2e.test.ts` | Embeddings land in `documents_vec` virtual table | MSW-mocked OpenAI | yes |
 | `vector-search-e2e.test.ts` | Full pipeline: scrape → split → embed → index → search | MSW-mocked OpenAI | yes |
 | `github-private-repo-e2e.test.ts` | Auth flow for private GitHub repo scraping | `GITHUB_TOKEN`; skips otherwise | yes (skips if no token) |
-| `docker-e2e.test.ts` | Production image: non-root user, Chromium present, Playwright scrape, Kreuzberg PDF, bind-mounted docs folder recursively indexed via `file:///` | Docker daemon; `DOCKER_IMAGE_TAG` to reuse a prebuilt image | **no** — `npm run test:docker` |
+| `docker-e2e.test.ts` | Production image: non-root user, Chromium present, Playwright scrape, Xberg PDF, bind-mounted docs folder recursively indexed via `file:///` | Docker daemon; `DOCKER_IMAGE_TAG` to reuse a prebuilt image | **no** — `npm run test:docker` |
 
 Notes:
 - The "live" and "docker" suites are excluded from `npm test` / `npm run test:e2e` because they need external network or a Docker daemon. CI runs `docker-e2e.test.ts` in a dedicated `docker-test` job.

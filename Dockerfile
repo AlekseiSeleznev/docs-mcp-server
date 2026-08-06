@@ -24,6 +24,14 @@ COPY package*.json ./
 # Install all dependencies (including dev dependencies for building)
 RUN npm ci
 
+# Drop the musl-linked native builds. npm selects platform packages by `os`
+# and `cpu`; it only filters on `libc` when the lockfile records that field,
+# which npm 10 does not write. Both the glibc and musl variants therefore get
+# installed, and on this Debian base the musl ones can never load. Pruning
+# them keeps ~190 MB of dead binaries (over half of it `@xberg-io/xberg`)
+# out of the runtime image.
+RUN find node_modules -maxdepth 3 -type d -name '*-linux-*-musl' -prune -exec rm -rf {} +
+
 # Copy source code
 COPY . .
 
