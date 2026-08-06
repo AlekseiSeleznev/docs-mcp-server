@@ -11,6 +11,7 @@ import { AppProviders } from "./components/AppProviders";
 import { IconSprite } from "./components/Icon";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
+import { useLiveInvalidation } from "./hooks/useLiveInvalidation";
 import Jobs from "./pages/Jobs";
 import Libraries from "./pages/Libraries";
 import LibraryDetail from "./pages/LibraryDetail";
@@ -21,6 +22,10 @@ import Settings from "./pages/Settings";
 /** Sidebar + sticky topbar + scrollable `<Outlet/>`, matching the mockup's `.app` layout. */
 function Shell() {
   const location = useLocation();
+  // App-wide live refresh: keeps every view current as jobs run and the corpus
+  // changes, regardless of which page is open. Mounted here because Shell is the
+  // one component present for every route.
+  useLiveInvalidation();
   return (
     <div className="app">
       <IconSprite />

@@ -4,21 +4,19 @@
  * Shows summary stats, a "needs attention" list of failed jobs with retry
  * actions, the live "active & queued" list (running/cancelling/queued jobs
  * with progress), and a history table of recently finished jobs. Updates in
- * real time via `useEventsSubscription` — no manual refresh required.
+ * real time via the shell's `useLiveInvalidation` — no manual refresh required.
  *
  * See `components/README.md` for the shared component catalogue and
  * `pages/Libraries.tsx` for the reference composition pattern this page
  * follows (Table/Card/Pill/Chip/EmptyState + `useConfirm`/`useToast` +
  * `trpc.useUtils()` cache invalidation after mutations).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EventType } from "../../../events/types";
+import { useEffect, useMemo, useState } from "react";
 import { PipelineJobStatus } from "../../../pipeline/types";
 import {
   useCancelJob,
   useClearCompletedJobs,
   useEnqueueScrapeJob,
-  useEventsSubscription,
   useGetJobs,
   useSystemHealth,
 } from "../api/hooks";
@@ -39,15 +37,6 @@ import { FailedJobCard } from "./jobs/FailedJobCard";
 import { formatDuration, formatRelative } from "./jobs/format";
 import { JobCard } from "./jobs/JobCard";
 import type { Job } from "./jobs/types";
-
-/** Stable subscription filter — module-level so the object identity never changes across renders. */
-const JOB_EVENTS_INPUT = {
-  events: [
-    EventType.JOB_STATUS_CHANGE,
-    EventType.JOB_PROGRESS,
-    EventType.JOB_LIST_CHANGE,
-  ],
-};
 
 const FINISHED_STATUSES: ReadonlySet<PipelineJobStatus> = new Set([
   PipelineJobStatus.COMPLETED,
@@ -89,25 +78,9 @@ export default function Jobs() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Real-time updates: any job status/progress/list change invalidates the
-  // `getJobs` query so this page reflects live pipeline state without a
-  // manual refresh. Debounced slightly since JOB_PROGRESS fires once per
-  // page scraped and could otherwise trigger a refetch per page.
-  const invalidateTimer = useRef<number | null>(null);
-  const scheduleInvalidate = useCallback(() => {
-    if (invalidateTimer.current != null) return;
-    invalidateTimer.current = window.setTimeout(() => {
-      invalidateTimer.current = null;
-      utils.getJobs.invalidate();
-    }, 250);
-  }, [utils]);
-  useEffect(
-    () => () => {
-      if (invalidateTimer.current != null) window.clearTimeout(invalidateTimer.current);
-    },
-    [],
-  );
-  useEventsSubscription(JOB_EVENTS_INPUT, scheduleInvalidate);
+  // Real-time updates arrive app-wide via the shell's `useLiveInvalidation`,
+  // which invalidates `getJobs` on pipeline events — so this page reflects live
+  // state without its own subscription or a manual refresh.
 
   // Only an embedded worker has a fixed pool of slots to report; a remote
   // worker's concurrency isn't ours to know, and while health is still
