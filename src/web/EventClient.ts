@@ -24,6 +24,10 @@ export class EventClient {
 
   /**
    * Start the SSE connection.
+   *
+   * The endpoint is relative to the coordinator serving this page. In
+   * distributed deployments RemoteEventProxy bridges the worker's events onto
+   * the coordinator's event bus, so the browser never needs the worker URL.
    */
   connect(): void {
     if (this.eventSource) {
