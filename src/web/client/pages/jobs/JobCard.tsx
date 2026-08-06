@@ -56,8 +56,6 @@ function StatsLine({ job }: { job: Job }) {
             depth <b>{job.progress.depth}</b> / {job.progress.maxDepth}
           </span>
         ) : null}
-        <span>{job.scraperOptions?.scrapeMode ?? "auto"}</span>
-        <span>scope {job.scraperOptions?.scope ?? "subpages"}</span>
       </div>
     );
   }
@@ -66,8 +64,6 @@ function StatsLine({ job }: { job: Job }) {
   return (
     <div className="jobc__stats">
       {job.sourceUrl ? <span>{displayUrl(job.sourceUrl)}</span> : null}
-      <span>{job.scraperOptions?.scrapeMode ?? "auto"}</span>
-      <span>scope {job.scraperOptions?.scope ?? "subpages"}</span>
       {job.scraperOptions?.maxPages ? (
         <span>max {job.scraperOptions.maxPages.toLocaleString()} pages</span>
       ) : null}
@@ -115,7 +111,6 @@ export function JobCard({
         <LibIcon name={job.library} url={job.sourceUrl} />
         <span className="jobc__title">{job.library}</span>
         <Chip>{job.version || "unversioned"}</Chip>
-        <span className="jobc__id">{job.id}</span>
         <div className="jobc__right">
           {isRunning ? (
             <span className="jobc__elapsed">
