@@ -160,6 +160,8 @@ export interface VersionSummary {
   id: number;
   ref: VersionRef;
   status: VersionStatus;
+  /** Error message recorded when the last indexing attempt failed, else null. */
+  errorMessage?: string | null;
   /**
    * Progress information while a version is being indexed.
    * Omitted once status is COMPLETED to reduce noise.
@@ -285,6 +287,7 @@ export interface DbLibraryVersion {
   version: string;
   versionId: number;
   status: VersionStatus;
+  errorMessage: string | null;
   progressPages: number;
   progressMaxPages: number;
   sourceUrl: string | null;

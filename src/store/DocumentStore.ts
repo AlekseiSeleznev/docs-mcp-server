@@ -361,6 +361,7 @@ export class DocumentStore {
           COALESCE(v.name, '') as version,
           v.id as versionId,
           v.status as status,
+          v.error_message as errorMessage,
           v.progress_pages as progressPages,
           v.progress_max_pages as progressMaxPages,
           v.source_url as sourceUrl,
@@ -1434,6 +1435,7 @@ export class DocumentStore {
         version: string;
         versionId: number;
         status: VersionStatus; // Persisted enum value
+        errorMessage: string | null;
         progressPages: number;
         progressMaxPages: number;
         sourceUrl: string | null;
@@ -1451,6 +1453,7 @@ export class DocumentStore {
           version: string;
           versionId: number;
           status: VersionStatus;
+          errorMessage: string | null;
           progressPages: number;
           progressMaxPages: number;
           sourceUrl: string | null;
@@ -1475,6 +1478,7 @@ export class DocumentStore {
           versionId: row.versionId,
           // Preserve raw string status here; DocumentManagementService will cast to VersionStatus
           status: row.status,
+          errorMessage: row.errorMessage,
           progressPages: row.progressPages,
           progressMaxPages: row.progressMaxPages,
           sourceUrl: row.sourceUrl,

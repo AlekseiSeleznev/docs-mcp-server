@@ -1574,12 +1574,30 @@ textarea.input {
   background: var(--surface-2);
 }
 
-/* left column of the library-detail grid: config card + content-types card */
+/* stacked cells of the library-detail grid (config + content-types on the
+   left; a failure note + chunk explorer on the right) */
 .detail-col {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
+}
+
+/* failed-version note above the chunk explorer; mirrors the queue's job error */
+.scrape-error {
+  padding: 10px 12px;
+  border-radius: var(--r-ctl);
+  background: var(--err-soft);
+  border: 1px solid color-mix(in srgb, var(--err) 26%, transparent);
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.55;
+  word-break: break-word;
+}
+.scrape-error .t {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--err);
 }
 
 /* library-detail content-types panel */

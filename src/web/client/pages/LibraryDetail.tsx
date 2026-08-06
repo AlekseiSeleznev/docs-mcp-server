@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { VersionStatus } from "../../../store/types";
 import { useEnqueueRefreshJob, useListLibraries } from "../api/hooks";
 import { trpc } from "../api/trpc";
 import { useDocumentationDrawer } from "../components/AddEditDocumentationDrawer";
@@ -178,7 +179,16 @@ export default function LibraryDetail() {
             <Loading label="Loading version…" />
           </Card>
         )}
-        <ChunkExplorer library={libraryName} version={activeVersion ?? ""} />
+        <div className="detail-col">
+          {activeVersionSummary?.status === VersionStatus.FAILED &&
+          activeVersionSummary.errorMessage ? (
+            <div className="scrape-error">
+              <span className="t">Scraping failed</span> —{" "}
+              {activeVersionSummary.errorMessage}
+            </div>
+          ) : null}
+          <ChunkExplorer library={libraryName} version={activeVersion ?? ""} />
+        </div>
       </div>
     </div>
   );

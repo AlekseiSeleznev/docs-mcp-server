@@ -337,6 +337,25 @@ describe("DocumentStore - With Embeddings", () => {
       expect(comp.mimeTypes).toEqual([]);
     });
 
+    it("surfaces a failed version's error message in the library listing", async () => {
+      await store.addDocuments(
+        "errlib",
+        "1.0.0",
+        1,
+        createScrapeResult("Err Page", "https://example.com/err", "content", ["a"]),
+      );
+      const versionId = await store.resolveVersionId("errlib", "1.0.0");
+      await store.updateVersionStatus(
+        versionId,
+        VersionStatus.FAILED,
+        "boom: could not fetch",
+      );
+
+      const versions = (await store.queryLibraryVersions()).get("errlib");
+      expect(versions?.[0]?.status).toBe(VersionStatus.FAILED);
+      expect(versions?.[0]?.errorMessage).toBe("boom: could not fetch");
+    });
+
     it("should remove version but keep library when other versions exist", async () => {
       // Add two versions
       await store.addDocuments(
