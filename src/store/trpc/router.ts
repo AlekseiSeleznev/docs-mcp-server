@@ -313,6 +313,23 @@ export function createDataRouter(trpc: unknown) {
           return await ctx.docService.getActivityHistory(input?.days);
         },
       ),
+
+    getVersionComposition: tt.procedure
+      .input(z.object({ library: nonEmpty, version: optionalVersion }))
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: { library: string; version: string | null | undefined };
+        }) => {
+          return await ctx.docService.getVersionComposition({
+            library: input.library,
+            version: input.version ?? "",
+          });
+        },
+      ),
   });
 }
 

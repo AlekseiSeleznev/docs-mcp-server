@@ -19,6 +19,7 @@ import type {
   StoredScraperOptions,
   StoreSearchResult,
   VersionChunkStats,
+  VersionComposition,
   VersionRef,
   VersionStatus,
 } from "./types";
@@ -153,5 +154,12 @@ export class DocumentManagementClient implements IDocumentManagement {
 
   async getActivityHistory(days?: number): Promise<ActivityHistory> {
     return this.client.getActivityHistory.query({ days });
+  }
+
+  async getVersionComposition(ref: VersionRef): Promise<VersionComposition> {
+    return this.client.getVersionComposition.query({
+      library: ref.library,
+      version: ref.version,
+    });
   }
 }

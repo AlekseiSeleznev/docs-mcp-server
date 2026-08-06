@@ -29,6 +29,7 @@ import type {
   ScraperConfig,
   StoreSearchResult,
   VersionChunkStats,
+  VersionComposition,
   VersionRef,
   VersionStatus,
   VersionSummary,
@@ -578,5 +579,16 @@ export class DocumentManagementService {
    */
   async getActivityHistory(days = 90): Promise<ActivityHistory> {
     return this.store.getActivityHistory(days);
+  }
+
+  /**
+   * Computes per-version content composition and size (total/avg/largest page
+   * bytes, MIME-type and crawl-depth breakdowns, chunks-per-page distribution)
+   * for the library-detail Composition panel.
+   * @param ref Library/version reference; normalized before querying the store.
+   */
+  async getVersionComposition(ref: VersionRef): Promise<VersionComposition> {
+    const normalized = normalizeVersionRef(ref);
+    return this.store.getVersionComposition(normalized.library, normalized.version);
   }
 }

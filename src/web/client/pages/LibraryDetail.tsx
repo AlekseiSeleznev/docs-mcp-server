@@ -19,6 +19,7 @@ import { LibIcon } from "../components/LibIcon";
 import { Loading } from "../components/Spinner";
 import { useToast } from "../components/Toast";
 import { ChunkExplorer } from "./library-detail/ChunkExplorer";
+import { ContentTypesPanel } from "./library-detail/ContentTypesPanel";
 import { displayUrl, formatCount } from "./library-detail/format";
 import { ScrapeConfigPanel } from "./library-detail/ScrapeConfigPanel";
 import { VersionTabs } from "./library-detail/VersionTabs";
@@ -164,11 +165,14 @@ export default function LibraryDetail() {
 
       <div className="detail-grid">
         {activeVersionSummary ? (
-          <ScrapeConfigPanel
-            library={libraryName}
-            version={activeVersionSummary}
-            onRemoved={() => setActiveVersion(null)}
-          />
+          <div className="detail-col">
+            <ScrapeConfigPanel
+              library={libraryName}
+              version={activeVersionSummary}
+              onRemoved={() => setActiveVersion(null)}
+            />
+            <ContentTypesPanel library={libraryName} version={activeVersion ?? ""} />
+          </div>
         ) : (
           <Card className="panel">
             <Loading label="Loading version…" />

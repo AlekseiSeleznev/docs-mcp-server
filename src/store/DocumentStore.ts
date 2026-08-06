@@ -29,6 +29,7 @@ import type {
   StoredScraperOptions,
   VersionChunkListItem,
   VersionChunkStats,
+  VersionComposition,
 } from "./types";
 import {
   type DbChunk,
@@ -2628,6 +2629,46 @@ export class DocumentStore {
       };
     } catch (error) {
       throw new ConnectionError("Failed to get activity history", error);
+    }
+  }
+
+  /**
+   * Returns a per-version content-type breakdown: pages grouped by MIME type
+   * (`content_type`, falling back to `source_content_type`, else `unknown`),
+   * most common first. Derived from the stored pages.
+   *
+   * @param library - Library name (case-insensitive).
+   * @param version - Version name (empty string for unversioned).
+   */
+  async getVersionComposition(
+    library: string,
+    version: string,
+  ): Promise<VersionComposition> {
+    try {
+      const versionRow = this.statements.getVersionId.get(
+        library.toLowerCase(),
+        version.toLowerCase(),
+      ) as { id: number } | undefined;
+
+      if (!versionRow) return { mimeTypes: [] };
+
+      const mimeRows = this.db
+        .prepare(
+          `SELECT
+             COALESCE(NULLIF(p.content_type, ''), NULLIF(p.source_content_type, ''), 'unknown') AS label,
+             COUNT(*) AS pages
+           FROM pages p
+           WHERE p.version_id = ?
+           GROUP BY label
+           ORDER BY pages DESC, label`,
+        )
+        .all(versionRow.id) as Array<{ label: string; pages: number }>;
+
+      return {
+        mimeTypes: mimeRows.map((row) => ({ label: row.label, pages: row.pages })),
+      };
+    } catch (error) {
+      throw new ConnectionError("Failed to get version composition", error);
     }
   }
 }

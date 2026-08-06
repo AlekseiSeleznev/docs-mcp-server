@@ -391,3 +391,20 @@ export interface VersionChunkStats {
   /** Number of chunks that have a stored embedding vector. */
   embeddedChunkCount: number;
 }
+
+/** One entry in a per-version page breakdown by MIME type. */
+export interface CompositionBucket {
+  /** MIME type (e.g. `text/html`), or `unknown` when the page has none recorded. */
+  label: string;
+  /** Number of pages of this type. */
+  pages: number;
+}
+
+/**
+ * Per-version content-type breakdown: pages grouped by MIME type, derived from
+ * the stored pages. Powers the library-detail "Content types" panel.
+ */
+export interface VersionComposition {
+  /** Pages grouped by MIME type, most common first. */
+  mimeTypes: CompositionBucket[];
+}

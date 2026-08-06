@@ -83,6 +83,14 @@ export function useActivityHistory(days?: number) {
   return trpc.getActivityHistory.useQuery({ days });
 }
 
+/** Fetches per-version content composition and size for the library-detail Composition panel. */
+export function useVersionComposition(
+  input: RouterInputs["getVersionComposition"],
+  enabled: boolean,
+) {
+  return trpc.getVersionComposition.useQuery(input, { enabled });
+}
+
 /**
  * Fetches an honest snapshot of the running server's configuration (which
  * services are enabled, worker wiring, active embedding provider, MCP/auth

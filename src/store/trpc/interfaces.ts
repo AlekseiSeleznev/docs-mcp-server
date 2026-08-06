@@ -14,6 +14,7 @@ import type {
   StoredScraperOptions,
   StoreSearchResult,
   VersionChunkStats,
+  VersionComposition,
   VersionRef,
   VersionStatus,
 } from "../types";
@@ -64,4 +65,5 @@ export interface IDocumentManagement {
   ): Promise<ListVersionChunksResult>;
   getVersionStats(ref: VersionRef): Promise<VersionChunkStats>;
   getActivityHistory(days?: number): Promise<ActivityHistory>;
+  getVersionComposition(ref: VersionRef): Promise<VersionComposition>;
 }

@@ -300,6 +300,43 @@ describe("DocumentStore - With Embeddings", () => {
       expect(history.days[0]).toMatchObject({ pages: 0, chunks: 0 });
     });
 
+    it("computes a per-version content-type breakdown", async () => {
+      await store.addDocuments(
+        "complib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Comp One",
+          "https://example.com/comp-one",
+          "Composition page one content",
+          ["a"],
+        ),
+      );
+      await store.addDocuments(
+        "complib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Comp Two",
+          "https://example.com/comp-two",
+          "Composition page two content",
+          ["b"],
+        ),
+      );
+
+      const comp = await store.getVersionComposition("complib", "1.0.0");
+
+      // Both pages are HTML in this fixture, so they collapse into one bucket.
+      const mimePages = comp.mimeTypes.reduce((sum, m) => sum + m.pages, 0);
+      expect(mimePages).toBe(2);
+      expect(comp.mimeTypes[0]?.label).toContain("text/html");
+    });
+
+    it("returns an empty breakdown for an unknown version", async () => {
+      const comp = await store.getVersionComposition("nope", "9.9.9");
+      expect(comp.mimeTypes).toEqual([]);
+    });
+
     it("should remove version but keep library when other versions exist", async () => {
       // Add two versions
       await store.addDocuments(
