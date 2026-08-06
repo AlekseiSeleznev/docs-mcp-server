@@ -1,5 +1,13 @@
 import { vol } from "memfs";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedFunction,
+  vi,
+} from "vitest";
 import type { AppConfig } from "./config";
 import { defaults as configDefaults } from "./config";
 import { AccessPolicyError } from "./errors";
@@ -13,6 +21,7 @@ vi.mock("node:dns/promises", () => ({
 
 import os from "node:os";
 import { expandConfiguredRoot, ScraperAccessPolicy } from "./accessPolicy";
+import { logger } from "./logger";
 
 type SecurityOverrides = {
   network?: Partial<AppConfig["scraper"]["security"]["network"]>;
@@ -502,6 +511,193 @@ describe("temp-archive bypass scoping", () => {
     await expect(
       policy.resolveFileAccess("file:///tmp/dl/docs.zip/.hidden/notes.md", ["/tmp/dl"]),
     ).rejects.toBeInstanceOf(AccessPolicyError);
+  });
+});
+
+describe("file access diagnostics", () => {
+  // `test/setup-env.ts` auto-mocks the logger, so `logger.warn` is a single
+  // shared mock whose call history outlives each test. Re-resolve and clear it
+  // per test rather than spying: caching the reference or layering a spy makes
+  // assertions depend on which mock instance the property currently holds.
+  let warn: MockedFunction<typeof logger.warn>;
+
+  beforeEach(() => {
+    vol.reset();
+    warn = vi.mocked(logger.warn);
+    warn.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names the unresolved root token and points at the docs", async () => {
+    // The token goes in the error itself, not just a log line: WARN output is
+    // suppressed on non-TTY runs (containers, MCP stdio), which is exactly
+    // where an unresolvable $DOCUMENTS default bites. It is runtime state, not
+    // a config key, so no rename can invalidate it.
+    vi.spyOn(os, "homedir").mockReturnValue("/home/tester");
+    vol.fromJSON({ "/srv/docs/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["$DOCUMENTS"] },
+      }),
+    );
+
+    await expect(policy.resolveFileAccess("file:///srv/docs/readme.md")).rejects.toThrow(
+      /\$DOCUMENTS did not resolve.*configuration\.md/s,
+    );
+  });
+
+  it("never echoes a configured literal path, only tokens", async () => {
+    // Literal roots always expand (`path.resolve`), so a mixed config keeps the
+    // allowlist non-empty and the rejection is out-of-root. Either way the
+    // configured path must not travel back to an MCP or web caller.
+    vi.spyOn(os, "homedir").mockReturnValue("/home/tester");
+    vol.fromJSON({ "/srv/docs/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: {
+          mode: "allowedRoots",
+          allowedRoots: ["$DOCUMENTS", "/mnt/acme-secrets/docs"],
+        },
+      }),
+    );
+
+    await expect(
+      policy.resolveFileAccess("file:///srv/docs/readme.md"),
+    ).rejects.not.toThrow(/acme-secrets/);
+  });
+
+  it("reports an empty allowlist distinctly from unresolvable entries", async () => {
+    vol.fromJSON({ "/srv/docs/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: [] },
+      }),
+    );
+
+    await expect(policy.resolveFileAccess("file:///srv/docs/readme.md")).rejects.toThrow(
+      /no roots are configured/,
+    );
+  });
+
+  it("warns once per unresolvable configured root", async () => {
+    vi.spyOn(os, "homedir").mockReturnValue("/home/tester");
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["$DOCUMENTS", "$DOWNLOADS"] },
+      }),
+    );
+
+    await expect(
+      policy.resolveFileAccess("file:///srv/docs/readme.md"),
+    ).rejects.toBeInstanceOf(AccessPolicyError);
+    await expect(
+      policy.resolveFileAccess("file:///srv/docs/other.md"),
+    ).rejects.toBeInstanceOf(AccessPolicyError);
+
+    const unresolvedWarnings = warn.mock.calls
+      .map(([message]) => message)
+      .filter((message) => message.includes("Ignoring allowed file root"));
+    expect(unresolvedWarnings).toHaveLength(2);
+    expect(unresolvedWarnings.join("\n")).toContain("$DOCUMENTS");
+    expect(unresolvedWarnings.join("\n")).toContain("$DOWNLOADS");
+  });
+
+  it("warns that all local file access is blocked when the allowlist grants nothing", async () => {
+    vi.spyOn(os, "homedir").mockReturnValue("/home/tester");
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["$DOCUMENTS"] },
+      }),
+    );
+
+    await expect(
+      policy.resolveFileAccess("file:///srv/docs/readme.md"),
+    ).rejects.toBeInstanceOf(AccessPolicyError);
+
+    expect(
+      warn.mock.calls.some(([message]) =>
+        message.includes("all file:// indexing is blocked"),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps allowed root paths out of the out-of-root error but logs them", async () => {
+    vol.fromJSON({
+      "/srv/allowed/readme.md": "hello",
+      "/srv/other/secret.md": "secret",
+    });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["/srv/allowed"] },
+      }),
+    );
+
+    await expect(policy.resolveFileAccess("file:///srv/other/secret.md")).rejects.toThrow(
+      /outside the configured allowed roots/,
+    );
+    await expect(
+      policy.resolveFileAccess("file:///srv/other/secret.md"),
+    ).rejects.not.toThrow(/\/srv\/allowed/);
+    expect(warn.mock.calls.some(([message]) => message.includes("/srv/allowed"))).toBe(
+      true,
+    );
+  });
+
+  it("states the rule when file access is disabled", async () => {
+    vol.fromJSON({ "/srv/docs/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({ fileAccess: { mode: "disabled" } }),
+    );
+
+    await expect(policy.resolveFileAccess("file:///srv/docs/readme.md")).rejects.toThrow(
+      /disabled by the scraper security policy.*configuration\.md/s,
+    );
+  });
+
+  it("states the rule when a symlink blocks access", async () => {
+    vol.fromJSON({ "/srv/allowed/real.md": "hello" });
+    await vol.promises.symlink("/srv/allowed/real.md", "/srv/allowed/link.md");
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["/srv/allowed"] },
+      }),
+    );
+
+    await expect(policy.resolveFileAccess("file:///srv/allowed/link.md")).rejects.toThrow(
+      /resolves through a symlink.*configuration\.md/s,
+    );
+  });
+
+  it("states the rule when a hidden segment blocks access", async () => {
+    vol.fromJSON({ "/srv/allowed/.private/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["/srv/allowed"] },
+      }),
+    );
+
+    await expect(
+      policy.resolveFileAccess("file:///srv/allowed/.private/readme.md"),
+    ).rejects.toThrow(/hidden path segment.*configuration\.md/s);
+  });
+
+  it("does not warn about internal bypass roots that do not resolve", async () => {
+    vol.fromJSON({ "/srv/allowed/readme.md": "hello" });
+    const policy = new ScraperAccessPolicy(
+      createSecurityConfig({
+        fileAccess: { mode: "allowedRoots", allowedRoots: ["/srv/allowed"] },
+      }),
+    );
+
+    await expect(
+      policy.resolveFileAccess("file:///srv/allowed/readme.md", ["$DOWNLOADS"]),
+    ).resolves.toMatchObject({ filePath: "/srv/allowed/readme.md" });
+    expect(warn.mock.calls.some(([message]) => message.includes("$DOWNLOADS"))).toBe(
+      false,
+    );
   });
 });
 
