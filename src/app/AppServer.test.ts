@@ -274,7 +274,6 @@ describe("AppServer Behavior Tests", () => {
         mockPipeline,
         eventBus,
         appConfig,
-        undefined,
       );
       expect(mockWorkerService.registerWorkerService).toHaveBeenCalledWith(mockPipeline);
       expect(mockMcpService.registerMcpService).not.toHaveBeenCalled();
@@ -368,7 +367,6 @@ describe("AppServer Behavior Tests", () => {
         mockPipeline,
         eventBus,
         appConfig,
-        undefined,
       );
       expect(mockMcpService.registerMcpService).toHaveBeenCalledWith(
         mockFastify,

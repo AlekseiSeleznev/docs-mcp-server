@@ -3,38 +3,18 @@ import { describe, expect, it } from "vitest";
 import { registerIndexRoute } from "./index";
 
 describe("registerIndexRoute", () => {
-  it.each([
-    "http://worker:8080/api",
-    "http://worker:8080/api/",
-  ])("renders the complete remote worker endpoint for %s", async (serverUrl) => {
+  it("renders the dashboard shell with the containers HTMX hydrates", async () => {
     const server = Fastify();
-    registerIndexRoute(server, serverUrl);
+    registerIndexRoute(server);
 
     try {
       const response = await server.inject({ method: "GET", url: "/" });
 
       expect(response.statusCode).toBe(200);
-      expect(response.body).toContain(
-        'window.__EVENT_CLIENT_CONFIG__ = {"useRemoteWorker":true,' +
-          '"trpcUrl":"http://worker:8080/api"};',
-      );
-      expect(response.body).not.toContain("/api/api");
-    } finally {
-      await server.close();
-    }
-  });
-
-  it("omits the remote worker endpoint when it is empty", async () => {
-    const server = Fastify();
-    registerIndexRoute(server, "");
-
-    try {
-      const response = await server.inject({ method: "GET", url: "/" });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.body).toContain(
-        'window.__EVENT_CLIENT_CONFIG__ = {"useRemoteWorker":false};',
-      );
+      expect(response.headers["content-type"]).toContain("text/html");
+      expect(response.body).toContain('hx-get="/web/stats"');
+      expect(response.body).toContain('hx-get="/web/jobs"');
+      expect(response.body).toContain('hx-get="/web/libraries"');
     } finally {
       await server.close();
     }

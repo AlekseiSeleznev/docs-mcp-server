@@ -37,7 +37,6 @@ export async function registerWebService(
   pipeline: IPipeline,
   eventBus: EventBusService,
   appConfig: AppConfig,
-  externalWorkerUrl?: string,
 ): Promise<void> {
   // Note: Web interface uses direct event tracking without session management
   // This approach provides meaningful analytics without the complexity of per-request sessions
@@ -54,7 +53,7 @@ export async function registerWebService(
   const clearCompletedJobsTool = new ClearCompletedJobsTool(pipeline);
 
   // Register all web routes
-  registerIndexRoute(server, externalWorkerUrl);
+  registerIndexRoute(server);
   registerLibrariesRoutes(server, listLibrariesTool, removeTool, refreshVersionTool);
   registerLibraryDetailRoutes(
     server,

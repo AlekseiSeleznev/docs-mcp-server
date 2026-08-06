@@ -5,32 +5,16 @@ import Layout from "../components/Layout";
 /**
  * Registers the root route that serves the main HTML page.
  * @param server - The Fastify instance.
- * @param externalWorkerUrl - Optional URL for external worker service.
  */
-export function registerIndexRoute(
-  server: FastifyInstance,
-  externalWorkerUrl?: string
-) {
+export function registerIndexRoute(server: FastifyInstance) {
   server.get("/", async (_, reply) => {
     reply.type("text/html");
-
-    // Determine if we're using a remote worker
-    const useRemoteWorker = Boolean(externalWorkerUrl);
-    const trpcUrl = externalWorkerUrl
-      ? externalWorkerUrl.replace(/\/$/, "")
-      : undefined;
 
     // Use the Layout component and define the main content within it
     return (
       "<!DOCTYPE html>" +
       (
-        <Layout
-          title="MCP Docs"
-          eventClientConfig={{
-            useRemoteWorker,
-            trpcUrl,
-          }}
-        >
+        <Layout title="MCP Docs">
           {/* Analytics Section */}
           <div
             id="analytics-stats"
