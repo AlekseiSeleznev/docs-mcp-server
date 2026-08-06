@@ -7,6 +7,7 @@ import { NavLink } from "react-router-dom";
 import { PipelineJobStatus } from "../../../pipeline/types";
 import { useGetJobs, useListLibraries, useSystemHealth } from "../api/hooks";
 import { useUpdateCheck } from "../hooks/useUpdateCheck";
+import { workerStatus } from "../utils/workerStatus";
 import { Icon } from "./Icon";
 import { StatusDot } from "./StatusDot";
 
@@ -30,12 +31,7 @@ export function Sidebar() {
   const liveJobCount =
     jobsResult?.jobs.filter((job) => ACTIVE_JOB_STATUSES.has(job.status)).length ?? 0;
 
-  // Worker reads healthy unless it's a remote worker we've lost the connection to.
-  const workerVariant = !health
-    ? "idle"
-    : health.worker.mode === "remote" && !health.worker.connected
-      ? "err"
-      : "run";
+  const worker = workerStatus(health?.worker);
 
   return (
     <aside className="sidebar">
@@ -86,7 +82,7 @@ export function Sidebar() {
 
       <div className="side-card">
         <div className="side-row">
-          <StatusDot variant={workerVariant} pulse={workerVariant === "run"} />
+          <StatusDot variant={worker.variant} pulse={worker.pulse} />
           <span className="k">Worker</span>
           <span className="v">{health?.worker.mode ?? "—"}</span>
         </div>

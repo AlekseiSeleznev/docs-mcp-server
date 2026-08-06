@@ -16,8 +16,9 @@ import { Icon, type IconName } from "../components/Icon";
 import { Pill } from "../components/Pill";
 import { ProgressBar } from "../components/ProgressBar";
 import { Loading } from "../components/Spinner";
-import { StatusDot, type StatusVariant } from "../components/StatusDot";
+import { StatusDot } from "../components/StatusDot";
 import { displayUrl } from "../utils/format";
+import { workerStatus } from "../utils/workerStatus";
 
 /** Formats a `Date` (or `null`) as a short relative-time string, e.g. "2m ago". */
 function formatRelativeTime(date: Date | null): string {
@@ -57,14 +58,14 @@ function Kpi({
 
 /** Renders the worker-mode row of the system-health panel. */
 function WorkerRow({ worker }: { worker: SystemHealth["worker"] }) {
-  const isRemote = worker.mode === "remote";
-  const variant: StatusVariant = isRemote ? (worker.connected ? "ok" : "err") : "ok";
-  const meta = isRemote
-    ? `${worker.url} · ${worker.connected ? "connected" : "disconnected"}`
-    : "embedded";
+  const { variant, pulse } = workerStatus(worker);
+  const meta =
+    worker.mode === "remote"
+      ? `${worker.url} · ${worker.connected ? "connected" : "disconnected"}`
+      : "embedded";
   return (
     <div className="health__row">
-      <StatusDot variant={variant} pulse={isRemote && worker.connected} />
+      <StatusDot variant={variant} pulse={pulse} />
       <span className="name">Worker</span>
       <span className="meta">{meta}</span>
     </div>

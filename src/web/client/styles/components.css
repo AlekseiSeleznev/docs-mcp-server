@@ -176,6 +176,7 @@
   font-family: var(--mono);
   color: var(--text);
   font-size: 11.5px;
+  text-align: right;
 }
 .update-pill {
   display: flex;
@@ -555,6 +556,7 @@
   font-family: var(--mono);
   font-size: 11.5px;
   color: var(--text-muted);
+  text-align: right;
 }
 
 /* pills / badges */
