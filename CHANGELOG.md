@@ -1,3 +1,23 @@
+# [2.5.0](https://github.com/arabold/docs-mcp-server/compare/v2.4.5...v2.5.0) (2026-08-06)
+
+
+### Bug Fixes
+
+* **scraper:** explain why local file access was blocked ([e8787cd](https://github.com/arabold/docs-mcp-server/commit/e8787cda5ef0b2b7d669e0d0d550060620b0045c)), closes [#459](https://github.com/arabold/docs-mcp-server/issues/459) [#462](https://github.com/arabold/docs-mcp-server/issues/462)
+* **web:** preserve complete remote worker endpoint ([d935d58](https://github.com/arabold/docs-mcp-server/commit/d935d58c9c7d0d8d757689f0d98c3fbaad114959))
+* **web:** preserve empty worker endpoint semantics ([56c77ea](https://github.com/arabold/docs-mcp-server/commit/56c77ea36432c064f62470abd59cc14ff9a9c623))
+
+
+### Features
+
+* **scraper:** migrate document extraction to xberg ([561503f](https://github.com/arabold/docs-mcp-server/commit/561503fd16cf08913c4e81172294a68c55ed5dbb))
+
+
+### Performance Improvements
+
+* **store:** drive hybrid search from candidate set to avoid full-table scan ([e82d0de](https://github.com/arabold/docs-mcp-server/commit/e82d0de08eacc7f83616ae65b0103e8fcc9cd8f3)), closes [#455](https://github.com/arabold/docs-mcp-server/issues/455) [#454](https://github.com/arabold/docs-mcp-server/issues/454)
+* **store:** pin fts_scores cte with materialized ([f7a4f88](https://github.com/arabold/docs-mcp-server/commit/f7a4f88018f159a723079c7a704c21c9acf6ac9a))
+
 ## [2.4.5](https://github.com/arabold/docs-mcp-server/compare/v2.4.4...v2.4.5) (2026-07-25)
 
 
