@@ -7,6 +7,7 @@ import { NavLink } from "react-router-dom";
 import { PipelineJobStatus } from "../../../pipeline/types";
 import { useGetJobs, useListLibraries, useSystemHealth } from "../api/hooks";
 import { useUpdateCheck } from "../hooks/useUpdateCheck";
+import { displayHost } from "../utils/format";
 import { workerStatus } from "../utils/workerStatus";
 import { Icon } from "./Icon";
 import { StatusDot } from "./StatusDot";
@@ -88,7 +89,7 @@ export function Sidebar() {
           <div className="side-row">
             <StatusDot variant={worker.variant} pulse={worker.pulse} />
             <span className="k">Worker</span>
-            <span className="v">{health.worker.url}</span>
+            <span className="v">{displayHost(health.worker.url)}</span>
           </div>
         ) : null}
         <div className="side-row">

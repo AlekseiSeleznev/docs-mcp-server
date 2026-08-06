@@ -24,7 +24,7 @@ import { Pill } from "../components/Pill";
 import { ProgressBar } from "../components/ProgressBar";
 import { Loading } from "../components/Spinner";
 import { StatusDot } from "../components/StatusDot";
-import { displayUrl } from "../utils/format";
+import { displayHost, displayUrl } from "../utils/format";
 import { workerStatus } from "../utils/workerStatus";
 
 /** Formats a `Date` (or `null`) as a short relative-time string, e.g. "2m ago". */
@@ -68,7 +68,7 @@ function WorkerRow({ worker }: { worker: SystemHealth["worker"] }) {
   const { variant, pulse } = workerStatus(worker);
   const meta =
     worker.mode === "remote"
-      ? `${worker.url} · ${worker.connected ? "connected" : "disconnected"}`
+      ? `${displayHost(worker.url)} · ${worker.connected ? "connected" : "disconnected"}`
       : "embedded";
   return (
     <div className="health__row">

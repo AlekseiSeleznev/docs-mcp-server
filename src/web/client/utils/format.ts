@@ -10,3 +10,17 @@ export function displayUrl(url: string | null | undefined): string {
   if (!url) return "";
   return url.replace(/^https?:\/\//, "");
 }
+
+/**
+ * Returns a URL's host (host:port), dropping protocol and path — e.g.
+ * `http://127.0.0.1:8080/api` → "127.0.0.1:8080". Falls back to the
+ * protocol-stripped string when the input isn't a parseable URL.
+ */
+export function displayHost(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    return new URL(url).host;
+  } catch {
+    return displayUrl(url);
+  }
+}
