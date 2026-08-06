@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { z } from "zod";
 import type {
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   StoreSearchResult,
   VersionStatus,
@@ -330,6 +331,21 @@ export function createDataRouter(trpc: unknown) {
           });
         },
       ),
+
+    // Lets a web process report its remote worker's embedding config in the
+    // system-health snapshot (the worker, not the web process, holds it).
+    getEmbeddingConfig: tt.procedure.query(
+      async ({ ctx }: { ctx: DataTrpcContext }): Promise<EmbeddingConfigInfo | null> => {
+        const config = ctx.docService.getActiveEmbeddingConfig();
+        return config
+          ? {
+              provider: config.provider,
+              model: config.model,
+              dimensions: config.dimensions,
+            }
+          : null;
+      },
+    ),
   });
 }
 

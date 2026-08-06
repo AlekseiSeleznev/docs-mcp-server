@@ -395,6 +395,18 @@ export interface VersionChunkStats {
   embeddedChunkCount: number;
 }
 
+/**
+ * Serializable view of the active embedding model for the system-health
+ * snapshot. `provider` is widened to `string` because this may describe a
+ * remote worker's configuration fetched over the wire, and it is display-only.
+ */
+export interface EmbeddingConfigInfo {
+  provider: string;
+  model: string;
+  /** Vector dimension, or `null` when the model's size isn't known. */
+  dimensions: number | null;
+}
+
 /** One entry in a per-version page breakdown by MIME type. */
 export interface CompositionBucket {
   /** MIME type (e.g. `text/html`), or `unknown` when the page has none recorded. */

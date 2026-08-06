@@ -67,7 +67,7 @@ export function createSystemHealthRouter(trpc: unknown) {
      * Derived from startup config, not measured — nothing here is fabricated.
      */
     getSystemHealth: tt.procedure.query(
-      ({ ctx }: { ctx: SystemHealthTrpcContext }): SystemHealth => {
+      async ({ ctx }: { ctx: SystemHealthTrpcContext }): Promise<SystemHealth> => {
         const { systemInfo } = ctx;
 
         const worker: SystemHealthWorker =
@@ -79,14 +79,10 @@ export function createSystemHealthRouter(trpc: unknown) {
               }
             : { mode: "embedded", maxConcurrency: systemInfo.worker.maxConcurrency };
 
-        const embeddingConfig = ctx.docService.getActiveEmbeddingConfig();
-        const embeddings: SystemHealthEmbeddings | null = embeddingConfig
-          ? {
-              provider: embeddingConfig.provider,
-              model: embeddingConfig.model,
-              dimensions: embeddingConfig.dimensions,
-            }
-          : null;
+        // Async so a remote worker's embedding config is fetched over the wire;
+        // the local config is null for a remote worker and would misreport it.
+        const embeddings: SystemHealthEmbeddings | null =
+          await ctx.docService.getEmbeddingConfigInfo();
 
         return {
           version: systemInfo.version,

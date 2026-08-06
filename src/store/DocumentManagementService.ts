@@ -22,6 +22,7 @@ import {
 import type {
   ActivityHistory,
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   LibrarySummary,
   ListVersionChunksOptions,
@@ -75,6 +76,17 @@ export class DocumentManagementService {
    */
   getActiveEmbeddingConfig(): EmbeddingModelConfig | null {
     return this.store.getActiveEmbeddingConfig();
+  }
+
+  async getEmbeddingConfigInfo(): Promise<EmbeddingConfigInfo | null> {
+    const config = this.getActiveEmbeddingConfig();
+    return config
+      ? {
+          provider: config.provider,
+          model: config.model,
+          dimensions: config.dimensions,
+        }
+      : null;
   }
 
   /**

@@ -12,6 +12,7 @@ import type { DataRouter } from "./trpc/router";
 import type {
   ActivityHistory,
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   LibrarySummary,
   ListVersionChunksOptions,
@@ -130,6 +131,13 @@ export class DocumentManagementClient implements IDocumentManagement {
     // The remote server's embedding status cannot be synchronously queried.
     // Return null to indicate embeddings status is unknown/unavailable.
     return null;
+  }
+
+  async getEmbeddingConfigInfo(): Promise<EmbeddingConfigInfo | null> {
+    // Fetch the remote worker's embedding config over the wire — this is where
+    // embeddings actually live when the worker is remote, so the local
+    // getActiveEmbeddingConfig (null) would otherwise misreport "FTS only".
+    return this.client.getEmbeddingConfig.query();
   }
 
   async listVersionChunks(

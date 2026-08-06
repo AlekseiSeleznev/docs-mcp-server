@@ -19,7 +19,7 @@ function baseSystemInfo(overrides: Partial<SystemInfo> = {}): SystemInfo {
 
 function buildContext(overrides: Partial<SystemHealthTrpcContext> = {}) {
   const docService: Partial<IDocumentManagement> = {
-    getActiveEmbeddingConfig: vi.fn().mockReturnValue(null),
+    getEmbeddingConfigInfo: vi.fn().mockResolvedValue(null),
   };
 
   return {
@@ -90,12 +90,11 @@ describe("systemHealthRouter.getSystemHealth", () => {
 
   it("returns the active embedding provider/model/dimensions when embeddings are configured", async () => {
     const ctx = buildContext();
-    (ctx.docService.getActiveEmbeddingConfig as ReturnType<typeof vi.fn>).mockReturnValue(
+    (ctx.docService.getEmbeddingConfigInfo as ReturnType<typeof vi.fn>).mockResolvedValue(
       {
         provider: "openai",
         model: "text-embedding-3-small",
         dimensions: 1536,
-        modelSpec: "openai:text-embedding-3-small",
       },
     );
     const caller = systemHealthRouter.createCaller(ctx);
@@ -111,12 +110,11 @@ describe("systemHealthRouter.getSystemHealth", () => {
 
   it("does not fabricate dimensions for a model with unknown vector size", async () => {
     const ctx = buildContext();
-    (ctx.docService.getActiveEmbeddingConfig as ReturnType<typeof vi.fn>).mockReturnValue(
+    (ctx.docService.getEmbeddingConfigInfo as ReturnType<typeof vi.fn>).mockResolvedValue(
       {
         provider: "openai",
         model: "some-custom-model",
         dimensions: null,
-        modelSpec: "openai:some-custom-model",
       },
     );
     const caller = systemHealthRouter.createCaller(ctx);
