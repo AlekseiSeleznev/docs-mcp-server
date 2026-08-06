@@ -100,7 +100,8 @@ Traversal defaults:
 Important semantics:
 
 - `allowedRoots: []` in `allowedRoots` mode means no user-requested local file access is allowed.
-- `$DOCUMENTS`, `$DOWNLOADS`, and `$DESKTOP` are convenience tokens — they probe for `<home>/<Folder>` and grant no access if the directory is missing on the current platform or account.
+- `$DOCUMENTS`, `$DOWNLOADS`, and `$DESKTOP` are convenience tokens — they probe for `<home>/<Folder>` and grant no access if the directory is missing on the current platform or account. Each unresolved root is warned about, and an allowlist that grants nothing is reported as such, so a policy that blocks everything is never silent.
+- Rejections name the rule that blocked the path and link to the configuration documentation. Filesystem paths are logged rather than included in the error, since the error reaches MCP clients and the web UI; unresolvable configured paths are counted rather than named, because a missing path still describes an intended layout. Root tokens such as `$DOCUMENTS` are named in the error, since they are runtime state rather than host detail.
 - `$HOME` and `$CWD` resolve to a concrete path even when unusual; `$HOME` in particular exposes dotfile-bearing directories.
 - Hidden paths remain blocked even when explicitly requested unless `includeHidden` is enabled.
 

@@ -6,6 +6,7 @@ import path from "node:path";
 import { matchesAnyHostPattern } from "../scraper/utils/patternMatcher";
 import type { AppConfig } from "./config";
 import { AccessPolicyError } from "./errors";
+import { logger } from "./logger";
 
 const SPECIAL_USE_IPV4_CIDRS = [
   "0.0.0.0/8",
@@ -28,6 +29,19 @@ const SPECIAL_USE_IPV6_CIDRS = ["::/128", "::1/128", "fc00::/7", "fe80::/10", "f
 
 const ARCHIVE_EXTENSIONS = new Set([".zip", ".tar", ".gz", ".tgz"]);
 
+/**
+ * Where users go to change file access decisions.
+ *
+ * Rejections state which rule blocked the path and point here, rather than
+ * naming individual settings and environment variables. Every setting named in
+ * an error is one more thing a rename can silently invalidate, and the docs
+ * carry the full picture — config file, env vars, and tokens — in one place
+ * that is already maintained. Deep-linked without an anchor on purpose: a stale
+ * anchor fails quietly.
+ */
+const FILE_ACCESS_DOCS =
+  "https://github.com/arabold/docs-mcp-server/blob/main/docs/setup/configuration.md";
+
 type ScraperSecurityConfig = AppConfig["scraper"]["security"];
 
 export interface ResolvedFileAccess {
@@ -43,6 +57,10 @@ export class ScraperAccessPolicy {
   private readonly allowedCidrs = new net.BlockList();
   private readonly specialUseCidrs = new net.BlockList();
   private readonly allowedHosts: string[];
+  /** Roots already reported as unresolvable, so each is warned about once. */
+  private readonly warnedUnresolvedRoots = new Set<string>();
+  private hasWarnedUnavailableAllowlist = false;
+  private hasLoggedConfiguredRoots = false;
 
   constructor(private readonly security: ScraperSecurityConfig) {
     this.allowedHosts = security.network.allowedHosts;
@@ -146,6 +164,15 @@ export class ScraperAccessPolicy {
 
   /**
    * Resolves and validates a file URL against the configured file access policy.
+   *
+   * Rejections name the specific policy rule that blocked the path and link to
+   * the configuration documentation rather than naming individual settings.
+   * Filesystem paths — configured or resolved — stay out of the thrown message
+   * because it reaches MCP clients and the web UI; they are logged instead,
+   * where only the operator sees them. Root tokens such as `$DOCUMENTS` are
+   * named in the message: they are runtime state rather than host detail, and
+   * warn-level logs are suppressed on the non-interactive runs where an
+   * unresolvable token is most likely.
    */
   async resolveFileAccess(
     url: string,
@@ -164,16 +191,24 @@ export class ScraperAccessPolicy {
     let matchedRoot: string | null = matchedBypassRoot;
 
     if (this.security.fileAccess.mode === "disabled" && !matchedBypassRoot) {
-      throw new AccessPolicyError(`Security policy blocked local file access for ${url}`);
+      throw new AccessPolicyError(
+        `Local file access is disabled by the scraper security policy, so ${url} cannot be indexed. ` +
+          `See ${FILE_ACCESS_DOCS} to configure local file access.`,
+      );
     }
 
     if (this.security.fileAccess.mode === "allowedRoots" && !matchedBypassRoot) {
       const configuredRoots = await this.expandRoots(
         this.security.fileAccess.allowedRoots,
+        true,
       );
       if (configuredRoots.length === 0) {
+        this.warnUnavailableAllowlist();
         throw new AccessPolicyError(
-          `Security policy blocked local file access for ${url}`,
+          `Local file access is limited to configured roots, but ${describeUnavailableRoots(
+            this.security.fileAccess.allowedRoots,
+          )}, so ${url} cannot be indexed. ` +
+            `See ${FILE_ACCESS_DOCS} to configure the allowed roots.`,
         );
       }
 
@@ -183,8 +218,10 @@ export class ScraperAccessPolicy {
         this.security.fileAccess.followSymlinks,
       );
       if (!matchedRoot) {
+        this.logConfiguredRoots(configuredRoots);
         throw new AccessPolicyError(
-          `Security policy blocked local file access for ${url}`,
+          `${url} is outside the configured allowed roots, so it cannot be indexed. ` +
+            `See ${FILE_ACCESS_DOCS} to allow this folder.`,
         );
       }
     }
@@ -192,7 +229,10 @@ export class ScraperAccessPolicy {
     if (!this.security.fileAccess.followSymlinks && !matchedBypassRoot) {
       const symlinkPath = await findSymlinkInPath(accessPath);
       if (symlinkPath) {
-        throw new AccessPolicyError(`Security policy blocked symlink access for ${url}`);
+        throw new AccessPolicyError(
+          `${url} resolves through a symlink, which the security policy blocks by default, so it cannot be indexed. ` +
+            `See ${FILE_ACCESS_DOCS} to allow symlinked paths.`,
+        );
       }
     }
 
@@ -205,7 +245,8 @@ export class ScraperAccessPolicy {
       // the full absolute path.
       if (hasHiddenSegmentBelowRoot(filePath, matchedRoot)) {
         throw new AccessPolicyError(
-          `Security policy blocked hidden file access for ${url}`,
+          `${url} contains a hidden path segment (a name starting with "."), which the security policy blocks by default, ` +
+            `so it cannot be indexed. See ${FILE_ACCESS_DOCS} to allow hidden files and folders.`,
         );
       }
       if (
@@ -213,7 +254,8 @@ export class ScraperAccessPolicy {
         hasHiddenArchiveSegment(resolved.virtualArchivePath)
       ) {
         throw new AccessPolicyError(
-          `Security policy blocked hidden archive entry access for ${url}`,
+          `The archive entry requested by ${url} is hidden (a name starting with "."), which the security policy blocks by default. ` +
+            `See ${FILE_ACCESS_DOCS} to allow hidden archive entries.`,
         );
       }
     }
@@ -262,15 +304,63 @@ export class ScraperAccessPolicy {
     );
   }
 
-  private async expandRoots(roots: string[]): Promise<string[]> {
+  /**
+   * Expands configured root entries into concrete paths, dropping those that do
+   * not resolve on this system. With `warnOnUnresolved`, every dropped entry is
+   * reported once — silently discarding them makes `allowedRoots` look active
+   * when it grants nothing.
+   */
+  private async expandRoots(
+    roots: string[],
+    warnOnUnresolved = false,
+  ): Promise<string[]> {
     const expanded: string[] = [];
     for (const root of roots) {
       const value = await expandConfiguredRoot(root);
       if (value) {
         expanded.push(value);
+        continue;
+      }
+      if (warnOnUnresolved && !this.warnedUnresolvedRoots.has(root)) {
+        this.warnedUnresolvedRoots.add(root);
+        logger.warn(
+          `⚠️  Ignoring allowed file root "${root}": it does not resolve to an existing directory on this system.`,
+        );
       }
     }
     return expanded;
+  }
+
+  /**
+   * Warns that `allowedRoots` mode is active but grants nothing, which blocks
+   * all local file access. Emitted once per policy instance.
+   */
+  private warnUnavailableAllowlist(): void {
+    if (this.hasWarnedUnavailableAllowlist) return;
+    this.hasWarnedUnavailableAllowlist = true;
+
+    // Operator-facing log: naming the configured entries is safe here and is
+    // the fastest way to see why the allowlist came up empty.
+    const configured = this.security.fileAccess.allowedRoots;
+    const cause =
+      configured.length === 0
+        ? "no roots are configured"
+        : `none of the configured roots (${configured.join(", ")}) exist on this system`;
+    logger.warn(
+      `⚠️  Local file access is limited to configured roots, but ${cause}, so all file:// indexing is blocked. ` +
+        `See ${FILE_ACCESS_DOCS} to configure the allowed roots.`,
+    );
+  }
+
+  /**
+   * Logs the roots that local file access is limited to. Emitted once per policy
+   * instance, alongside the first out-of-root rejection.
+   */
+  private logConfiguredRoots(roots: string[]): void {
+    if (this.hasLoggedConfiguredRoots) return;
+    this.hasLoggedConfiguredRoots = true;
+
+    logger.warn(`⚠️  Local file access is limited to: ${roots.join(", ")}`);
   }
 
   private async findContainingRoot(
@@ -345,6 +435,38 @@ const USER_DIR_TOKENS: Record<string, string> = {
   $DOWNLOADS: "Downloads",
   $DESKTOP: "Desktop",
 };
+
+const ROOT_TOKENS = new Set(["$HOME", "$CWD", ...Object.keys(USER_DIR_TOKENS)]);
+
+/**
+ * Describes why an `allowedRoots` allowlist grants no access, for an error that
+ * also reaches MCP clients and the web UI.
+ *
+ * Configured tokens are named because they are fixed vocabulary that says
+ * nothing about the host. Literal paths are only counted: even a path that does
+ * not exist reveals the layout an operator intended, so `/mnt/acme-secrets/docs`
+ * must not travel back to a caller.
+ *
+ * Today `expandConfiguredRoot` resolves literal paths unconditionally, so only
+ * tokens reach this function and the count stays at zero. The branch guards the
+ * day that changes — validating literal roots must not start leaking them.
+ */
+function describeUnavailableRoots(configured: string[]): string {
+  if (configured.length === 0) {
+    return "no roots are configured";
+  }
+
+  const tokens = configured.filter((root) => ROOT_TOKENS.has(root));
+  const literalCount = configured.length - tokens.length;
+  const parts: string[] = [];
+  if (tokens.length > 0) {
+    parts.push(`${tokens.join(", ")} did not resolve`);
+  }
+  if (literalCount > 0) {
+    parts.push(`${literalCount} configured path(s) do not exist`);
+  }
+  return `none of its entries are available on this system (${parts.join("; ")})`;
+}
 
 /**
  * Expands user-facing configured root tokens into concrete filesystem paths.

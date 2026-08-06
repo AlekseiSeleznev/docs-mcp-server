@@ -255,6 +255,20 @@ Supported tokens in `allowedRoots`:
 
 The default `[$DOCUMENTS]` root is aimed at trusted local use. For shared services, containers, or internet-exposed deployments, narrow `allowedRoots` to an application-owned directory or switch `mode` to `disabled`.
 
+Headless hosts and containers frequently have no `<home>/Documents`, which makes the default `[$DOCUMENTS]` resolve to nothing and blocks all `file://` indexing. That case is reported with the entries that failed to resolve:
+
+```
+Local file access is limited to configured roots, but none of its entries are available on this system ($DOCUMENTS did not resolve), so file:///srv/docs/ cannot be indexed. See https://github.com/arabold/docs-mcp-server/blob/main/docs/setup/configuration.md to configure the allowed roots.
+```
+
+Set `allowedRoots` to the folder you want to index:
+
+```bash
+export DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_ALLOWED_ROOTS=/srv/docs
+```
+
+Every blocked path reports which rule rejected it and links back to this page, rather than naming individual settings. Filesystem paths stay out of the error and are logged at warn level instead, because the error also reaches MCP clients and the web UI — configured paths that do not resolve are counted rather than named, since even a missing path describes the layout an operator intended. Root tokens such as `$DOCUMENTS` are named in the error: they are runtime state rather than host detail, and warn-level logs are suppressed on the non-interactive runs where this problem is most common.
+
 Internally managed temporary archive files created during accepted web archive scraping remain allowed even when they sit outside user-configured roots. That exception is limited to the downloaded archive artifact and its virtual members.
 
 ### Security Examples
