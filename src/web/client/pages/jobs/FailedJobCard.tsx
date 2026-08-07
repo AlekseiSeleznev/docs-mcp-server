@@ -12,7 +12,7 @@ import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { LibIcon } from "../../components/LibIcon";
 import { Pill } from "../../components/Pill";
-import { formatRelative } from "./format";
+import { formatRelative, jobPageCounts } from "./format";
 import type { Job } from "./types";
 
 export interface FailedJobCardProps {
@@ -34,8 +34,7 @@ export function FailedJobCard({
   onEditAndRetry,
   retryPending = false,
 }: FailedJobCardProps) {
-  const pages = job.progress?.pagesScraped ?? job.progressPages ?? 0;
-  const maxPages = job.progress?.totalPages ?? job.progressMaxPages ?? 0;
+  const { pages, maxPages } = jobPageCounts(job);
   const depth = job.progress?.depth;
 
   return (

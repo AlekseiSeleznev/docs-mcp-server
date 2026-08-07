@@ -3,6 +3,18 @@
  * shared `components/` library) since they're specific to how job timestamps
  * and scraper options are displayed here.
  */
+import type { Job } from "./types";
+
+/**
+ * Resolves a job's page-progress counts, preferring live progress over the
+ * persisted snapshot and defaulting to 0. Shared by the job cards.
+ */
+export function jobPageCounts(job: Job): { pages: number; maxPages: number } {
+  return {
+    pages: job.progress?.pagesScraped ?? job.progressPages ?? 0,
+    maxPages: job.progress?.totalPages ?? job.progressMaxPages ?? 0,
+  };
+}
 
 /**
  * Formats a duration in milliseconds as `"Xm Ys"` (or `"Xh Ym"` once it

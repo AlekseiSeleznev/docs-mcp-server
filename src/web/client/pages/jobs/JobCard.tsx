@@ -11,7 +11,7 @@ import { Icon } from "../../components/Icon";
 import { LibIcon } from "../../components/LibIcon";
 import { Pill } from "../../components/Pill";
 import { ProgressBar } from "../../components/ProgressBar";
-import { displayUrl, formatElapsed, progressPercent } from "./format";
+import { displayUrl, formatElapsed, jobPageCounts, progressPercent } from "./format";
 import type { Job } from "./types";
 
 export interface JobCardProps {
@@ -26,8 +26,7 @@ export interface JobCardProps {
 
 /** Renders the mockup's per-status meta line (URL for running, or the collapse note for cancelling). */
 function StatsLine({ job }: { job: Job }) {
-  const pages = job.progress?.pagesScraped ?? job.progressPages ?? 0;
-  const maxPages = job.progress?.totalPages ?? job.progressMaxPages ?? 0;
+  const { pages, maxPages } = jobPageCounts(job);
 
   if (job.status === PipelineJobStatus.CANCELLING) {
     return (
@@ -85,8 +84,7 @@ export function JobCard({
   const isCancelling = job.status === PipelineJobStatus.CANCELLING;
   const isQueued = job.status === PipelineJobStatus.QUEUED;
 
-  const pages = job.progress?.pagesScraped ?? job.progressPages ?? 0;
-  const maxPages = job.progress?.totalPages ?? job.progressMaxPages ?? 0;
+  const { pages, maxPages } = jobPageCounts(job);
   const pct = progressPercent(pages, maxPages);
 
   const modifierClass = isRunning

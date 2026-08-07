@@ -22,9 +22,9 @@ its file directly, e.g. `import { Button } from "../components/Button"`.
 ```ts
 import { useTheme } from "../hooks/useTheme";
 
-const { preference, resolvedTheme, setTheme, cycleTheme } = useTheme();
+const { preference, cycleTheme } = useTheme();
 // preference: "light" | "dark" | "auto" (persisted to localStorage)
-// resolvedTheme: "light" | "dark" (auto resolved against the OS)
+// auto-mode follows the OS via CSS (@media prefers-color-scheme)
 ```
 
 `ThemeToggle` (`components/ThemeToggle.tsx`) is the topbar icon button that
@@ -49,7 +49,6 @@ to touch `useTheme` directly.
 | `Checkbox` | `components/Checkbox` | `{ label; hint?; ...input props (no type) }` | `<Checkbox label="Follow redirects" defaultChecked />` |
 | `SegmentedControl` | `components/SegmentedControl` | `{ options; value; onChange; variant?: "compact"\|"full"; hint? }` | `<SegmentedControl variant="full" options={...} value={scope} onChange={setScope} />` |
 | `ProgressBar` | `components/ProgressBar` | `{ value: number; variant?: "run"\|"ok"\|"queued"\|"err" }` | `<ProgressBar value={64} />` |
-| `Sparkline` | `components/Sparkline` | `{ values: number[]; accent?: boolean }` | `<Sparkline values={[24,22,23,16,14,9,6]} />` |
 | `AreaChart` | `components/AreaChart` | `{ values: number[]; yLabels?; xLabels?; label?; width?; height? }` | `<AreaChart values={pagesPerDay} yLabels={["1k","600","300","0"]} />` |
 | `LibIcon` | `components/LibIcon` | `{ name: string; url?: string \| null; big?: boolean }` | `<LibIcon name="react" url="https://react.dev/reference" />` |
 | `Markdown` | `components/Markdown` | `{ children: string; className? }` — renders GFM Markdown + code blocks, wrapped in `.md` (safe: no raw HTML). Use for search results & chunk content. | `<Markdown>{result.content}</Markdown>` |

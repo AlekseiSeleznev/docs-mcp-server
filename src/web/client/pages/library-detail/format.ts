@@ -6,6 +6,7 @@
  */
 import { VersionStatus } from "../../../../store/types";
 import type { StatusVariant } from "../../components/StatusDot";
+import { formatRelativeShort } from "../../utils/format";
 
 /** Derived display status: a color variant, a short label, and whether the dot should pulse. */
 export interface StatusInfo {
@@ -40,16 +41,7 @@ export function aggregateStatus(statuses: VersionStatus[]): StatusInfo {
 
 /** Formats an ISO timestamp as a short relative time (e.g. "2d ago"), or "—" for `null`. */
 export function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "—";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const diffMin = Math.round(diffMs / 60_000);
-  if (diffMin < 1) return "now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.round(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return `${Math.round(diffDay / 7)}w ago`;
+  return iso ? formatRelativeShort(new Date(iso)) : "—";
 }
 
 export { displayUrl } from "../../utils/format";

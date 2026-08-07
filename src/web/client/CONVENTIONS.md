@@ -122,4 +122,4 @@ Quick orientation:
   pages (Overview, Jobs, Search, Settings, LibraryDetail).
 
 Still no Tailwind, no third-party component library, and no chart library —
-charts are hand-rolled SVG (`Sparkline`, `AreaChart` in `components/`).
+charts are hand-rolled SVG (`AreaChart` in `components/`).

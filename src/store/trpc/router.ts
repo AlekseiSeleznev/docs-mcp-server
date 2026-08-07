@@ -336,14 +336,7 @@ export function createDataRouter(trpc: unknown) {
     // system-health snapshot (the worker, not the web process, holds it).
     getEmbeddingConfig: tt.procedure.query(
       async ({ ctx }: { ctx: DataTrpcContext }): Promise<EmbeddingConfigInfo | null> => {
-        const config = ctx.docService.getActiveEmbeddingConfig();
-        return config
-          ? {
-              provider: config.provider,
-              model: config.model,
-              dimensions: config.dimensions,
-            }
-          : null;
+        return ctx.docService.getEmbeddingConfigInfo();
       },
     ),
   });

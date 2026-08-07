@@ -24,18 +24,13 @@ import { Pill } from "../components/Pill";
 import { ProgressBar } from "../components/ProgressBar";
 import { Loading } from "../components/Spinner";
 import { StatusDot } from "../components/StatusDot";
-import { displayHost, displayUrl } from "../utils/format";
+import { displayHost, displayUrl, formatRelativeShort } from "../utils/format";
 import { workerStatus } from "../utils/workerStatus";
+import { progressPercent } from "./jobs/format";
 
-/** Formats a `Date` (or `null`) as a short relative-time string, e.g. "2m ago". */
+/** Formats a `Date` as a short relative-time string, e.g. "2m ago"; `null` reads as "just now". */
 function formatRelativeTime(date: Date | null): string {
-  if (!date) return "just now";
-  const diffMin = Math.round((Date.now() - date.getTime()) / 60_000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${Math.round(diffHr / 24)}d ago`;
+  return date ? formatRelativeShort(date) : "just now";
 }
 
 /** One tile in the top KPI row. No deltas/sparklines are shown — there is no historical data to back them. */
@@ -272,10 +267,7 @@ function JobRow({
   queuePosition: number;
 }): ReactNode {
   const isRunning = status === PipelineJobStatus.RUNNING;
-  const pct =
-    isRunning && progressMaxPages && progressMaxPages > 0
-      ? Math.round(((progressPages ?? 0) / progressMaxPages) * 100)
-      : 0;
+  const pct = isRunning ? progressPercent(progressPages, progressMaxPages) : 0;
 
   return (
     <div className="job">

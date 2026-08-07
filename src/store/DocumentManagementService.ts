@@ -595,9 +595,8 @@ export class DocumentManagementService {
   }
 
   /**
-   * Computes per-version content composition and size (total/avg/largest page
-   * bytes, MIME-type and crawl-depth breakdowns, chunks-per-page distribution)
-   * for the library-detail Composition panel.
+   * Computes a per-version content-type breakdown (pages grouped by MIME type)
+   * for the library-detail Content types panel.
    * @param ref Library/version reference; normalized before querying the store.
    */
   async getVersionComposition(ref: VersionRef): Promise<VersionComposition> {

@@ -12,6 +12,22 @@ export function displayUrl(url: string | null | undefined): string {
 }
 
 /**
+ * Formats a past `Date` as a compact relative time: "now", "5m ago", "3h ago",
+ * "2d ago", "4w ago". Callers handle the null/empty case with their own label
+ * (e.g. "—" vs "just now"), since that presentation is context-specific.
+ */
+export function formatRelativeShort(date: Date): string {
+  const diffMin = Math.round((Date.now() - date.getTime()) / 60_000);
+  if (diffMin < 1) return "now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return `${Math.round(diffDay / 7)}w ago`;
+}
+
+/**
  * Returns a URL's host (host:port), dropping protocol and path — e.g.
  * `http://127.0.0.1:8080/api` → "127.0.0.1:8080". Falls back to the
  * protocol-stripped string when the input isn't a parseable URL.
