@@ -6,6 +6,8 @@
  *   2. Chromium is installed where the runtime expects it (Playwright path).
  *   3. The Playwright-backed scrape pipeline can fetch a real web page.
  *   4. The Xberg-backed PDF pipeline can extract a PDF from a mounted volume.
+ *   5. The web server serves the built admin UI (SPA shell, hashed assets,
+ *      client-route fallback) and the tRPC API over HTTP.
  *
  * Skipped automatically when Docker is not available on the host.
  *
@@ -304,4 +306,76 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       fs.rmSync(docsDir, { recursive: true, force: true });
     }
   }, 240_000);
+
+  it("serves the web UI over HTTP (SPA shell, hashed asset, deep-link fallback, and API)", async () => {
+    // Run the web server detached and let Docker pick a free host port (-P), so
+    // the test never clashes with a port already bound on the CI host. The
+    // image sets DOCS_MCP_STORE_PATH=/data (writable), so no mount is needed —
+    // an empty store still serves the UI and system-health API.
+    const run = await docker([
+      "run",
+      "-d",
+      "--rm",
+      "-P",
+      "-e",
+      "DOCS_MCP_TELEMETRY=false",
+      IMAGE_TAG,
+      "web",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "6280",
+    ]);
+    expect(run.status, `docker run failed: ${run.stderr}`).toBe(0);
+    const containerId = run.stdout.trim();
+    try {
+      // Resolve the mapped host port (e.g. "0.0.0.0:49153").
+      const portRes = await docker(["port", containerId, "6280"]);
+      const portMatch = portRes.stdout.match(/:(\d+)/);
+      expect(portMatch, `could not resolve mapped port from: ${portRes.stdout}`).not.toBeNull();
+      const base = `http://127.0.0.1:${portMatch?.[1]}`;
+
+      // Poll until the server is listening (container boot + Fastify listen).
+      let ready = false;
+      for (let i = 0; i < 60 && !ready; i++) {
+        const status = await fetch(`${base}/`)
+          .then((r) => r.status)
+          .catch(() => 0);
+        if (status === 200) ready = true;
+        else await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      expect(ready, "web server did not become ready within 60s").toBe(true);
+
+      // 1. The SPA shell is served at the root.
+      const root = await fetch(`${base}/`);
+      expect(root.status).toBe(200);
+      expect(root.headers.get("content-type")).toMatch(/text\/html/);
+      const html = await root.text();
+      expect(html, "root should return the SPA shell").toContain('<div id="root">');
+
+      // 2. The hashed JS bundle referenced by the shell is served.
+      const assetPath = html.match(/\/assets\/index-[\w-]+\.js/)?.[0];
+      expect(assetPath, "index.html should reference a hashed JS asset").toBeTruthy();
+      const asset = await fetch(`${base}${assetPath}`);
+      expect(asset.status).toBe(200);
+      expect(asset.headers.get("content-type")).toMatch(/javascript/);
+
+      // 3. A client-side route falls back to the SPA shell (not a 404).
+      const deep = await fetch(`${base}/libraries`);
+      expect(deep.status).toBe(200);
+      expect(await deep.text()).toContain('<div id="root">');
+
+      // 4. The tRPC API is mounted under /api and returns real system health.
+      const api = await fetch(`${base}/api/getSystemHealth`);
+      expect(api.status).toBe(200);
+      expect(api.headers.get("content-type")).toMatch(/application\/json/);
+      const body = (await api.json()) as {
+        result?: { data?: { json?: { worker?: { mode?: string } } } };
+      };
+      expect(body.result?.data?.json?.worker?.mode).toBe("embedded");
+    } finally {
+      // Best-effort stop (also triggers --rm cleanup); ignore if already gone.
+      await docker(["rm", "-f", containerId]);
+    }
+  }, 120_000);
 });
