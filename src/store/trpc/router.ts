@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { z } from "zod";
 import type {
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   StoreSearchResult,
   VersionStatus,
@@ -249,6 +250,95 @@ export function createDataRouter(trpc: unknown) {
           return { ok: true } as const;
         },
       ),
+
+    // Chunk explorer support (admin UI)
+
+    listVersionChunks: tt.procedure
+      .input(
+        z.object({
+          library: nonEmpty,
+          version: optionalVersion,
+          limit: z.number().int().positive().max(200).optional(),
+          offset: z.number().int().nonnegative().optional(),
+          filter: z.string().optional(),
+        }),
+      )
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: {
+            library: string;
+            version: string | null | undefined;
+            limit?: number;
+            offset?: number;
+            filter?: string;
+          };
+        }) => {
+          return await ctx.docService.listVersionChunks(
+            { library: input.library, version: input.version ?? "" },
+            { limit: input.limit ?? 50, offset: input.offset, filter: input.filter },
+          );
+        },
+      ),
+
+    getVersionStats: tt.procedure
+      .input(z.object({ library: nonEmpty, version: optionalVersion }))
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: { library: string; version: string | null | undefined };
+        }) => {
+          return await ctx.docService.getVersionStats({
+            library: input.library,
+            version: input.version ?? "",
+          });
+        },
+      ),
+
+    getActivityHistory: tt.procedure
+      .input(z.object({ days: z.number().int().min(1).max(366).optional() }).optional())
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: { days?: number } | undefined;
+        }) => {
+          return await ctx.docService.getActivityHistory(input?.days);
+        },
+      ),
+
+    getVersionComposition: tt.procedure
+      .input(z.object({ library: nonEmpty, version: optionalVersion }))
+      .query(
+        async ({
+          ctx,
+          input,
+        }: {
+          ctx: DataTrpcContext;
+          input: { library: string; version: string | null | undefined };
+        }) => {
+          return await ctx.docService.getVersionComposition({
+            library: input.library,
+            version: input.version ?? "",
+          });
+        },
+      ),
+
+    // Lets a web process report its remote worker's embedding config in the
+    // system-health snapshot (the worker, not the web process, holds it).
+    getEmbeddingConfig: tt.procedure.query(
+      async ({ ctx }: { ctx: DataTrpcContext }): Promise<EmbeddingConfigInfo | null> => {
+        return ctx.docService.getEmbeddingConfigInfo();
+      },
+    ),
   });
 }
 

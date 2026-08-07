@@ -10,11 +10,18 @@ import type { EmbeddingModelConfig } from "./embeddings/EmbeddingConfig";
 import type { IDocumentManagement } from "./trpc/interfaces";
 import type { DataRouter } from "./trpc/router";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   LibrarySummary,
+  ListVersionChunksOptions,
+  ListVersionChunksResult,
   StoredScraperOptions,
   StoreSearchResult,
+  VersionChunkStats,
+  VersionComposition,
+  VersionRef,
   VersionStatus,
 } from "./types";
 
@@ -124,5 +131,43 @@ export class DocumentManagementClient implements IDocumentManagement {
     // The remote server's embedding status cannot be synchronously queried.
     // Return null to indicate embeddings status is unknown/unavailable.
     return null;
+  }
+
+  async getEmbeddingConfigInfo(): Promise<EmbeddingConfigInfo | null> {
+    // Fetch the remote worker's embedding config over the wire — this is where
+    // embeddings actually live when the worker is remote, so the local
+    // getActiveEmbeddingConfig (null) would otherwise misreport "FTS only".
+    return this.client.getEmbeddingConfig.query();
+  }
+
+  async listVersionChunks(
+    ref: VersionRef,
+    options?: Partial<ListVersionChunksOptions>,
+  ): Promise<ListVersionChunksResult> {
+    return this.client.listVersionChunks.query({
+      library: ref.library,
+      version: ref.version,
+      limit: options?.limit,
+      offset: options?.offset,
+      filter: options?.filter,
+    });
+  }
+
+  async getVersionStats(ref: VersionRef): Promise<VersionChunkStats> {
+    return this.client.getVersionStats.query({
+      library: ref.library,
+      version: ref.version,
+    });
+  }
+
+  async getActivityHistory(days?: number): Promise<ActivityHistory> {
+    return this.client.getActivityHistory.query({ days });
+  }
+
+  async getVersionComposition(ref: VersionRef): Promise<VersionComposition> {
+    return this.client.getVersionComposition.query({
+      library: ref.library,
+      version: ref.version,
+    });
   }
 }

@@ -250,6 +250,112 @@ describe("DocumentStore - With Embeddings", () => {
       expect(await store.checkDocumentExists("removelib", "1.0.0")).toBe(false);
     });
 
+    it("aggregates per-day indexing activity from page and chunk timestamps", async () => {
+      await store.addDocuments(
+        "activitylib",
+        "1.0.0",
+        1,
+        createScrapeResult("Page One", "https://example.com/one", "First activity page", [
+          "a",
+        ]),
+      );
+      await store.addDocuments(
+        "activitylib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Page Two",
+          "https://example.com/two",
+          "Second activity page",
+          ["b"],
+        ),
+      );
+
+      const history = await store.getActivityHistory(7);
+
+      // Contiguous, zero-filled window of the requested length.
+      expect(history.days).toHaveLength(7);
+      // Both pages (and their single chunk each) were just indexed.
+      expect(history.totalPages).toBe(2);
+      expect(history.totalChunks).toBe(2);
+      // Per-day counts sum to the totals and land on the most recent day (today).
+      const summedPages = history.days.reduce((sum, day) => sum + day.pages, 0);
+      const summedChunks = history.days.reduce((sum, day) => sum + day.chunks, 0);
+      expect(summedPages).toBe(2);
+      expect(summedChunks).toBe(2);
+      expect(history.days[history.days.length - 1]).toMatchObject({
+        pages: 2,
+        chunks: 2,
+      });
+      // Window bounds are present and correctly ordered.
+      expect(history.since <= history.until).toBe(true);
+    });
+
+    it("clamps the activity window and zero-fills empty stores", async () => {
+      const history = await store.getActivityHistory(0);
+      // A non-positive window is clamped to a single day, still zero-filled.
+      expect(history.days).toHaveLength(1);
+      expect(history.totalPages).toBe(0);
+      expect(history.totalChunks).toBe(0);
+      expect(history.days[0]).toMatchObject({ pages: 0, chunks: 0 });
+    });
+
+    it("computes a per-version content-type breakdown", async () => {
+      await store.addDocuments(
+        "complib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Comp One",
+          "https://example.com/comp-one",
+          "Composition page one content",
+          ["a"],
+        ),
+      );
+      await store.addDocuments(
+        "complib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Comp Two",
+          "https://example.com/comp-two",
+          "Composition page two content",
+          ["b"],
+        ),
+      );
+
+      const comp = await store.getVersionComposition("complib", "1.0.0");
+
+      // Both pages are HTML in this fixture, so they collapse into one bucket.
+      const mimePages = comp.mimeTypes.reduce((sum, m) => sum + m.pages, 0);
+      expect(mimePages).toBe(2);
+      expect(comp.mimeTypes[0]?.label).toContain("text/html");
+    });
+
+    it("returns an empty breakdown for an unknown version", async () => {
+      const comp = await store.getVersionComposition("nope", "9.9.9");
+      expect(comp.mimeTypes).toEqual([]);
+    });
+
+    it("surfaces a failed version's error message in the library listing", async () => {
+      await store.addDocuments(
+        "errlib",
+        "1.0.0",
+        1,
+        createScrapeResult("Err Page", "https://example.com/err", "content", ["a"]),
+      );
+      const versionId = await store.resolveVersionId("errlib", "1.0.0");
+      await store.updateVersionStatus(
+        versionId,
+        VersionStatus.FAILED,
+        "boom: could not fetch",
+      );
+
+      const versions = (await store.queryLibraryVersions()).get("errlib");
+      expect(versions?.[0]?.status).toBe(VersionStatus.FAILED);
+      expect(versions?.[0]?.errorMessage).toBe("boom: could not fetch");
+    });
+
     it("should remove version but keep library when other versions exist", async () => {
       // Add two versions
       await store.addDocuments(
@@ -1158,6 +1264,38 @@ describe("DocumentStore - Without Embeddings (FTS-only)", () => {
       }
     });
   });
+
+  describe("Chunk Explorer without embeddings", () => {
+    beforeEach(async () => {
+      store = new DocumentStore(":memory:", appConfig);
+      await store.initialize();
+
+      await store.addDocuments(
+        "testlib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "React Hooks Guide",
+          "https://example.com/react-hooks",
+          "React hooks are a powerful feature for state management.",
+          ["React", "Hooks"],
+        ),
+      );
+    });
+
+    it("reports hasEmbedding false and embeddedChunkCount 0 when vector search is disabled", async () => {
+      const result = await store.listVersionChunks("testlib", "1.0.0", { limit: 10 });
+      expect(result.chunks.length).toBeGreaterThan(0);
+      for (const chunk of result.chunks) {
+        expect(chunk.hasEmbedding).toBe(false);
+        expect(chunk.tokenCount).toBeNull();
+      }
+
+      const stats = await store.getVersionStats("testlib", "1.0.0");
+      expect(stats.embeddedChunkCount).toBe(0);
+      expect(stats.avgTokensPerChunk).toBeNull();
+    });
+  });
 });
 
 /**
@@ -1700,6 +1838,192 @@ describe("DocumentStore - Common Functionality", () => {
         expect(page.depth).toBeDefined();
         // etag can be null, but the field should exist
         expect(page).toHaveProperty("etag");
+      }
+    });
+  });
+
+  describe("Chunk Explorer - listVersionChunks and getVersionStats", () => {
+    const library = "chunk-explorer-test";
+    const version = "1.0.0";
+    let originalApiKey: string | undefined;
+
+    beforeEach(async () => {
+      // The outer beforeEach creates a store without credentials available,
+      // so vector search stays disabled (see areCredentialsAvailable). Recreate
+      // the store with a credential present so these tests can assert on real
+      // embedding presence.
+      originalApiKey = process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = "test-key-for-chunk-explorer";
+      await store.shutdown();
+      store = new DocumentStore(":memory:", appConfig);
+      await store.initialize();
+
+      // Page 1 ("guide"): 3 chunks, inserted in order.
+      await store.addDocuments(library, version, 1, {
+        ...createScrapeResult(
+          "Guide",
+          "https://example.com/guide",
+          "Introduction to widgets",
+          ["intro"],
+        ),
+        chunks: [
+          {
+            types: ["text"],
+            content: "Introduction to widgets",
+            section: { level: 0, path: ["intro"] },
+          },
+          {
+            types: ["text"],
+            content: "Widgets are configurable",
+            section: { level: 0, path: ["config"] },
+          },
+          {
+            types: ["text"],
+            content: "Advanced widget usage",
+            section: { level: 0, path: ["advanced"] },
+          },
+        ],
+      });
+
+      // Page 2 ("reference"): a single chunk.
+      await store.addDocuments(
+        library,
+        version,
+        1,
+        createScrapeResult(
+          "Reference",
+          "https://example.com/reference",
+          "Reference material about gadgets",
+          ["reference"],
+        ),
+      );
+    });
+
+    it("paginates chunks and reports position/total within each page", async () => {
+      const firstPage = await store.listVersionChunks(library, version, {
+        limit: 2,
+        offset: 0,
+      });
+      expect(firstPage.total).toBe(4);
+      expect(firstPage.chunks).toHaveLength(2);
+
+      const secondPage = await store.listVersionChunks(library, version, {
+        limit: 2,
+        offset: 2,
+      });
+      expect(secondPage.total).toBe(4);
+      expect(secondPage.chunks).toHaveLength(2);
+
+      // The two pages must not overlap.
+      const firstIds = firstPage.chunks.map((c) => c.id);
+      const secondIds = secondPage.chunks.map((c) => c.id);
+      expect(firstIds.some((id) => secondIds.includes(id))).toBe(false);
+
+      const allChunks = [...firstPage.chunks, ...secondPage.chunks];
+
+      // Guide page: 3 chunks, positions 1..3, each reporting a page total of 3.
+      const guideChunks = allChunks.filter((c) => c.url === "https://example.com/guide");
+      expect(guideChunks).toHaveLength(3);
+      expect(guideChunks.map((c) => c.chunkIndex).sort((a, b) => a - b)).toEqual([
+        1, 2, 3,
+      ]);
+      for (const chunk of guideChunks) {
+        expect(chunk.pageChunkCount).toBe(3);
+      }
+
+      // Reference page: a single chunk, reported as "1 of 1".
+      const referenceChunks = allChunks.filter(
+        (c) => c.url === "https://example.com/reference",
+      );
+      expect(referenceChunks).toHaveLength(1);
+      expect(referenceChunks[0].chunkIndex).toBe(1);
+      expect(referenceChunks[0].pageChunkCount).toBe(1);
+    });
+
+    it("reports mimeType, charCount, hasEmbedding, and never fabricates tokenCount", async () => {
+      const result = await store.listVersionChunks(library, version, { limit: 10 });
+      expect(result.chunks).toHaveLength(4);
+
+      for (const chunk of result.chunks) {
+        expect(chunk.mimeType).toBe("text/html");
+        expect(chunk.charCount).toBe(chunk.content.length);
+        expect(chunk.charCount).toBeGreaterThan(0);
+        // The schema has no per-chunk token column: never fabricate a count.
+        expect(chunk.tokenCount).toBeNull();
+        // Embeddings are enabled in this describe block, so every chunk has one.
+        expect(chunk.hasEmbedding).toBe(true);
+      }
+    });
+
+    it("filters chunks by a case-insensitive content substring", async () => {
+      const result = await store.listVersionChunks(library, version, {
+        limit: 10,
+        filter: "WIDGET",
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.chunks.every((c) => c.content.toLowerCase().includes("widget"))).toBe(
+        true,
+      );
+    });
+
+    it("treats LIKE wildcard characters in the filter as literal text", async () => {
+      await store.addDocuments(
+        library,
+        version,
+        1,
+        createScrapeResult(
+          "Promo",
+          "https://example.com/promo",
+          "Use code A100 for a discount",
+          ["promo"],
+        ),
+      );
+
+      // "1%0" must be matched literally. "A100" contains "1" followed
+      // eventually by "0", so an unescaped '%' wildcard would incorrectly
+      // match it even though the literal substring "1%0" isn't present.
+      const result = await store.listVersionChunks(library, version, {
+        limit: 10,
+        filter: "1%0",
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.chunks).toEqual([]);
+    });
+
+    it("returns an empty result for a version that doesn't exist", async () => {
+      const result = await store.listVersionChunks(library, "9.9.9", { limit: 10 });
+      expect(result).toEqual({ chunks: [], total: 0 });
+    });
+
+    it("computes aggregate stats for the version", async () => {
+      const stats = await store.getVersionStats(library, version);
+
+      expect(stats.pageCount).toBe(2);
+      expect(stats.chunkCount).toBe(4);
+      expect(stats.avgChunksPerPage).toBe(2); // 4 chunks / 2 pages
+      expect(stats.avgTokensPerChunk).toBeNull();
+      expect(stats.embeddedChunkCount).toBe(4);
+    });
+
+    it("returns zeroed/null stats for a version that doesn't exist", async () => {
+      const stats = await store.getVersionStats(library, "9.9.9");
+
+      expect(stats).toEqual({
+        pageCount: 0,
+        chunkCount: 0,
+        avgChunksPerPage: null,
+        avgTokensPerChunk: null,
+        embeddedChunkCount: 0,
+      });
+    });
+
+    afterEach(() => {
+      if (originalApiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalApiKey;
       }
     });
   });

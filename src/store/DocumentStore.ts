@@ -20,7 +20,17 @@ import {
   EmbeddingModelChangedError,
   StoreError,
 } from "./errors";
-import type { DbChunkMetadata, DbChunkRank, StoredScraperOptions } from "./types";
+import type {
+  ActivityHistory,
+  DbChunkMetadata,
+  DbChunkRank,
+  ListVersionChunksOptions,
+  ListVersionChunksResult,
+  StoredScraperOptions,
+  VersionChunkListItem,
+  VersionChunkStats,
+  VersionComposition,
+} from "./types";
 import {
   type DbChunk,
   type DbLibraryVersion,
@@ -351,10 +361,16 @@ export class DocumentStore {
           COALESCE(v.name, '') as version,
           v.id as versionId,
           v.status as status,
+          v.error_message as errorMessage,
           v.progress_pages as progressPages,
           v.progress_max_pages as progressMaxPages,
           v.source_url as sourceUrl,
-          MIN(p.created_at) as indexedAt,
+          -- "Last indexed" = when the version was last (re)indexed. Use the
+          -- version's updated_at (bumped on every status/progress change during
+          -- a run, including refreshes) rather than MIN(p.created_at), which is
+          -- the *first*-index time and never moves on refresh. Fall back to the
+          -- oldest page for versions that predate status tracking.
+          COALESCE(v.updated_at, MIN(p.created_at)) as indexedAt,
           COUNT(d.id) as documentCount,
           COUNT(DISTINCT p.url) as uniqueUrlCount
         FROM versions v
@@ -931,6 +947,15 @@ export class DocumentStore {
   }
 
   /**
+   * Escapes SQL LIKE wildcard characters (`%`, `_`) and the escape character
+   * itself so a user-supplied filter is matched as a literal substring rather
+   * than interpreted as a pattern. Pair with `LIKE ? ESCAPE '\'`.
+   */
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+  }
+
+  /**
    * Initializes database connection and ensures readiness
    */
   async initialize(): Promise<void> {
@@ -1415,6 +1440,7 @@ export class DocumentStore {
         version: string;
         versionId: number;
         status: VersionStatus; // Persisted enum value
+        errorMessage: string | null;
         progressPages: number;
         progressMaxPages: number;
         sourceUrl: string | null;
@@ -1432,6 +1458,7 @@ export class DocumentStore {
           version: string;
           versionId: number;
           status: VersionStatus;
+          errorMessage: string | null;
           progressPages: number;
           progressMaxPages: number;
           sourceUrl: string | null;
@@ -1456,6 +1483,7 @@ export class DocumentStore {
           versionId: row.versionId,
           // Preserve raw string status here; DocumentManagementService will cast to VersionStatus
           status: row.status,
+          errorMessage: row.errorMessage,
           progressPages: row.progressPages,
           progressMaxPages: row.progressMaxPages,
           sourceUrl: row.sourceUrl,
@@ -2388,6 +2416,268 @@ export class DocumentStore {
       return this.parseMetadataArray(rows);
     } catch (error) {
       throw new ConnectionError(`Failed to fetch documents by URL ${url}`, error);
+    }
+  }
+
+  /**
+   * Lists stored chunks for a library version with pagination and an optional
+   * case-insensitive content filter. Powers the admin dashboard's chunk explorer.
+   *
+   * Position (`chunkIndex`/`pageChunkCount`) is computed with window functions
+   * over `sort_order` rather than trusted verbatim, so results stay correct
+   * even if a page's chunks were ever stored with non-contiguous ordering.
+   * Token counts are never fabricated: the current schema has no per-chunk
+   * token column, so every item's `tokenCount` is `null`.
+   *
+   * @param library Library name (case-insensitive).
+   * @param version Version string (empty string for unversioned).
+   * @param options Pagination (`limit`/`offset`) and optional content `filter`.
+   * @returns The requested page of chunks plus the total count matching the filter.
+   */
+  async listVersionChunks(
+    library: string,
+    version: string,
+    options: ListVersionChunksOptions,
+  ): Promise<ListVersionChunksResult> {
+    try {
+      const normalizedVersion = version.toLowerCase();
+      const versionRow = this.statements.getVersionId.get(
+        library.toLowerCase(),
+        normalizedVersion,
+      ) as { id: number; library_id: number } | undefined;
+
+      if (!versionRow) {
+        return { chunks: [], total: 0 };
+      }
+
+      const offset = options.offset ?? 0;
+      const trimmedFilter = options.filter?.trim();
+
+      const whereParams: (string | number)[] = [versionRow.id];
+      let whereClause = "WHERE p.version_id = ?";
+      if (trimmedFilter) {
+        whereClause += " AND LOWER(d.content) LIKE LOWER(?) ESCAPE '\\'";
+        whereParams.push(`%${this.escapeLikePattern(trimmedFilter)}%`);
+      }
+
+      const countStmt = this.db.prepare(
+        `SELECT COUNT(*) as count
+         FROM documents d
+         JOIN pages p ON d.page_id = p.id
+         ${whereClause}`,
+      );
+      const countRow = countStmt.get(...whereParams) as { count: number };
+      const total = countRow.count;
+
+      const dataStmt = this.db.prepare(
+        `SELECT
+           d.id,
+           d.content,
+           (d.embedding IS NOT NULL) as has_embedding,
+           p.url as url,
+           p.content_type as mime_type,
+           ROW_NUMBER() OVER (PARTITION BY d.page_id ORDER BY d.sort_order, d.id) as chunk_index,
+           COUNT(*) OVER (PARTITION BY d.page_id) as page_chunk_count
+         FROM documents d
+         JOIN pages p ON d.page_id = p.id
+         ${whereClause}
+         ORDER BY p.url, d.sort_order, d.id
+         LIMIT ? OFFSET ?`,
+      );
+      const rows = dataStmt.all(...whereParams, options.limit, offset) as Array<{
+        id: number;
+        content: string;
+        has_embedding: number;
+        url: string;
+        mime_type: string | null;
+        chunk_index: number;
+        page_chunk_count: number;
+      }>;
+
+      const chunks: VersionChunkListItem[] = rows.map((row) => ({
+        id: String(row.id),
+        url: row.url,
+        content: row.content,
+        mimeType: row.mime_type,
+        chunkIndex: row.chunk_index,
+        pageChunkCount: row.page_chunk_count,
+        charCount: row.content.length,
+        tokenCount: null,
+        hasEmbedding: Boolean(row.has_embedding),
+      }));
+
+      return { chunks, total };
+    } catch (error) {
+      throw new ConnectionError("Failed to list version chunks", error);
+    }
+  }
+
+  /**
+   * Computes aggregate chunk/page/embedding statistics for a library version,
+   * for the chunk explorer's header strip.
+   *
+   * `avgTokensPerChunk` is always `null`: the schema does not persist
+   * per-chunk token counts, so this is reported as unavailable rather than
+   * fabricated from character counts.
+   *
+   * @param library Library name (case-insensitive).
+   * @param version Version string (empty string for unversioned).
+   * @returns Aggregate statistics, or all-zero/`null` values if the version doesn't exist.
+   */
+  async getVersionStats(library: string, version: string): Promise<VersionChunkStats> {
+    try {
+      const normalizedVersion = version.toLowerCase();
+      const versionRow = this.statements.getVersionId.get(
+        library.toLowerCase(),
+        normalizedVersion,
+      ) as { id: number; library_id: number } | undefined;
+
+      if (!versionRow) {
+        return {
+          pageCount: 0,
+          chunkCount: 0,
+          avgChunksPerPage: null,
+          avgTokensPerChunk: null,
+          embeddedChunkCount: 0,
+        };
+      }
+
+      const stmt = this.db.prepare(
+        `SELECT
+           COUNT(DISTINCT p.id) as page_count,
+           COUNT(d.id) as chunk_count,
+           SUM(CASE WHEN d.embedding IS NOT NULL THEN 1 ELSE 0 END) as embedded_chunk_count
+         FROM pages p
+         LEFT JOIN documents d ON d.page_id = p.id
+         WHERE p.version_id = ?`,
+      );
+      const row = stmt.get(versionRow.id) as {
+        page_count: number;
+        chunk_count: number;
+        embedded_chunk_count: number | null;
+      };
+
+      return {
+        pageCount: row.page_count,
+        chunkCount: row.chunk_count,
+        avgChunksPerPage: row.page_count > 0 ? row.chunk_count / row.page_count : null,
+        avgTokensPerChunk: null,
+        embeddedChunkCount: row.embedded_chunk_count ?? 0,
+      };
+    } catch (error) {
+      throw new ConnectionError("Failed to get version stats", error);
+    }
+  }
+
+  /**
+   * Returns per-day indexing activity over the trailing `days`-day window,
+   * derived from the `created_at` timestamps already stored on pages and
+   * chunks. Days with no activity are zero-filled so the returned series is
+   * contiguous.
+   *
+   * Rows are grouped by UTC calendar day to match SQLite's `date('now')`.
+   * `created_at` reflects first insertion, so a refresh that only updates
+   * existing pages does not inflate the counts (it is genuinely new content,
+   * not re-touched content, that registers as activity).
+   *
+   * @param days - Window length in days; clamped to 1..366.
+   */
+  async getActivityHistory(days: number): Promise<ActivityHistory> {
+    try {
+      const windowDays = Math.max(1, Math.min(366, Math.floor(days) || 1));
+      // A recursive calendar drives the zero-fill: every day in the window is
+      // emitted even when neither `pages` nor `documents` has a row for it.
+      const stmt = this.db.prepare(
+        `WITH RECURSIVE calendar(day) AS (
+           SELECT date('now', '-' || (@days - 1) || ' days')
+           UNION ALL
+           SELECT date(day, '+1 day') FROM calendar WHERE day < date('now')
+         )
+         SELECT
+           calendar.day AS date,
+           COALESCE(pg.cnt, 0) AS pages,
+           COALESCE(ch.cnt, 0) AS chunks
+         FROM calendar
+         LEFT JOIN (
+           SELECT date(created_at) AS d, COUNT(*) AS cnt
+           FROM pages
+           WHERE created_at >= date('now', '-' || (@days - 1) || ' days')
+           GROUP BY d
+         ) pg ON pg.d = calendar.day
+         LEFT JOIN (
+           SELECT date(created_at) AS d, COUNT(*) AS cnt
+           FROM documents
+           WHERE created_at >= date('now', '-' || (@days - 1) || ' days')
+           GROUP BY d
+         ) ch ON ch.d = calendar.day
+         ORDER BY calendar.day`,
+      );
+      const rows = stmt.all({ days: windowDays }) as Array<{
+        date: string;
+        pages: number;
+        chunks: number;
+      }>;
+
+      let totalPages = 0;
+      let totalChunks = 0;
+      for (const row of rows) {
+        totalPages += row.pages;
+        totalChunks += row.chunks;
+      }
+
+      return {
+        days: rows.map((row) => ({
+          date: row.date,
+          pages: row.pages,
+          chunks: row.chunks,
+        })),
+        since: rows[0]?.date ?? "",
+        until: rows[rows.length - 1]?.date ?? "",
+        totalPages,
+        totalChunks,
+      };
+    } catch (error) {
+      throw new ConnectionError("Failed to get activity history", error);
+    }
+  }
+
+  /**
+   * Returns a per-version content-type breakdown: pages grouped by MIME type
+   * (`content_type`, falling back to `source_content_type`, else `unknown`),
+   * most common first. Derived from the stored pages.
+   *
+   * @param library - Library name (case-insensitive).
+   * @param version - Version name (empty string for unversioned).
+   */
+  async getVersionComposition(
+    library: string,
+    version: string,
+  ): Promise<VersionComposition> {
+    try {
+      const versionRow = this.statements.getVersionId.get(
+        library.toLowerCase(),
+        version.toLowerCase(),
+      ) as { id: number } | undefined;
+
+      if (!versionRow) return { mimeTypes: [] };
+
+      const mimeRows = this.db
+        .prepare(
+          `SELECT
+             COALESCE(NULLIF(p.content_type, ''), NULLIF(p.source_content_type, ''), 'unknown') AS label,
+             COUNT(*) AS pages
+           FROM pages p
+           WHERE p.version_id = ?
+           GROUP BY label
+           ORDER BY pages DESC, label`,
+        )
+        .all(versionRow.id) as Array<{ label: string; pages: number }>;
+
+      return {
+        mimeTypes: mimeRows.map((row) => ({ label: row.label, pages: row.pages })),
+      };
+    } catch (error) {
+      throw new ConnectionError("Failed to get version composition", error);
     }
   }
 }

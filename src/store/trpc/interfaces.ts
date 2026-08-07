@@ -5,11 +5,18 @@
 import type { ScraperOptions } from "../../scraper/types";
 import type { EmbeddingModelConfig } from "../embeddings/EmbeddingConfig";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   LibrarySummary,
+  ListVersionChunksOptions,
+  ListVersionChunksResult,
   StoredScraperOptions,
   StoreSearchResult,
+  VersionChunkStats,
+  VersionComposition,
+  VersionRef,
   VersionStatus,
 } from "../types";
 
@@ -51,4 +58,19 @@ export interface IDocumentManagement {
 
   // Embedding configuration
   getActiveEmbeddingConfig(): EmbeddingModelConfig | null;
+  /**
+   * Serializable embedding config for the system-health snapshot. Async so a
+   * remote client can fetch the worker's config over the wire (the local
+   * `getActiveEmbeddingConfig` returns null for a remote worker).
+   */
+  getEmbeddingConfigInfo(): Promise<EmbeddingConfigInfo | null>;
+
+  // Chunk explorer support (admin UI)
+  listVersionChunks(
+    ref: VersionRef,
+    options?: Partial<ListVersionChunksOptions>,
+  ): Promise<ListVersionChunksResult>;
+  getVersionStats(ref: VersionRef): Promise<VersionChunkStats>;
+  getActivityHistory(days?: number): Promise<ActivityHistory>;
+  getVersionComposition(ref: VersionRef): Promise<VersionComposition>;
 }

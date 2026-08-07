@@ -20,15 +20,22 @@ import {
   VersionNotFoundInStoreError,
 } from "./errors";
 import type {
+  ActivityHistory,
   DbVersionWithLibrary,
+  EmbeddingConfigInfo,
   FindVersionResult,
   LibrarySummary,
+  ListVersionChunksOptions,
+  ListVersionChunksResult,
   ScraperConfig,
   StoreSearchResult,
+  VersionChunkStats,
+  VersionComposition,
   VersionRef,
   VersionStatus,
   VersionSummary,
 } from "./types";
+import { normalizeVersionRef } from "./types";
 
 /**
  * Provides semantic search capabilities across different versions of library documentation.
@@ -69,6 +76,17 @@ export class DocumentManagementService {
    */
   getActiveEmbeddingConfig(): EmbeddingModelConfig | null {
     return this.store.getActiveEmbeddingConfig();
+  }
+
+  async getEmbeddingConfigInfo(): Promise<EmbeddingConfigInfo | null> {
+    const config = this.getActiveEmbeddingConfig();
+    return config
+      ? {
+          provider: config.provider,
+          model: config.model,
+          dimensions: config.dimensions,
+        }
+      : null;
   }
 
   /**
@@ -182,6 +200,7 @@ export class DocumentManagementService {
             id: v.versionId,
             ref: { library, version: v.version },
             status: v.status as VersionStatus,
+            errorMessage: v.errorMessage,
             // Include progress only while indexing is active; set undefined for COMPLETED
             progress:
               v.status === "completed"
@@ -535,5 +554,53 @@ export class DocumentManagementService {
    */
   async getLibraryById(libraryId: number) {
     return this.store.getLibraryById(libraryId);
+  }
+
+  /**
+   * Lists stored chunks for a library version with pagination and an optional
+   * content filter. Powers the admin dashboard's chunk explorer.
+   * @param ref Library/version reference; normalized before querying the store.
+   * @param options Pagination (`limit`, defaults to 50; `offset`) and optional content `filter`.
+   */
+  async listVersionChunks(
+    ref: VersionRef,
+    options: Partial<ListVersionChunksOptions> = {},
+  ): Promise<ListVersionChunksResult> {
+    const normalized = normalizeVersionRef(ref);
+    return this.store.listVersionChunks(normalized.library, normalized.version, {
+      limit: options.limit ?? 50,
+      offset: options.offset,
+      filter: options.filter,
+    });
+  }
+
+  /**
+   * Computes aggregate chunk/page/embedding statistics for a library version,
+   * for the chunk explorer's header strip.
+   * @param ref Library/version reference; normalized before querying the store.
+   */
+  async getVersionStats(ref: VersionRef): Promise<VersionChunkStats> {
+    const normalized = normalizeVersionRef(ref);
+    return this.store.getVersionStats(normalized.library, normalized.version);
+  }
+
+  /**
+   * Returns per-day indexing activity across the whole store over a trailing
+   * window, derived from stored page/chunk creation timestamps. Powers the
+   * Overview "Indexing activity" chart.
+   * @param days Window length in days; defaults to 90, clamped to 1..366.
+   */
+  async getActivityHistory(days = 90): Promise<ActivityHistory> {
+    return this.store.getActivityHistory(days);
+  }
+
+  /**
+   * Computes a per-version content-type breakdown (pages grouped by MIME type)
+   * for the library-detail Content types panel.
+   * @param ref Library/version reference; normalized before querying the store.
+   */
+  async getVersionComposition(ref: VersionRef): Promise<VersionComposition> {
+    const normalized = normalizeVersionRef(ref);
+    return this.store.getVersionComposition(normalized.library, normalized.version);
   }
 }
