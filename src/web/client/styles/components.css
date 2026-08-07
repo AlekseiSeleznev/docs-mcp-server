@@ -889,11 +889,6 @@ table.tbl {
   font-weight: 650;
   font-size: 13.5px;
 }
-.jobc__id {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-faint);
-}
 .jobc__right {
   margin-left: auto;
   display: flex;

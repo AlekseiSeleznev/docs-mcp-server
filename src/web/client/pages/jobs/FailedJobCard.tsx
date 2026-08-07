@@ -44,7 +44,6 @@ export function FailedJobCard({
         <LibIcon name={job.library} url={job.sourceUrl} />
         <span className="jobc__title">{job.library}</span>
         <Chip>{job.version || "unversioned"}</Chip>
-        <span className="jobc__id">{job.id}</span>
         <div className="jobc__right">
           <span className="jobc__elapsed">{formatRelative(now, job.finishedAt)}</span>
           <Button
