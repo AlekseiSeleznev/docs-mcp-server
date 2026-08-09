@@ -239,12 +239,12 @@ describe("SearchTool", () => {
     expect(caughtError.message).toContain("test-lib");
   });
 
-  it("should re-throw unexpected errors from findBestVersion", async () => {
+  it("should sanitize unexpected errors from findBestVersion", async () => {
     const options: SearchToolOptions = { ...baseOptions, version: "1.x" };
     const unexpectedError = new Error("Store connection failed");
     (mockDocService.findBestVersion as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow("Store connection failed");
+    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
   });
 
   it("should throw LibraryNotFoundInStoreError and include suggestions", async () => {
@@ -264,17 +264,15 @@ describe("SearchTool", () => {
     expect(caughtError.message).toContain("Did you mean:");
   });
 
-  it("should re-throw unexpected errors from validateLibraryExists", async () => {
+  it("should sanitize unexpected errors from validateLibraryExists", async () => {
     const options: SearchToolOptions = { ...baseOptions };
     const unexpectedError = new Error("Validation DB connection failed");
     (mockDocService.validateLibraryExists as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow(
-      "Validation DB connection failed",
-    );
+    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
   });
 
-  it("should re-throw unexpected errors from searchStore", async () => {
+  it("should sanitize unexpected errors from searchStore", async () => {
     const options: SearchToolOptions = {
       ...baseOptions,
       version: "1.0.0",
@@ -283,7 +281,7 @@ describe("SearchTool", () => {
     const unexpectedError = new Error("Search index corrupted");
     (mockDocService.searchStore as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow("Search index corrupted");
+    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
   });
 
   it("does not expose the Search Query or raw failures in logs", async () => {
@@ -291,19 +289,21 @@ describe("SearchTool", () => {
     const rawFailure = "raw store cause with https://private.example/internal";
     (mockDocService.searchStore as Mock).mockRejectedValue(new Error(rawFailure));
 
-    await expect(
-      searchTool.execute({
+    const error = await searchTool
+      .execute({
         library: "test-lib",
         version: "1.0.0",
         exactMatch: true,
         query,
-      }),
-    ).rejects.toThrow(rawFailure);
+      })
+      .catch((caughtError: unknown) => caughtError);
 
     const logs = JSON.stringify({
       errors: vi.mocked(logger.error).mock.calls,
       info: vi.mocked(logger.info).mock.calls,
     });
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Search failed");
     expect(logs).not.toContain(query);
     expect(logs).not.toContain(rawFailure);
     expect(logs).not.toContain("https://private.example/internal");

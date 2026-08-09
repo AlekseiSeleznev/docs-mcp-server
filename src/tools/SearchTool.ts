@@ -1,4 +1,4 @@
-import { VersionNotFoundInStoreError } from "../store";
+import { LibraryNotFoundInStoreError, VersionNotFoundInStoreError } from "../store";
 import type { IDocumentManagement } from "../store/trpc/interfaces";
 import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
@@ -121,7 +121,13 @@ export class SearchTool {
       return { results };
     } catch (error) {
       logger.error("❌ Search failed");
-      throw error;
+      if (
+        error instanceof LibraryNotFoundInStoreError ||
+        error instanceof VersionNotFoundInStoreError
+      ) {
+        throw error;
+      }
+      throw new Error("Search failed");
     }
   }
 }

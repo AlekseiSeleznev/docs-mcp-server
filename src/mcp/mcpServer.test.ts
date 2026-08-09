@@ -4,9 +4,15 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it, vi } from "vitest";
+import { telemetry } from "../telemetry";
 import type { AppConfig } from "../utils/config";
 import { createMcpServerInstance } from "./mcpServer";
 import type { McpServerTools } from "./tools";
+
+vi.mock("../telemetry", () => ({
+  TelemetryEvent: { TOOL_USED: "tool_used" },
+  telemetry: { track: vi.fn() },
+}));
 
 // Mock config
 const mockConfig = {
@@ -54,6 +60,21 @@ const mockTools: McpServerTools = {
 };
 
 describe("MCP Server Read-Only Mode", () => {
+  it("does not expose the Search Query or raw search failure", async () => {
+    const query = "private Search Query";
+    const rawFailure = "raw failure with http://private-worker.internal:8080/api";
+    vi.mocked(telemetry.track).mockClear();
+    vi.mocked(mockTools.search.execute).mockRejectedValueOnce(new Error(rawFailure));
+    const server = createMcpServerInstance(mockTools, mockConfig);
+    const searchTool = (server as any)._registeredTools.search_docs;
+
+    const result = await searchTool.handler({ library: "lib", query, limit: 5 });
+
+    expect(JSON.stringify(vi.mocked(telemetry.track).mock.calls)).not.toContain(query);
+    expect(JSON.stringify(result)).not.toContain(rawFailure);
+    expect(JSON.stringify(result)).not.toContain("private-worker.internal");
+  });
+
   it("should create server instance in normal mode", () => {
     const server = createMcpServerInstance(mockTools, mockConfig);
     expect(server).toBeInstanceOf(McpServer);
