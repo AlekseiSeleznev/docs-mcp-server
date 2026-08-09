@@ -1,15 +1,18 @@
-import type { RerankCandidate, Reranker, RerankResult } from "./Reranker";
+import {
+  isRerankerRuntimeFailureCategory,
+  type RerankCandidate,
+  type Reranker,
+  type RerankerRuntimeFailureCategory,
+  type RerankResult,
+} from "./Reranker";
 
 const FAILURE_THRESHOLD = 3;
 const OPEN_DURATION_MS = 60_000;
 
 export type RerankerFallbackCategory =
   | "circuit_open"
-  | "invalid_response"
   | "probe_in_progress"
-  | "provider_error"
-  | "request_failed"
-  | "timeout";
+  | RerankerRuntimeFailureCategory;
 
 interface CircuitBreakingRerankerOptions {
   now?: () => number;
@@ -107,10 +110,5 @@ function hasFallbackCategory(
   if (typeof error !== "object" || error === null || !("category" in error)) {
     return false;
   }
-  return (
-    error.category === "invalid_response" ||
-    error.category === "provider_error" ||
-    error.category === "request_failed" ||
-    error.category === "timeout"
-  );
+  return isRerankerRuntimeFailureCategory(error.category);
 }

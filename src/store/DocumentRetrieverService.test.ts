@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "../utils/config";
 import { loadConfig } from "../utils/config";
 import { logger } from "../utils/logger";
-import { CircuitBreakingReranker } from "./CircuitBreakingReranker";
+import {
+  CircuitBreakingReranker,
+  RerankerUnavailableError,
+} from "./CircuitBreakingReranker";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { DocumentStore } from "./DocumentStore";
 import type { DbChunkRank, DbPageChunk } from "./types";
@@ -370,7 +373,6 @@ describe("DocumentRetrieverService", () => {
       );
 
       await expectVoyageFailOpen();
-      expectFallbackLogCategory("provider_error");
     },
   );
 
@@ -385,7 +387,6 @@ describe("DocumentRetrieverService", () => {
     );
 
     await expectVoyageFailOpen();
-    expectFallbackLogCategory("request_failed");
   });
 
   it("uses the exact Baseline Ranking prefix for invalid Voyage JSON", async () => {
@@ -395,7 +396,6 @@ describe("DocumentRetrieverService", () => {
     );
 
     await expectVoyageFailOpen();
-    expectFallbackLogCategory("invalid_response");
   });
 
   it.each([
@@ -486,7 +486,6 @@ describe("DocumentRetrieverService", () => {
       );
 
       await expectVoyageFailOpen();
-      expectFallbackLogCategory("invalid_response");
     },
   );
 
@@ -508,7 +507,38 @@ describe("DocumentRetrieverService", () => {
     await vi.advanceTimersByTimeAsync(5_000);
 
     await pendingResults;
-    expectFallbackLogCategory("timeout");
+  });
+
+  it.each([
+    "timeout",
+    "request_failed",
+    "provider_error",
+    "invalid_response",
+    "circuit_open",
+    "probe_in_progress",
+  ] as const)("logs only the sanitized fallback category: %s", async (category) => {
+    const candidate = {
+      id: "candidate",
+      content: "private Search Candidate",
+      url: "https://example.com/candidate",
+      score: 0.91,
+      sort_order: 1,
+      metadata: {},
+    } as DbPageChunk & DbChunkRank;
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, {
+      rerank: vi.fn().mockRejectedValue(new RerankerUnavailableError(category)),
+    });
+    vi.spyOn(store, "findByContent").mockResolvedValue([candidate]);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue([candidate]);
+
+    await service.search("lib", "1.0.0", "private Search Query", 1);
+
+    expectFallbackLogCategory(category);
   });
 
   it("logs successful usage through the same operational metadata whitelist", async () => {

@@ -1,4 +1,10 @@
-import type { RerankCandidate, Reranker, RerankResult, RerankScore } from "./Reranker";
+import type {
+  RerankCandidate,
+  Reranker,
+  RerankerRuntimeFailureCategory,
+  RerankResult,
+  RerankScore,
+} from "./Reranker";
 
 const VOYAGE_RERANK_ENDPOINT = "https://api.voyageai.com/v1/rerank";
 
@@ -11,11 +17,9 @@ interface VoyageRerankerOptions {
 /** A sanitized Voyage adapter failure that excludes request and response content. */
 export class VoyageRerankerError extends Error {
   /** Sanitized failure category without provider response details. */
-  readonly category: "invalid_response" | "provider_error" | "request_failed" | "timeout";
+  readonly category: RerankerRuntimeFailureCategory;
 
-  constructor(
-    reason: "invalid_response" | "provider_error" | "request_failed" | "timeout",
-  ) {
+  constructor(reason: RerankerRuntimeFailureCategory) {
     super(`Voyage reranking failed: ${reason}`);
     this.name = "VoyageRerankerError";
     this.category = reason;

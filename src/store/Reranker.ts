@@ -1,3 +1,22 @@
+/** Secret-safe runtime failure categories shared by all Reranker adapters. */
+export const RERANKER_RUNTIME_FAILURE_CATEGORIES = [
+  "invalid_response",
+  "provider_error",
+  "request_failed",
+  "timeout",
+] as const;
+
+/** A normalized runtime failure category that contains no provider content. */
+export type RerankerRuntimeFailureCategory =
+  (typeof RERANKER_RUNTIME_FAILURE_CATEGORIES)[number];
+
+/** Tests whether a value belongs to the fixed runtime failure vocabulary. */
+export function isRerankerRuntimeFailureCategory(
+  value: unknown,
+): value is RerankerRuntimeFailureCategory {
+  return RERANKER_RUNTIME_FAILURE_CATEGORIES.some((category) => category === value);
+}
+
 /** A Search Candidate identified by its stable Baseline Ranking index. */
 export interface RerankCandidate {
   /** Zero-based position in the Baseline Ranking. */
