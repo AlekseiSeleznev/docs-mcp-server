@@ -33,8 +33,8 @@ export class DocumentRetrieverService {
     const normalizedVersion = (version ?? "").toLowerCase();
 
     const userLimit = limit ?? 10;
-    const rerankingEnabled = this.config.search.reranker.enabled && this.reranker;
-    const retrievalLimit = rerankingEnabled
+    const activeReranker = this.config.search.reranker.enabled && this.reranker;
+    const retrievalLimit = activeReranker
       ? Math.max(userLimit, this.config.search.reranker.candidateLimit)
       : userLimit;
     const initialResults = await this.documentStore.findByContent(
@@ -49,8 +49,8 @@ export class DocumentRetrieverService {
     }
 
     let rankedCandidates = initialResults;
-    if (rerankingEnabled) {
-      const rerankScores = await rerankingEnabled.rerank(
+    if (activeReranker) {
+      const rerankScores = await activeReranker.rerank(
         query,
         initialResults.map((candidate, index) => ({
           index,

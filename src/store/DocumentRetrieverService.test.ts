@@ -282,15 +282,34 @@ describe("DocumentRetrieverService", () => {
 
     await service.search("lib", "1.0.0", "exact search query", 3);
 
-    expect(store.findByContent).toHaveBeenCalledWith(
-      "lib",
-      "1.0.0",
-      "exact search query",
-      30,
-    );
     expect(rerank).toHaveBeenCalledWith("exact search query", [
       { index: 0, content: "Raw candidate content" },
     ]);
+  });
+
+  it("uses the configured candidate limit when it exceeds the user limit", async () => {
+    const candidate = {
+      id: "doc1",
+      content: "Candidate",
+      url: "https://example.com/doc",
+      score: 0.5,
+      sort_order: 1,
+      metadata: {},
+    } as DbPageChunk & DbChunkRank;
+    const rerank = vi.fn().mockResolvedValue([{ index: 0, score: 0.9 }]);
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, { rerank });
+
+    vi.spyOn(store, "findByContent").mockResolvedValue([candidate]);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue([candidate]);
+
+    await service.search("lib", "1.0.0", "query", 3);
+
+    expect(store.findByContent).toHaveBeenCalledWith("lib", "1.0.0", "query", 30);
   });
 
   it("propagates reranker scores into final ordering after context assembly", async () => {
