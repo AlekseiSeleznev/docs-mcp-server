@@ -17,8 +17,8 @@ docker image inspect registry.example/docs-mcp-server:issue-6-<git-sha> \
 ```
 
 Set `DOCS_MCP_IMAGE` to that immutable tag or, preferably, to the recorded
-`name@sha256:...` digest. The Compose file rejects an unset image reference and
-does not provide a mutable fallback tag.
+`name@sha256:...` digest. The Compose file requires an explicit immutable image
+reference.
 
 ## Place the Voyage secret
 
@@ -29,15 +29,16 @@ this single required variable:
 VOYAGE_API_KEY=<secret value>
 ```
 
-Do not put this variable in the shell-wide Compose environment, shared config
-volume, web service, or either MCP service. Do not commit `.env.worker`. An
-enabled local search process exits at startup and reports `VOYAGE_API_KEY` when
-the variable is absent.
+Keep this variable only in the deployment secret store consumed as
+`.env.worker`; keep that file untracked. The shell-wide Compose environment,
+shared config volume, web service, and both MCP services stay credential-free.
+An enabled local search process exits at startup and reports `VOYAGE_API_KEY`
+when the variable is absent.
 
 The production Compose file supplies
 `DOCS_MCP_SEARCH_RERANKER_ENABLED=true` only to `worker`. The shared application
 configuration remains disabled by default, so credential-free proxy processes
-do not initialize a Reranker.
+run only as remote clients of the worker.
 
 ## Start and verify
 
@@ -54,9 +55,10 @@ searches execute on the worker and therefore use the worker-owned Reranker.
 
 Safe operational evidence consists only of the image digest, process health,
 MCP initialization status, candidate count, elapsed time, outcome, returned
-count, usage-token count, and sanitized fallback category. Never collect the
-Voyage credential, Authorization headers, Search Query text, Search Candidate
-content, provider response bodies, or raw provider errors in logs or evidence.
+count, usage-token count, and sanitized fallback category. Configure evidence
+collection as an allowlist of these fields; credentials, Authorization headers,
+Search Query text, Search Candidate content, provider response bodies, and raw
+provider errors remain excluded.
 
 ## Preserve SQLite data
 
@@ -65,7 +67,7 @@ database migration, schema change, or reindex step. Before an image change,
 record the SQLite `user_version`, schema, and row counts from a safe backup or
 maintenance window. After startup and search, verify that they are unchanged.
 
-Do not attach the data volume to two workers at the same time. Keep the previous
+Keep exactly one worker attached to the data volume. Preserve the previous
 immutable image reference and Compose configuration until verification is
 complete.
 
@@ -73,8 +75,7 @@ complete.
 
 1. Set `DOCS_MCP_IMAGE` back to the previous immutable tag or digest.
 2. Recreate the four services with Docker Compose.
-3. Reuse the existing `grounded-docs-data` volume; do not migrate or reindex it.
+3. Reuse the existing `grounded-docs-data` volume unchanged.
 4. Verify worker health, both MCP initializations, and a baseline search.
 5. To disable reranking while retaining the new image, remove the worker-only
    `DOCS_MCP_SEARCH_RERANKER_ENABLED=true` override and recreate the worker.
-

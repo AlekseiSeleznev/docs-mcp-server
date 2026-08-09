@@ -20,6 +20,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import Database from "better-sqlite3";
@@ -42,6 +43,13 @@ const PRODUCTION_COMPOSE_PATH = path.join(
   "remote-grounded",
   "docker-compose.yml",
 );
+// Created by accepted base image 5ae5b7de against test/fixtures/json.json.
+const EXISTING_RERANKER_DB_FIXTURE = path.join(
+  PROJECT_ROOT,
+  "test",
+  "fixtures",
+  "reranker-existing-documents.db.gz.base64",
+);
 const DOCKER_BUILD_TIMEOUT_MS = 1_200_000;
 
 interface DockerResult {
@@ -56,14 +64,31 @@ interface DatabaseSnapshot {
   counts: { documents: number; libraries: number; pages: number; versions: number };
 }
 
+interface DistributedStackEvidence {
+  before: DatabaseSnapshot;
+  after: DatabaseSnapshot;
+  composeStatus: string;
+  webHealth: string;
+  readOnlySearch: string;
+  administrativeSearch: string;
+  workerLogs: string;
+}
+
 // Runs `docker` asynchronously rather than via spawnSync. These commands can
 // run for minutes (image build, Playwright scrapes); a synchronous call
 // blocks Node's event loop for that whole time, which starves Vitest's
 // worker <-> main-thread RPC heartbeat and trips its 60s "onTaskUpdate"
 // timeout as a false-positive unhandled error.
-function docker(args: string[], opts: { timeout?: number } = {}): Promise<DockerResult> {
+function docker(
+  args: string[],
+  opts: { cwd?: string; env?: NodeJS.ProcessEnv; timeout?: number } = {},
+): Promise<DockerResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn("docker", args, { timeout: opts.timeout });
+    const child = spawn("docker", args, {
+      cwd: opts.cwd,
+      env: opts.env,
+      timeout: opts.timeout,
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
@@ -193,7 +218,7 @@ async function callSearchTool(baseUrl: string): Promise<string> {
       client.callTool({
         name: "search_docs",
         arguments: {
-        library: "docker-reranker",
+          library: "docker-reranker",
           query: "WonderWidgets",
           limit: 2,
         },
@@ -203,6 +228,162 @@ async function callSearchTool(baseUrl: string): Promise<string> {
     return JSON.stringify(result);
   } finally {
     await client.close().catch(() => undefined);
+  }
+}
+
+async function productionComposeServiceUrl(
+  composeArgs: string[],
+  environment: NodeJS.ProcessEnv,
+  service: string,
+): Promise<string> {
+  const result = await docker([...composeArgs, "port", service, "6280"], {
+    env: environment,
+  });
+  const match = result.stdout.match(/:(\d+)/);
+  if (result.status !== 0 || !match) {
+    throw new Error(`Could not resolve ${service} port: ${result.stderr}`);
+  }
+  return `http://127.0.0.1:${match[1]}`;
+}
+
+async function exerciseProductionComposeStack(): Promise<DistributedStackEvidence> {
+  const suffix = `${process.pid}-${Date.now()}`;
+  const projectName = `docs-mcp-reranker-${suffix}`;
+  const testDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-compose-stack-"));
+  const dataDir = path.join(testDir, "data");
+  const mockPath = path.join(testDir, "mock-voyage.mjs");
+  const workerEnvPath = path.join(testDir, "worker.env");
+  const overridePath = path.join(testDir, "docker-compose.test.yml");
+  fs.mkdirSync(dataDir);
+  fs.chmodSync(dataDir, 0o777);
+  const fixture = fs
+    .readFileSync(EXISTING_RERANKER_DB_FIXTURE, "utf8")
+    .replace(/\s/g, "");
+  fs.writeFileSync(
+    path.join(dataDir, "documents.db"),
+    gunzipSync(Buffer.from(fixture, "base64")),
+  );
+  fs.writeFileSync(workerEnvPath, "VOYAGE_API_KEY=test-only-worker-key\n");
+  fs.writeFileSync(
+    mockPath,
+    [
+      "const nativeFetch = globalThis.fetch;",
+      "globalThis.fetch = async (input, init) => {",
+      "  if (String(input) !== 'https://api.voyageai.com/v1/rerank') return nativeFetch(input, init);",
+      "  console.log('TEST_RERANK_CALLED');",
+      "  const request = JSON.parse(String(init?.body));",
+      "  return new Response(JSON.stringify({",
+      "    data: request.documents.map((_, index) => ({ index, relevance_score: 1 - index / 100 })),",
+      "    usage: { total_tokens: 7 },",
+      "  }), { status: 200, headers: { 'content-type': 'application/json' } });",
+      "};",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    overridePath,
+    [
+      "services:",
+      "  worker:",
+      "    env_file: !override",
+      '      - "${TEST_WORKER_ENV}"',
+      "    environment:",
+      "      LOG_LEVEL: debug",
+      "      NODE_OPTIONS: --import=/test/mock-voyage.mjs",
+      "    volumes: !override",
+      '      - "${TEST_DATA_DIR}:/data"',
+      "      - grounded-docs-config:/config",
+      '      - "${TEST_MOCK_PATH}:/test/mock-voyage.mjs:ro"',
+      "  web:",
+      "    ports: !override",
+      '      - "127.0.0.1::6280"',
+      "  mcp-read:",
+      "    ports: !override",
+      '      - "127.0.0.1::6280"',
+      "  mcp-admin:",
+      "    ports: !override",
+      '      - "127.0.0.1::6280"',
+    ].join("\n"),
+  );
+
+  const dbPath = path.join(dataDir, "documents.db");
+  const before = snapshotDatabase(dbPath);
+  const environment = {
+    ...process.env,
+    DOCS_MCP_IMAGE: IMAGE_TAG,
+    TEST_DATA_DIR: dataDir,
+    TEST_MOCK_PATH: mockPath,
+    TEST_WORKER_ENV: workerEnvPath,
+  };
+  const composeArgs = [
+    "compose",
+    "--project-name",
+    projectName,
+    "-f",
+    PRODUCTION_COMPOSE_PATH,
+    "-f",
+    overridePath,
+  ];
+
+  let runningEvidence: Omit<DistributedStackEvidence, "after"> | undefined;
+  try {
+    try {
+      const up = await docker(
+        [...composeArgs, "up", "-d", "--wait", "--wait-timeout", "120"],
+        { env: environment, timeout: 180_000 },
+      );
+      if (up.status !== 0) {
+        throw new Error(`Production Compose startup failed: ${up.stderr}`);
+      }
+      const status = await docker([...composeArgs, "ps", "--format", "json"], {
+        env: environment,
+      });
+      const webUrl = await productionComposeServiceUrl(
+        composeArgs,
+        environment,
+        "web",
+      );
+      const readOnlyUrl = await productionComposeServiceUrl(
+        composeArgs,
+        environment,
+        "mcp-read",
+      );
+      const administrativeUrl = await productionComposeServiceUrl(
+        composeArgs,
+        environment,
+        "mcp-admin",
+      );
+      const webHealth = await (
+        await waitForHttp(`${webUrl}/api/getSystemHealth`)
+      ).text();
+      const readOnlySearch = await callSearchTool(readOnlyUrl);
+      const administrativeSearch = await callSearchTool(administrativeUrl);
+      const logs = await docker([...composeArgs, "logs", "--no-color", "worker"], {
+        env: environment,
+      });
+      runningEvidence = {
+        before,
+        composeStatus: status.stdout,
+        webHealth,
+        readOnlySearch,
+        administrativeSearch,
+        workerLogs: logs.stdout + logs.stderr,
+      };
+    } finally {
+      const down = await docker(
+        [...composeArgs, "down", "--volumes", "--remove-orphans"],
+        { env: environment, timeout: 120_000 },
+      );
+      if (down.status !== 0) {
+        throw new Error(`Production Compose cleanup failed: ${down.stderr}`);
+      }
+    }
+
+    if (!runningEvidence) {
+      throw new Error("Production Compose evidence was not captured");
+    }
+    return { ...runningEvidence, after: snapshotDatabase(dbPath) };
+  } finally {
+    fs.rmSync(testDir, { recursive: true, force: true });
   }
 }
 
@@ -304,188 +485,30 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     }
   });
 
-  it("routes read-only and administrative MCP search through the reranking worker without changing SQLite", async () => {
-    const suffix = `${process.pid}-${Date.now()}`;
-    const network = `docs-mcp-reranker-${suffix}`;
-    const workerName = `docs-mcp-worker-${suffix}`;
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-reranker-data-"));
-    const fixtureDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "docs-mcp-reranker-fixture-"),
-    );
-    const mockPath = path.join(fixtureDir, "mock-voyage.mjs");
-    fs.chmodSync(dataDir, 0o777);
-    fs.chmodSync(fixtureDir, 0o755);
-    fs.writeFileSync(
-      mockPath,
-      [
-        "const nativeFetch = globalThis.fetch;",
-        "globalThis.fetch = async (input, init) => {",
-        "  if (String(input) !== 'https://api.voyageai.com/v1/rerank') return nativeFetch(input, init);",
-        "  const request = JSON.parse(String(init?.body));",
-        "  return new Response(JSON.stringify({",
-        "    data: request.documents.map((_, index) => ({ index, relevance_score: 1 - index / 100 })),",
-        "    usage: { total_tokens: 7 },",
-        "  }), { status: 200, headers: { 'content-type': 'application/json' } });",
-        "};",
-      ].join("\n"),
-    );
+  describe("production worker reranking Compose stack", () => {
+    let evidence: DistributedStackEvidence;
 
-    const containerIds: string[] = [];
-    try {
-      expect((await docker(["network", "create", network])).status).toBe(0);
-      const seed = await docker(
-        [
-          "run",
-          "--rm",
-          "-v",
-          `${dataDir}:/data`,
-          "-v",
-          `${path.join(PROJECT_ROOT, "test", "fixtures")}:/fixtures:ro`,
-          "-e",
-          "DOCS_MCP_TELEMETRY=false",
-          "-e",
-          "DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_ALLOWED_ROOTS=/fixtures",
-          IMAGE_TAG,
-          "scrape",
-          "docker-reranker",
-          "file:///fixtures/json.json",
-          "--max-pages",
-          "1",
-          "--max-depth",
-          "0",
-        ],
-        { timeout: 180_000 },
-      );
-      expect(seed.status, `stdout=${seed.stdout}\nstderr=${seed.stderr}`).toBe(0);
-      const dbPath = path.join(dataDir, "documents.db");
-      const before = snapshotDatabase(dbPath);
-      expect(before.counts.documents).toBeGreaterThan(0);
+    beforeAll(async () => {
+      evidence = await exerciseProductionComposeStack();
+    }, 300_000);
 
-      const worker = await docker([
-        "run",
-        "-d",
-        "--rm",
-        "--name",
-        workerName,
-        "--network",
-        network,
-        "-v",
-        `${dataDir}:/data`,
-        "-v",
-        `${mockPath}:/test/mock-voyage.mjs:ro`,
-        "-e",
-        "NODE_OPTIONS=--import=/test/mock-voyage.mjs",
-        "-e",
-        "LOG_LEVEL=debug",
-        "-e",
-        "DOCS_MCP_TELEMETRY=false",
-        "-e",
-        "DOCS_MCP_SEARCH_RERANKER_ENABLED=true",
-        "-e",
-        "VOYAGE_API_KEY=test-only-worker-key",
-        IMAGE_TAG,
-        "worker",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8080",
-      ]);
-      expect(worker.status, worker.stderr).toBe(0);
-      containerIds.push(worker.stdout.trim());
+    it("starts every service healthy with remote web and MCP initialization", () => {
+      expect(evidence.composeStatus).toContain('"Health":"healthy"');
+      expect(evidence.webHealth).toContain('"mode":"remote"');
+    });
 
-      for (let attempt = 0; attempt < 60; attempt++) {
-        const ping = await docker([
-          "exec",
-          workerName,
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:8080/api/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]);
-        if (ping.status === 0) break;
-        if (attempt === 59) throw new Error("worker health did not become ready");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+    it("routes read-only and administrative MCP search through worker reranking", () => {
+      expect(evidence.readOnlySearch).toContain("WonderWidgets");
+      expect(evidence.administrativeSearch).toContain("WonderWidgets");
+      expect(evidence.workerLogs.match(/TEST_RERANK_CALLED/g)).toHaveLength(2);
+      expect(evidence.workerLogs).not.toContain("test-only-worker-key");
+    });
 
-      const web = await docker([
-        "run",
-        "-d",
-        "--rm",
-        "-P",
-        "--network",
-        network,
-        "-e",
-        "DOCS_MCP_TELEMETRY=false",
-        IMAGE_TAG,
-        "web",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "6280",
-        "--server-url",
-        `http://${workerName}:8080/api`,
-        "--no-logo",
-      ]);
-      expect(web.status, web.stderr).toBe(0);
-      containerIds.push(web.stdout.trim());
-      const webUrl = await mappedContainerUrl(web.stdout.trim(), 6280);
-      const health = await waitForHttp(`${webUrl}/api/getSystemHealth`);
-      expect(await health.text()).toContain('"mode":"remote"');
-
-      const mcpUrls: string[] = [];
-      for (const readOnly of [true, false]) {
-        const args = [
-          "run",
-          "-d",
-          "--rm",
-          "-P",
-          "--network",
-          network,
-          "-e",
-          "DOCS_MCP_TELEMETRY=false",
-          IMAGE_TAG,
-          "mcp",
-          "--protocol",
-          "http",
-          "--host",
-          "0.0.0.0",
-          "--port",
-          "6280",
-          "--server-url",
-          `http://${workerName}:8080/api`,
-          "--no-logo",
-        ];
-        if (readOnly) args.push("--read-only");
-        const process = await docker(args);
-        expect(process.status, process.stderr).toBe(0);
-        containerIds.push(process.stdout.trim());
-        const url = await mappedContainerUrl(process.stdout.trim(), 6280);
-        await waitForHttp(`${url}/mcp`, 60, false);
-        mcpUrls.push(url);
-      }
-
-      for (const url of mcpUrls) {
-        expect(await callSearchTool(url)).toContain("WonderWidgets");
-      }
-
-      const logs = await docker(["logs", workerName]);
-      expect(logs.stdout + logs.stderr).toContain('"outcome":"success"');
-      expect(logs.stdout + logs.stderr).not.toContain("test-only-worker-key");
-
-      for (const containerId of containerIds.slice().reverse()) {
-        await docker(["rm", "-f", containerId]);
-      }
-      containerIds.length = 0;
-      expect(snapshotDatabase(dbPath)).toEqual(before);
-    } finally {
-      for (const containerId of containerIds.slice().reverse()) {
-        await docker(["rm", "-f", containerId]);
-      }
-      await docker(["network", "rm", network]);
-      fs.rmSync(dataDir, { recursive: true, force: true });
-      fs.rmSync(fixtureDir, { recursive: true, force: true });
-    }
-  }, 300_000);
-
+    it("opens existing SQLite data without schema changes or reindexing", () => {
+      expect(evidence.before.counts.documents).toBeGreaterThan(0);
+      expect(evidence.after).toEqual(evidence.before);
+    });
+  });
   it("runs the entrypoint as a non-root user", async () => {
     const r = await docker(["run", "--rm", "--entrypoint", "id", IMAGE_TAG, "-u"]);
     expect(r.status, `id -u failed: ${r.stderr}`).toBe(0);
