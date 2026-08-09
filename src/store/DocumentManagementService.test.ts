@@ -69,10 +69,10 @@ import { EventBusService } from "../events";
 import { loadConfig } from "../utils/config";
 import { getProjectRoot } from "../utils/paths";
 // Import the mocked constructor AFTER vi.mock
+import { CircuitBreakingReranker } from "./CircuitBreakingReranker";
 import { DocumentManagementService } from "./DocumentManagementService";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { createDocumentManagement, createLocalDocumentManagement } from "./index";
-import { VoyageReranker } from "./VoyageReranker";
 
 // Mock DocumentRetrieverService (keep existing structure)
 const mockRetriever = vi.hoisted(() => ({
@@ -314,7 +314,7 @@ describe("DocumentManagementService", () => {
       expect(DocumentRetrieverService).toHaveBeenCalledWith(
         mockStore,
         appConfig,
-        expect.any(VoyageReranker),
+        expect.any(CircuitBreakingReranker),
       );
     });
 

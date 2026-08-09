@@ -1,5 +1,6 @@
 import type { EventBusService } from "../events";
 import type { AppConfig } from "../utils/config";
+import { CircuitBreakingReranker } from "./CircuitBreakingReranker";
 import { DocumentManagementClient } from "./DocumentManagementClient";
 import { DocumentManagementService } from "./DocumentManagementService";
 import type { Reranker } from "./Reranker";
@@ -82,9 +83,11 @@ function createLocalReranker(appConfig: AppConfig): Reranker | undefined {
     throw new Error("Missing required environment variable: VOYAGE_API_KEY");
   }
 
-  return new VoyageReranker({
-    apiKey,
-    model: appConfig.search.reranker.model,
-    requestTimeoutMs: appConfig.search.reranker.requestTimeoutMs,
-  });
+  return new CircuitBreakingReranker(
+    new VoyageReranker({
+      apiKey,
+      model: appConfig.search.reranker.model,
+      requestTimeoutMs: appConfig.search.reranker.requestTimeoutMs,
+    }),
+  );
 }
