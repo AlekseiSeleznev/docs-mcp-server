@@ -20,6 +20,8 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import Database from "better-sqlite3";
 import { ZipArchive } from "archiver";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -34,12 +36,24 @@ const DOCKER_AVAILABLE = (() => {
 const PREBUILT_TAG = process.env.DOCKER_IMAGE_TAG;
 const IMAGE_TAG = PREBUILT_TAG ?? "docs-mcp-server:e2e-test";
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
+const PRODUCTION_COMPOSE_PATH = path.join(
+  PROJECT_ROOT,
+  "deploy",
+  "remote-grounded",
+  "docker-compose.yml",
+);
 const DOCKER_BUILD_TIMEOUT_MS = 1_200_000;
 
 interface DockerResult {
   status: number | null;
   stdout: string;
   stderr: string;
+}
+
+interface DatabaseSnapshot {
+  userVersion: number;
+  schema: string[];
+  counts: { documents: number; libraries: number; pages: number; versions: number };
 }
 
 // Runs `docker` asynchronously rather than via spawnSync. These commands can
@@ -107,6 +121,91 @@ function listIndexedUrls(dbPath: string): string[] {
   }
 }
 
+function snapshotDatabase(dbPath: string): DatabaseSnapshot {
+  const db = new Database(dbPath, { readonly: true });
+  try {
+    const userVersion = db.pragma("user_version", { simple: true }) as number;
+    const schema = db
+      .prepare(
+        "SELECT type || ':' || name || ':' || COALESCE(sql, '') AS entry FROM sqlite_master ORDER BY type, name",
+      )
+      .all()
+      .map((row) => (row as { entry: string }).entry);
+    const count = (table: string) =>
+      (db.prepare(`SELECT COUNT(*) AS value FROM ${table}`).get() as { value: number })
+        .value;
+    return {
+      userVersion,
+      schema,
+      counts: {
+        documents: count("documents"),
+        libraries: count("libraries"),
+        pages: count("pages"),
+        versions: count("versions"),
+      },
+    };
+  } finally {
+    db.close();
+  }
+}
+
+async function waitForHttp(
+  url: string,
+  attempts = 60,
+  requireOk = true,
+): Promise<Response> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(1000) }).catch(
+      () => null,
+    );
+    if (response && (!requireOk || response.ok)) return response;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(`HTTP endpoint did not become ready: ${url}`);
+}
+
+async function mappedContainerUrl(containerId: string, port: number): Promise<string> {
+  const result = await docker(["port", containerId, String(port)]);
+  const match = result.stdout.match(/:(\d+)/);
+  if (!match) {
+    throw new Error(`Could not resolve mapped port: ${result.stdout || result.stderr}`);
+  }
+  return `http://127.0.0.1:${match[1]}`;
+}
+
+async function callSearchTool(baseUrl: string): Promise<string> {
+  const transport = new SSEClientTransport(new URL("/sse", baseUrl), {
+    fetch: async (input, init) => {
+      const response = await fetch(input, init);
+      if (response.body) {
+        response.body.cancel = async () => undefined;
+      }
+      return response;
+    },
+  });
+  const client = new Client({ name: "docker-e2e", version: "1.0.0" });
+  try {
+    const timeout = new Promise<never>((_resolve, reject) =>
+      setTimeout(() => reject(new Error(`MCP search timed out: ${baseUrl}`)), 30_000),
+    );
+    await Promise.race([client.connect(transport), timeout]);
+    const result = await Promise.race([
+      client.callTool({
+        name: "search_docs",
+        arguments: {
+        library: "docker-reranker",
+          query: "WonderWidgets",
+          limit: 2,
+        },
+      }),
+      timeout,
+    ]);
+    return JSON.stringify(result);
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+}
+
 describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
   beforeAll(async () => {
     if (PREBUILT_TAG) return;
@@ -127,6 +226,265 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     // Best-effort cleanup; ignore failures (image may already be gone).
     spawnSync("docker", ["image", "rm", "-f", IMAGE_TAG], { stdio: "ignore" });
   });
+
+  it("keeps the production reranker credential on the search worker", () => {
+    const deployDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-compose-"));
+    const composePath = path.join(deployDir, "docker-compose.yml");
+    fs.copyFileSync(PRODUCTION_COMPOSE_PATH, composePath);
+    fs.writeFileSync(path.join(deployDir, ".env.worker"), "VOYAGE_API_KEY=test-only-key\n");
+    fs.mkdirSync(path.join(deployDir, "imports", "ONEC_ERP"), { recursive: true });
+
+    try {
+      const result = spawnSync(
+        "docker",
+        ["compose", "-f", composePath, "config", "--format", "json"],
+        {
+          cwd: deployDir,
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            DOCS_MCP_IMAGE: "docs-mcp-server@sha256:test-only-immutable-digest",
+          },
+        },
+      );
+      expect(result.status, result.stderr).toBe(0);
+      const config = JSON.parse(result.stdout) as {
+        services: Record<
+          string,
+          { environment?: Record<string, string>; image?: string }
+        >;
+      };
+      const worker = config.services.worker;
+      expect(worker.image).toBe(
+        "docs-mcp-server@sha256:test-only-immutable-digest",
+      );
+      expect(worker.environment?.DOCS_MCP_SEARCH_RERANKER_ENABLED).toBe("true");
+      expect(worker.environment?.VOYAGE_API_KEY).toBe("test-only-key");
+
+      for (const serviceName of ["web", "mcp-read", "mcp-admin"]) {
+        const service = config.services[serviceName];
+        expect(service.image).toBe(worker.image);
+        expect(service.environment).not.toHaveProperty("VOYAGE_API_KEY");
+        expect(service.environment).not.toHaveProperty(
+          "DOCS_MCP_SEARCH_RERANKER_ENABLED",
+        );
+      }
+    } finally {
+      fs.rmSync(deployDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails an enabled local search process at startup without VOYAGE_API_KEY", async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-missing-key-"));
+    fs.chmodSync(dataDir, 0o777);
+    try {
+      const result = await docker([
+        "run",
+        "--rm",
+        "-v",
+        `${dataDir}:/data`,
+        "-e",
+        "DOCS_MCP_TELEMETRY=false",
+        "-e",
+        "DOCS_MCP_SEARCH_RERANKER_ENABLED=true",
+        IMAGE_TAG,
+        "worker",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8080",
+      ]);
+      const output = `${result.stdout}\n${result.stderr}`;
+      expect(result.status).not.toBe(0);
+      expect(output).toContain("VOYAGE_API_KEY");
+      expect(output).toContain("Missing required environment variable");
+      expect(output).not.toMatch(/api\.voyageai\.com|Bearer\s|sk-[A-Za-z0-9]/);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("routes read-only and administrative MCP search through the reranking worker without changing SQLite", async () => {
+    const suffix = `${process.pid}-${Date.now()}`;
+    const network = `docs-mcp-reranker-${suffix}`;
+    const workerName = `docs-mcp-worker-${suffix}`;
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-reranker-data-"));
+    const fixtureDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "docs-mcp-reranker-fixture-"),
+    );
+    const mockPath = path.join(fixtureDir, "mock-voyage.mjs");
+    fs.chmodSync(dataDir, 0o777);
+    fs.chmodSync(fixtureDir, 0o755);
+    fs.writeFileSync(
+      mockPath,
+      [
+        "const nativeFetch = globalThis.fetch;",
+        "globalThis.fetch = async (input, init) => {",
+        "  if (String(input) !== 'https://api.voyageai.com/v1/rerank') return nativeFetch(input, init);",
+        "  const request = JSON.parse(String(init?.body));",
+        "  return new Response(JSON.stringify({",
+        "    data: request.documents.map((_, index) => ({ index, relevance_score: 1 - index / 100 })),",
+        "    usage: { total_tokens: 7 },",
+        "  }), { status: 200, headers: { 'content-type': 'application/json' } });",
+        "};",
+      ].join("\n"),
+    );
+
+    const containerIds: string[] = [];
+    try {
+      expect((await docker(["network", "create", network])).status).toBe(0);
+      const seed = await docker(
+        [
+          "run",
+          "--rm",
+          "-v",
+          `${dataDir}:/data`,
+          "-v",
+          `${path.join(PROJECT_ROOT, "test", "fixtures")}:/fixtures:ro`,
+          "-e",
+          "DOCS_MCP_TELEMETRY=false",
+          "-e",
+          "DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_ALLOWED_ROOTS=/fixtures",
+          IMAGE_TAG,
+          "scrape",
+          "docker-reranker",
+          "file:///fixtures/json.json",
+          "--max-pages",
+          "1",
+          "--max-depth",
+          "0",
+        ],
+        { timeout: 180_000 },
+      );
+      expect(seed.status, `stdout=${seed.stdout}\nstderr=${seed.stderr}`).toBe(0);
+      const dbPath = path.join(dataDir, "documents.db");
+      const before = snapshotDatabase(dbPath);
+      expect(before.counts.documents).toBeGreaterThan(0);
+
+      const worker = await docker([
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        workerName,
+        "--network",
+        network,
+        "-v",
+        `${dataDir}:/data`,
+        "-v",
+        `${mockPath}:/test/mock-voyage.mjs:ro`,
+        "-e",
+        "NODE_OPTIONS=--import=/test/mock-voyage.mjs",
+        "-e",
+        "LOG_LEVEL=debug",
+        "-e",
+        "DOCS_MCP_TELEMETRY=false",
+        "-e",
+        "DOCS_MCP_SEARCH_RERANKER_ENABLED=true",
+        "-e",
+        "VOYAGE_API_KEY=test-only-worker-key",
+        IMAGE_TAG,
+        "worker",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+      ]);
+      expect(worker.status, worker.stderr).toBe(0);
+      containerIds.push(worker.stdout.trim());
+
+      for (let attempt = 0; attempt < 60; attempt++) {
+        const ping = await docker([
+          "exec",
+          workerName,
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/api/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]);
+        if (ping.status === 0) break;
+        if (attempt === 59) throw new Error("worker health did not become ready");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      const web = await docker([
+        "run",
+        "-d",
+        "--rm",
+        "-P",
+        "--network",
+        network,
+        "-e",
+        "DOCS_MCP_TELEMETRY=false",
+        IMAGE_TAG,
+        "web",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "6280",
+        "--server-url",
+        `http://${workerName}:8080/api`,
+        "--no-logo",
+      ]);
+      expect(web.status, web.stderr).toBe(0);
+      containerIds.push(web.stdout.trim());
+      const webUrl = await mappedContainerUrl(web.stdout.trim(), 6280);
+      const health = await waitForHttp(`${webUrl}/api/getSystemHealth`);
+      expect(await health.text()).toContain('"mode":"remote"');
+
+      const mcpUrls: string[] = [];
+      for (const readOnly of [true, false]) {
+        const args = [
+          "run",
+          "-d",
+          "--rm",
+          "-P",
+          "--network",
+          network,
+          "-e",
+          "DOCS_MCP_TELEMETRY=false",
+          IMAGE_TAG,
+          "mcp",
+          "--protocol",
+          "http",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "6280",
+          "--server-url",
+          `http://${workerName}:8080/api`,
+          "--no-logo",
+        ];
+        if (readOnly) args.push("--read-only");
+        const process = await docker(args);
+        expect(process.status, process.stderr).toBe(0);
+        containerIds.push(process.stdout.trim());
+        const url = await mappedContainerUrl(process.stdout.trim(), 6280);
+        await waitForHttp(`${url}/mcp`, 60, false);
+        mcpUrls.push(url);
+      }
+
+      for (const url of mcpUrls) {
+        expect(await callSearchTool(url)).toContain("WonderWidgets");
+      }
+
+      const logs = await docker(["logs", workerName]);
+      expect(logs.stdout + logs.stderr).toContain('"outcome":"success"');
+      expect(logs.stdout + logs.stderr).not.toContain("test-only-worker-key");
+
+      for (const containerId of containerIds.slice().reverse()) {
+        await docker(["rm", "-f", containerId]);
+      }
+      containerIds.length = 0;
+      expect(snapshotDatabase(dbPath)).toEqual(before);
+    } finally {
+      for (const containerId of containerIds.slice().reverse()) {
+        await docker(["rm", "-f", containerId]);
+      }
+      await docker(["network", "rm", network]);
+      fs.rmSync(dataDir, { recursive: true, force: true });
+      fs.rmSync(fixtureDir, { recursive: true, force: true });
+    }
+  }, 300_000);
 
   it("runs the entrypoint as a non-root user", async () => {
     const r = await docker(["run", "--rm", "--entrypoint", "id", IMAGE_TAG, "-u"]);
