@@ -50,6 +50,18 @@ const EXISTING_RERANKER_DB_FIXTURE = path.join(
   "fixtures",
   "reranker-existing-documents.db.gz.base64",
 );
+const RERANKER_MOCK_FIXTURE = path.join(
+  PROJECT_ROOT,
+  "test",
+  "fixtures",
+  "mock-voyage-reranker.mjs",
+);
+const RERANKER_COMPOSE_OVERRIDE = path.join(
+  PROJECT_ROOT,
+  "test",
+  "fixtures",
+  "reranker-compose.override.yml",
+);
 const DOCKER_BUILD_TIMEOUT_MS = 1_200_000;
 
 interface DockerResult {
@@ -72,6 +84,11 @@ interface DistributedStackEvidence {
   readOnlySearch: string;
   administrativeSearch: string;
   workerLogs: string;
+}
+
+interface ComposeTestContext {
+  args: string[];
+  environment: NodeJS.ProcessEnv;
 }
 
 // Runs `docker` asynchronously rather than via spawnSync. These commands can
@@ -232,13 +249,10 @@ async function callSearchTool(baseUrl: string): Promise<string> {
 }
 
 async function productionComposeServiceUrl(
-  composeArgs: string[],
-  environment: NodeJS.ProcessEnv,
+  context: ComposeTestContext,
   service: string,
 ): Promise<string> {
-  const result = await docker([...composeArgs, "port", service, "6280"], {
-    env: environment,
-  });
+  const result = await dockerCompose(context, ["port", service, "6280"]);
   const match = result.stdout.match(/:(\d+)/);
   if (result.status !== 0 || !match) {
     throw new Error(`Could not resolve ${service} port: ${result.stderr}`);
@@ -246,14 +260,23 @@ async function productionComposeServiceUrl(
   return `http://127.0.0.1:${match[1]}`;
 }
 
+function dockerCompose(
+  context: ComposeTestContext,
+  args: string[],
+  options: { timeout?: number } = {},
+): Promise<DockerResult> {
+  return docker([...context.args, ...args], {
+    env: context.environment,
+    timeout: options.timeout,
+  });
+}
+
 async function exerciseProductionComposeStack(): Promise<DistributedStackEvidence> {
   const suffix = `${process.pid}-${Date.now()}`;
   const projectName = `docs-mcp-reranker-${suffix}`;
   const testDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-compose-stack-"));
   const dataDir = path.join(testDir, "data");
-  const mockPath = path.join(testDir, "mock-voyage.mjs");
   const workerEnvPath = path.join(testDir, "worker.env");
-  const overridePath = path.join(testDir, "docker-compose.test.yml");
   fs.mkdirSync(dataDir);
   fs.chmodSync(dataDir, 0o777);
   const fixture = fs
@@ -264,92 +287,51 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
     gunzipSync(Buffer.from(fixture, "base64")),
   );
   fs.writeFileSync(workerEnvPath, "VOYAGE_API_KEY=test-only-worker-key\n");
-  fs.writeFileSync(
-    mockPath,
-    [
-      "const nativeFetch = globalThis.fetch;",
-      "globalThis.fetch = async (input, init) => {",
-      "  if (String(input) !== 'https://api.voyageai.com/v1/rerank') return nativeFetch(input, init);",
-      "  console.log('TEST_RERANK_CALLED');",
-      "  const request = JSON.parse(String(init?.body));",
-      "  return new Response(JSON.stringify({",
-      "    data: request.documents.map((_, index) => ({ index, relevance_score: 1 - index / 100 })),",
-      "    usage: { total_tokens: 7 },",
-      "  }), { status: 200, headers: { 'content-type': 'application/json' } });",
-      "};",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    overridePath,
-    [
-      "services:",
-      "  worker:",
-      "    env_file: !override",
-      '      - "${TEST_WORKER_ENV}"',
-      "    environment:",
-      "      LOG_LEVEL: debug",
-      "      NODE_OPTIONS: --import=/test/mock-voyage.mjs",
-      "    volumes: !override",
-      '      - "${TEST_DATA_DIR}:/data"',
-      "      - grounded-docs-config:/config",
-      '      - "${TEST_MOCK_PATH}:/test/mock-voyage.mjs:ro"',
-      "  web:",
-      "    ports: !override",
-      '      - "127.0.0.1::6280"',
-      "  mcp-read:",
-      "    ports: !override",
-      '      - "127.0.0.1::6280"',
-      "  mcp-admin:",
-      "    ports: !override",
-      '      - "127.0.0.1::6280"',
-    ].join("\n"),
-  );
 
   const dbPath = path.join(dataDir, "documents.db");
   const before = snapshotDatabase(dbPath);
-  const environment = {
-    ...process.env,
-    DOCS_MCP_IMAGE: IMAGE_TAG,
-    TEST_DATA_DIR: dataDir,
-    TEST_MOCK_PATH: mockPath,
-    TEST_WORKER_ENV: workerEnvPath,
+  const composeContext: ComposeTestContext = {
+    args: [
+      "compose",
+      "--project-name",
+      projectName,
+      "-f",
+      PRODUCTION_COMPOSE_PATH,
+      "-f",
+      RERANKER_COMPOSE_OVERRIDE,
+    ],
+    environment: {
+      ...process.env,
+      DOCS_MCP_IMAGE: IMAGE_TAG,
+      TEST_DATA_DIR: dataDir,
+      TEST_MOCK_PATH: RERANKER_MOCK_FIXTURE,
+      TEST_WORKER_ENV: workerEnvPath,
+    },
   };
-  const composeArgs = [
-    "compose",
-    "--project-name",
-    projectName,
-    "-f",
-    PRODUCTION_COMPOSE_PATH,
-    "-f",
-    overridePath,
-  ];
 
   let runningEvidence: Omit<DistributedStackEvidence, "after"> | undefined;
   try {
     try {
-      const up = await docker(
-        [...composeArgs, "up", "-d", "--wait", "--wait-timeout", "120"],
-        { env: environment, timeout: 180_000 },
+      const up = await dockerCompose(
+        composeContext,
+        ["up", "-d", "--wait", "--wait-timeout", "120"],
+        { timeout: 180_000 },
       );
       if (up.status !== 0) {
         throw new Error(`Production Compose startup failed: ${up.stderr}`);
       }
-      const status = await docker([...composeArgs, "ps", "--format", "json"], {
-        env: environment,
-      });
-      const webUrl = await productionComposeServiceUrl(
-        composeArgs,
-        environment,
-        "web",
-      );
+      const status = await dockerCompose(composeContext, [
+        "ps",
+        "--format",
+        "json",
+      ]);
+      const webUrl = await productionComposeServiceUrl(composeContext, "web");
       const readOnlyUrl = await productionComposeServiceUrl(
-        composeArgs,
-        environment,
+        composeContext,
         "mcp-read",
       );
       const administrativeUrl = await productionComposeServiceUrl(
-        composeArgs,
-        environment,
+        composeContext,
         "mcp-admin",
       );
       const webHealth = await (
@@ -357,9 +339,11 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
       ).text();
       const readOnlySearch = await callSearchTool(readOnlyUrl);
       const administrativeSearch = await callSearchTool(administrativeUrl);
-      const logs = await docker([...composeArgs, "logs", "--no-color", "worker"], {
-        env: environment,
-      });
+      const logs = await dockerCompose(composeContext, [
+        "logs",
+        "--no-color",
+        "worker",
+      ]);
       runningEvidence = {
         before,
         composeStatus: status.stdout,
@@ -369,9 +353,10 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
         workerLogs: logs.stdout + logs.stderr,
       };
     } finally {
-      const down = await docker(
-        [...composeArgs, "down", "--volumes", "--remove-orphans"],
-        { env: environment, timeout: 120_000 },
+      const down = await dockerCompose(
+        composeContext,
+        ["down", "--volumes", "--remove-orphans"],
+        { timeout: 120_000 },
       );
       if (down.status !== 0) {
         throw new Error(`Production Compose cleanup failed: ${down.stderr}`);
@@ -501,6 +486,9 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(evidence.readOnlySearch).toContain("WonderWidgets");
       expect(evidence.administrativeSearch).toContain("WonderWidgets");
       expect(evidence.workerLogs.match(/TEST_RERANK_CALLED/g)).toHaveLength(2);
+    });
+
+    it("keeps the worker credential out of runtime logs", () => {
       expect(evidence.workerLogs).not.toContain("test-only-worker-key");
     });
 

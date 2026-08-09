@@ -17,8 +17,8 @@ docker image inspect registry.example/docs-mcp-server:issue-6-<git-sha> \
 ```
 
 Set `DOCS_MCP_IMAGE` to that immutable tag or, preferably, to the recorded
-`name@sha256:...` digest. The Compose file requires an explicit immutable image
-reference.
+`name@sha256:...` digest. The operator validates immutability; Compose verifies
+that an explicit image reference is present.
 
 ## Place the Voyage secret
 
@@ -62,10 +62,11 @@ provider errors remain excluded.
 
 ## Preserve SQLite data
 
-The worker reuses `grounded-docs-data:/data`. Reranking is stateless and adds no
-database migration, schema change, or reindex step. Before an image change,
-record the SQLite `user_version`, schema, and row counts from a safe backup or
-maintenance window. After startup and search, verify that they are unchanged.
+The worker reuses `grounded-docs-data:/data`. Reranking operates outside the
+database schema and reuses the existing index unchanged. Before an image
+change, record the SQLite `user_version`, schema, and row counts from a safe
+backup or maintenance window. After startup and search, verify that they are
+unchanged.
 
 Keep exactly one worker attached to the data volume. Preserve the previous
 immutable image reference and Compose configuration until verification is
