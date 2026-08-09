@@ -22,20 +22,14 @@ vi.mock("../../mcp/tools", () => ({
   initializeTools: vi.fn(async () => []),
 }));
 
-vi.mock("../../store", () => {
-  const DocumentManagementService = vi.fn().mockImplementation(function () {
+vi.mock("../../store", () => ({
+  createLocalDocumentManagementService: vi.fn(() => {
     return {
       initialize: vi.fn().mockResolvedValue(undefined),
       shutdown: vi.fn(),
     };
-  });
-  return {
-    DocumentManagementService,
-    createLocalDocumentManagementService: vi.fn(
-      (eventBus, appConfig) => new DocumentManagementService(eventBus, appConfig),
-    ),
-  };
-});
+  }),
+}));
 vi.mock("../../store/errors", () => ({
   EmbeddingModelChangedError: class EmbeddingModelChangedError extends Error {
     name = "EmbeddingModelChangedError";

@@ -4,6 +4,8 @@ import type { DocumentStore } from "./DocumentStore";
 import type { Reranker } from "./Reranker";
 import type { DbChunkRank, DbPageChunk, StoreSearchResult } from "./types";
 
+type RankedCandidate = DbPageChunk & DbChunkRank & { baselineIndex?: number };
+
 export class DocumentRetrieverService {
   private documentStore: DocumentStore;
   private config: AppConfig;
@@ -48,7 +50,7 @@ export class DocumentRetrieverService {
       return [];
     }
 
-    let rankedCandidates = initialResults;
+    let rankedCandidates: RankedCandidate[] = initialResults;
     if (activeReranker) {
       const rerankResult = await activeReranker.rerank(
         query,
@@ -67,15 +69,14 @@ export class DocumentRetrieverService {
           (first, second) =>
             second.score - first.score || first.baselineIndex - second.baselineIndex,
         )
-        .slice(0, userLimit)
-        .map(({ baselineIndex: _baselineIndex, ...candidate }) => candidate);
+        .slice(0, userLimit);
     }
 
     // Group initial results by URL
     const resultsByUrl = this.groupResultsByUrl(rankedCandidates);
 
     // Process each URL group with appropriate strategy
-    const results: StoreSearchResult[] = [];
+    const results: { result: StoreSearchResult; baselineIndex: number }[] = [];
     for (const [url, urlResults] of resultsByUrl.entries()) {
       // Cluster chunks based on distance
       const clusters = this.clusterChunksByDistance(urlResults);
@@ -88,7 +89,18 @@ export class DocumentRetrieverService {
           url,
           cluster,
         );
-        results.push(result);
+        const explicitBaselineIndex = cluster.reduce<number | undefined>(
+          (bestIndex, candidate) =>
+            candidate.baselineIndex !== undefined &&
+            (bestIndex === undefined || candidate.baselineIndex < bestIndex)
+              ? candidate.baselineIndex
+              : bestIndex,
+          undefined,
+        );
+        results.push({
+          result,
+          baselineIndex: explicitBaselineIndex ?? results.length,
+        });
       }
     }
 
@@ -96,11 +108,10 @@ export class DocumentRetrieverService {
     // This ensures that if a highly relevant chunk was split from a less relevant one,
     // the highly relevant one appears first in the final list.
     return results
-      .map((result, rankingIndex) => ({ result, rankingIndex }))
       .sort(
         (first, second) =>
           (second.result.score ?? 0) - (first.result.score ?? 0) ||
-          first.rankingIndex - second.rankingIndex,
+          first.baselineIndex - second.baselineIndex,
       )
       .map(({ result }) => result);
   }
@@ -108,10 +119,8 @@ export class DocumentRetrieverService {
   /**
    * Groups search results by URL.
    */
-  private groupResultsByUrl(
-    results: (DbPageChunk & DbChunkRank)[],
-  ): Map<string, (DbPageChunk & DbChunkRank)[]> {
-    const resultsByUrl = new Map<string, (DbPageChunk & DbChunkRank)[]>();
+  private groupResultsByUrl(results: RankedCandidate[]): Map<string, RankedCandidate[]> {
+    const resultsByUrl = new Map<string, RankedCandidate[]>();
 
     for (const result of results) {
       const url = result.url;
@@ -134,7 +143,7 @@ export class DocumentRetrieverService {
     library: string,
     version: string,
     url: string,
-    initialChunks: (DbPageChunk & DbChunkRank)[],
+    initialChunks: RankedCandidate[],
   ): Promise<StoreSearchResult> {
     // Extract processed and source MIME types from page-level fields.
     // Convert null to undefined for consistency.
@@ -177,9 +186,7 @@ export class DocumentRetrieverService {
    * @param chunks The list of chunks to cluster (must be from the same URL).
    * @returns An array of chunk clusters, where each cluster is an array of chunks.
    */
-  private clusterChunksByDistance(
-    chunks: (DbPageChunk & DbChunkRank)[],
-  ): (DbPageChunk & DbChunkRank)[][] {
+  private clusterChunksByDistance(chunks: RankedCandidate[]): RankedCandidate[][] {
     if (chunks.length === 0) return [];
     if (chunks.length === 1) return [chunks];
 
@@ -190,8 +197,8 @@ export class DocumentRetrieverService {
       return a.id.localeCompare(b.id);
     });
 
-    const clusters: (DbPageChunk & DbChunkRank)[][] = [];
-    let currentCluster: (DbPageChunk & DbChunkRank)[] = [sortedChunks[0]];
+    const clusters: RankedCandidate[][] = [];
+    let currentCluster: RankedCandidate[] = [sortedChunks[0]];
     // Ensure maxChunkDistance is non-negative
     const maxChunkDistance = Math.max(0, this.config.assembly.maxChunkDistance);
 

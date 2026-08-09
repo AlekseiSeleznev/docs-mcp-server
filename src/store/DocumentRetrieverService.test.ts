@@ -550,6 +550,61 @@ describe("DocumentRetrieverService", () => {
     ]);
   });
 
+  it("preserves Baseline Ranking for equal-score interleaved same-page clusters", async () => {
+    const candidates = [
+      {
+        id: "same-page-later",
+        content: "Baseline first",
+        url: "https://example.com/same-page",
+        score: 0.9,
+        sort_order: 100,
+        metadata: {},
+      },
+      {
+        id: "other-page",
+        content: "Baseline second",
+        url: "https://example.com/other-page",
+        score: 0.8,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "same-page-earlier",
+        content: "Baseline third",
+        url: "https://example.com/same-page",
+        score: 0.7,
+        sort_order: 1,
+        metadata: {},
+      },
+    ] as (DbPageChunk & DbChunkRank)[];
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [
+        { index: 2, score: 0.5 },
+        { index: 1, score: 0.5 },
+        { index: 0, score: 0.5 },
+      ],
+    });
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, { rerank });
+
+    vi.spyOn(store, "findByContent").mockResolvedValue(candidates);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockImplementation(async (_lib, _ver, ids) =>
+      candidates.filter((candidate) => ids.includes(candidate.id)),
+    );
+
+    const results = await service.search("lib", "1.0.0", "query", 3);
+
+    expect(results.map((result) => result.content)).toEqual([
+      "Baseline first",
+      "Baseline second",
+      "Baseline third",
+    ]);
+  });
+
   it("should extract mimeType from document metadata and include it in search result", async () => {
     const library = "lib";
     const version = "1.0.0";
