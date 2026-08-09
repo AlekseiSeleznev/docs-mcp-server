@@ -662,6 +662,57 @@ describe("DocumentRetrieverService", () => {
     expect(metadata.elapsedTimeMs).toEqual(expect.any(Number));
   });
 
+  it("restores the exact user-limit Baseline Ranking after reranker failure", async () => {
+    const widenedCandidate = {
+      id: "widened",
+      content: "Widened candidate",
+      url: "https://example.com/widened",
+      score: 0.2,
+      sort_order: 1,
+      metadata: {},
+    } as DbPageChunk & DbChunkRank;
+    const baselineCandidate = {
+      id: "baseline",
+      content: "Baseline candidate",
+      url: "https://example.com/baseline",
+      score: 0.9,
+      sort_order: 1,
+      metadata: {},
+    } as DbPageChunk & DbChunkRank;
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, {
+      rerank: vi.fn().mockRejectedValue(new Error("provider unavailable")),
+    });
+    vi.spyOn(store, "findByContent").mockImplementation(
+      async (_library, _version, _query, searchLimit) =>
+        searchLimit === 30 ? [widenedCandidate] : [baselineCandidate],
+    );
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue([baselineCandidate]);
+
+    const results = await service.search("lib", "1.0.0", "private query", 1);
+
+    expect(store.findByContent).toHaveBeenNthCalledWith(
+      2,
+      "lib",
+      "1.0.0",
+      "private query",
+      1,
+    );
+    expect(results).toEqual([
+      {
+        content: "Baseline candidate",
+        url: "https://example.com/baseline",
+        score: 0.9,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+    ]);
+  });
+
   async function expectVoyageFailOpen(
     query = "private Search Query",
     firstContent = "private Search Candidate",

@@ -209,6 +209,17 @@ describe("Configuration Loading", () => {
       });
     });
 
+    it("rejects a reranker candidate limit above the public search range", () => {
+      process.env.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT = "51";
+
+      expect(() =>
+        loadConfig(
+          {},
+          { configPath: path.join(tmpDir, "reranker-candidate-limit.yaml") },
+        ),
+      ).toThrow();
+    });
+
     it("keeps VOYAGE_API_KEY outside resolved and printed configuration", () => {
       process.env.VOYAGE_API_KEY = "test-secret-that-must-not-be-resolved";
 

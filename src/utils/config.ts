@@ -389,6 +389,7 @@ export const AppConfigSchema = z.object({
             .number()
             .int()
             .positive()
+            .max(50)
             .default(DEFAULT_CONFIG.search.reranker.candidateLimit),
           requestTimeoutMs: z.coerce
             .number()
