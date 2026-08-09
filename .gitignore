@@ -7,6 +7,8 @@ public/index.html
 *.log
 .env*
 !*.env.example
+.secrets.local.env
+!.example.secrets.local.env
 *.code-workspace
 .tsbuildinfo
 .claude/worktrees/
