@@ -2,6 +2,8 @@
  * Tests for MCP server read-only mode functionality
  */
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it, vi } from "vitest";
 import { telemetry } from "../telemetry";
@@ -66,9 +68,18 @@ describe("MCP Server Read-Only Mode", () => {
     vi.mocked(telemetry.track).mockClear();
     vi.mocked(mockTools.search.execute).mockRejectedValueOnce(new Error(rawFailure));
     const server = createMcpServerInstance(mockTools, mockConfig);
-    const searchTool = (server as any)._registeredTools.search_docs;
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "mcp-server-test", version: "1.0.0" });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
 
-    const result = await searchTool.handler({ library: "lib", query, limit: 5 });
+    const result = await client.callTool({
+      name: "search_docs",
+      arguments: { library: "lib", query, limit: 5 },
+    });
+
+    await client.close();
+    await server.close();
 
     expect(JSON.stringify(vi.mocked(telemetry.track).mock.calls)).not.toContain(query);
     expect(JSON.stringify(result)).not.toContain(rawFailure);

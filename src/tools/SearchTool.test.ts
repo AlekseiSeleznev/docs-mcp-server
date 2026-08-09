@@ -244,7 +244,9 @@ describe("SearchTool", () => {
     const unexpectedError = new Error("Store connection failed");
     (mockDocService.findBestVersion as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
+    await expect(searchTool.execute(options)).rejects.toThrow(
+      "Search failed during version resolution",
+    );
   });
 
   it("should throw LibraryNotFoundInStoreError and include suggestions", async () => {
@@ -269,7 +271,9 @@ describe("SearchTool", () => {
     const unexpectedError = new Error("Validation DB connection failed");
     (mockDocService.validateLibraryExists as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
+    await expect(searchTool.execute(options)).rejects.toThrow(
+      "Search failed during library validation",
+    );
   });
 
   it("should sanitize unexpected errors from searchStore", async () => {
@@ -281,7 +285,9 @@ describe("SearchTool", () => {
     const unexpectedError = new Error("Search index corrupted");
     (mockDocService.searchStore as Mock).mockRejectedValue(unexpectedError);
 
-    await expect(searchTool.execute(options)).rejects.toThrow("Search failed");
+    await expect(searchTool.execute(options)).rejects.toThrow(
+      "Search failed during document retrieval",
+    );
   });
 
   it("does not expose the Search Query or raw failures in logs", async () => {
@@ -303,9 +309,38 @@ describe("SearchTool", () => {
       info: vi.mocked(logger.info).mock.calls,
     });
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe("Search failed");
+    expect((error as Error).message).toBe("Search failed during document retrieval");
     expect(logs).not.toContain(query);
     expect(logs).not.toContain(rawFailure);
     expect(logs).not.toContain("https://private.example/internal");
+  });
+
+  it("sanitizes exact-match library validation failures", async () => {
+    const rawFailure = "raw validation failure at http://private.internal/api";
+    (mockDocService.validateLibraryExists as Mock).mockRejectedValue(
+      new Error(rawFailure),
+    );
+
+    const error = await searchTool
+      .execute({ ...baseOptions, exactMatch: true })
+      .catch((caughtError: unknown) => caughtError);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Search failed during library validation");
+    expect((error as Error).message).not.toContain(rawFailure);
+  });
+
+  it("sanitizes exact-match version listing failures", async () => {
+    const rawFailure = "raw version failure at http://private.internal/api";
+    (mockDocService.validateLibraryExists as Mock).mockResolvedValue(undefined);
+    (mockDocService.listLibraries as Mock).mockRejectedValue(new Error(rawFailure));
+
+    const error = await searchTool
+      .execute({ ...baseOptions, exactMatch: true })
+      .catch((caughtError: unknown) => caughtError);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Search failed during version resolution");
+    expect((error as Error).message).not.toContain(rawFailure);
   });
 });
