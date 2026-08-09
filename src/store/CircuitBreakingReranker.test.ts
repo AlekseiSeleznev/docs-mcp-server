@@ -9,9 +9,7 @@ describe("CircuitBreakingReranker", () => {
     const rerank = vi.fn().mockRejectedValue(new Error("provider unavailable"));
     const circuit = new CircuitBreakingReranker({ rerank } satisfies Reranker);
 
-    await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    await expect(circuit.rerank("query", candidates)).rejects.toThrow();
+    await openCircuit(circuit);
     await expect(circuit.rerank("query", candidates)).rejects.toThrow(
       "Reranking unavailable: circuit_open",
     );
@@ -45,9 +43,7 @@ describe("CircuitBreakingReranker", () => {
     const circuit = new CircuitBreakingReranker({ rerank } satisfies Reranker, {
       now: () => now,
     });
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    }
+    await openCircuit(circuit);
 
     now += 59_999;
     await expect(circuit.rerank("query", candidates)).rejects.toThrow(
@@ -77,9 +73,7 @@ describe("CircuitBreakingReranker", () => {
     const circuit = new CircuitBreakingReranker({ rerank } satisfies Reranker, {
       now: () => now,
     });
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    }
+    await openCircuit(circuit);
     now += 60_000;
 
     const probe = circuit.rerank("probe query", candidates);
@@ -103,9 +97,7 @@ describe("CircuitBreakingReranker", () => {
     const circuit = new CircuitBreakingReranker({ rerank } satisfies Reranker, {
       now: () => now,
     });
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    }
+    await openCircuit(circuit);
     now += 60_000;
 
     await expect(circuit.rerank("probe", candidates)).resolves.toEqual(validResult);
@@ -122,9 +114,7 @@ describe("CircuitBreakingReranker", () => {
     const circuit = new CircuitBreakingReranker({ rerank } satisfies Reranker, {
       now: () => now,
     });
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await expect(circuit.rerank("query", candidates)).rejects.toThrow();
-    }
+    await openCircuit(circuit);
     now += 60_000;
     await expect(circuit.rerank("failed probe", candidates)).rejects.toThrow();
     now += 59_999;
@@ -142,9 +132,7 @@ describe("CircuitBreakingReranker", () => {
     const firstCircuit = new CircuitBreakingReranker({
       rerank: failingRerank,
     } satisfies Reranker);
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await expect(firstCircuit.rerank("query", candidates)).rejects.toThrow();
-    }
+    await openCircuit(firstCircuit);
     const freshRerank = vi.fn().mockResolvedValue({
       scores: [{ index: 0, score: 0.7 }],
     });
@@ -159,3 +147,9 @@ describe("CircuitBreakingReranker", () => {
     expect(freshRerank).toHaveBeenCalledOnce();
   });
 });
+
+async function openCircuit(circuit: CircuitBreakingReranker): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await circuit.rerank("query", candidates).catch(() => undefined);
+  }
+}

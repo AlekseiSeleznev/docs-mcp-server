@@ -8,7 +8,7 @@ import {
 } from "./CircuitBreakingReranker";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { DocumentStore } from "./DocumentStore";
-import type { DbChunkRank, DbPageChunk } from "./types";
+import type { DbChunkRank, DbPageChunk, StoreSearchResult } from "./types";
 import { VoyageReranker } from "./VoyageReranker";
 
 vi.mock("./DocumentStore");
@@ -632,7 +632,7 @@ describe("DocumentRetrieverService", () => {
       vi.fn().mockRejectedValue(new Error(sensitiveValues.join(" | "))),
     );
 
-    await expectVoyageFailOpen(sensitiveValues[1], sensitiveValues[2]);
+    await runVoyageFailure(sensitiveValues[1], sensitiveValues[2]);
 
     expect(logger.warn).toHaveBeenCalledOnce();
     const message = vi.mocked(logger.warn).mock.calls[0][0];
@@ -666,6 +666,30 @@ describe("DocumentRetrieverService", () => {
     query = "private Search Query",
     firstContent = "private Search Candidate",
   ): Promise<void> {
+    const results = await runVoyageFailure(query, firstContent);
+
+    expect(results).toEqual([
+      {
+        content: firstContent,
+        url: "https://example.com/baseline-first",
+        score: 0.91,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+      {
+        content: "Baseline second",
+        url: "https://example.com/baseline-second",
+        score: 0.73,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+    ]);
+  }
+
+  async function runVoyageFailure(
+    query: string,
+    firstContent: string,
+  ): Promise<StoreSearchResult[]> {
     const candidates = [
       {
         id: "baseline-first",
@@ -714,24 +738,7 @@ describe("DocumentRetrieverService", () => {
       candidates.filter((candidate) => ids.includes(candidate.id)),
     );
 
-    const results = await service.search("lib", "1.0.0", query, 2);
-
-    expect(results).toEqual([
-      {
-        content: firstContent,
-        url: "https://example.com/baseline-first",
-        score: 0.91,
-        mimeType: undefined,
-        sourceMimeType: undefined,
-      },
-      {
-        content: "Baseline second",
-        url: "https://example.com/baseline-second",
-        score: 0.73,
-        mimeType: undefined,
-        sourceMimeType: undefined,
-      },
-    ]);
+    return service.search("lib", "1.0.0", query, 2);
   }
 
   function expectFallbackLogCategory(expectedCategory: string): void {
