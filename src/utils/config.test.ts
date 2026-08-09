@@ -197,6 +197,20 @@ describe("Configuration Loading", () => {
       });
     });
 
+    it("keeps VOYAGE_API_KEY outside resolved and printed configuration", () => {
+      process.env.VOYAGE_API_KEY = "test-secret-that-must-not-be-resolved";
+
+      const config = loadConfig(
+        {},
+        { configPath: path.join(tmpDir, "reranker-secret.yaml") },
+      );
+      const printedConfig = JSON.stringify(config);
+
+      expect(config).not.toHaveProperty("VOYAGE_API_KEY");
+      expect(config.search.reranker).not.toHaveProperty("apiKey");
+      expect(printedConfig).not.toContain("test-secret-that-must-not-be-resolved");
+    });
+
     it("should handle nested defaults correctly (Assembly)", () => {
       const configPath = path.join(tmpDir, "defaults.yaml");
       fs.writeFileSync(configPath, "");
