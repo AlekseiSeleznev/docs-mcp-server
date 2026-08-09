@@ -269,7 +269,9 @@ describe("DocumentRetrieverService", () => {
       sort_order: 1,
       metadata: {},
     } as DbPageChunk & DbChunkRank;
-    const rerank = vi.fn().mockResolvedValue([{ index: 0, score: 0.9 }]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [{ index: 0, score: 0.9 }],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 
@@ -296,7 +298,9 @@ describe("DocumentRetrieverService", () => {
       sort_order: 1,
       metadata: {},
     } as DbPageChunk & DbChunkRank;
-    const rerank = vi.fn().mockResolvedValue([{ index: 0, score: 0.9 }]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [{ index: 0, score: 0.9 }],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 
@@ -329,10 +333,12 @@ describe("DocumentRetrieverService", () => {
       sort_order: 1,
       metadata: {},
     } as DbPageChunk & DbChunkRank;
-    const rerank = vi.fn().mockResolvedValue([
-      { index: 0, score: 0.1 },
-      { index: 1, score: 0.95 },
-    ]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [
+        { index: 0, score: 0.1 },
+        { index: 1, score: 0.95 },
+      ],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 
@@ -365,6 +371,54 @@ describe("DocumentRetrieverService", () => {
     ]);
   });
 
+  it("keeps the maximum reranker score when same-page candidates are assembled", async () => {
+    const candidates = [
+      {
+        id: "first",
+        content: "First nearby candidate",
+        url: "https://example.com/same-page",
+        score: 0.9,
+        sort_order: 10,
+        metadata: {},
+      },
+      {
+        id: "second",
+        content: "Second nearby candidate",
+        url: "https://example.com/same-page",
+        score: 0.8,
+        sort_order: 12,
+        metadata: {},
+      },
+    ] as (DbPageChunk & DbChunkRank)[];
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [
+        { index: 0, score: 0.2 },
+        { index: 1, score: 0.95 },
+      ],
+    });
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, { rerank });
+
+    vi.spyOn(store, "findByContent").mockResolvedValue(candidates);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue(candidates);
+
+    const results = await service.search("lib", "1.0.0", "query", 2);
+
+    expect(results).toEqual([
+      {
+        content: "First nearby candidate\n\nSecond nearby candidate",
+        url: "https://example.com/same-page",
+        score: 0.95,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+    ]);
+  });
+
   it("does not reduce a user limit above the reranker candidate limit", async () => {
     const candidate = {
       id: "doc1",
@@ -374,7 +428,9 @@ describe("DocumentRetrieverService", () => {
       sort_order: 1,
       metadata: {},
     } as DbPageChunk & DbChunkRank;
-    const rerank = vi.fn().mockResolvedValue([{ index: 0, score: 0.7 }]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [{ index: 0, score: 0.7 }],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 
@@ -417,11 +473,13 @@ describe("DocumentRetrieverService", () => {
         metadata: {},
       },
     ] as (DbPageChunk & DbChunkRank)[];
-    const rerank = vi.fn().mockResolvedValue([
-      { index: 0, score: 0.1 },
-      { index: 1, score: 0.9 },
-      { index: 2, score: 0.8 },
-    ]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [
+        { index: 0, score: 0.1 },
+        { index: 1, score: 0.9 },
+        { index: 2, score: 0.8 },
+      ],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 
@@ -466,10 +524,12 @@ describe("DocumentRetrieverService", () => {
       sort_order: 1,
       metadata: {},
     } as DbPageChunk & DbChunkRank;
-    const rerank = vi.fn().mockResolvedValue([
-      { index: 1, score: 0.5 },
-      { index: 0, score: 0.5 },
-    ]);
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [
+        { index: 1, score: 0.5 },
+        { index: 0, score: 0.5 },
+      ],
+    });
     config.search.reranker.enabled = true;
     service = new DocumentRetrieverService(store, config, { rerank });
 

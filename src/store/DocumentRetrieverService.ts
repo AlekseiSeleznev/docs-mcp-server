@@ -50,14 +50,14 @@ export class DocumentRetrieverService {
 
     let rankedCandidates = initialResults;
     if (activeReranker) {
-      const rerankScores = await activeReranker.rerank(
+      const rerankResult = await activeReranker.rerank(
         query,
         initialResults.map((candidate, index) => ({
           index,
           content: candidate.content,
         })),
       );
-      rankedCandidates = rerankScores
+      rankedCandidates = rerankResult.scores
         .map(({ index, score }) => ({
           ...initialResults[index],
           score,

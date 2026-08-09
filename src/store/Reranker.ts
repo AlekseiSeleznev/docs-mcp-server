@@ -14,13 +14,21 @@ export interface RerankScore {
   score: number;
 }
 
+/** Provider-neutral result of scoring a complete Search Candidate set. */
+export interface RerankResult {
+  /** Complete candidate-to-score mapping. */
+  scores: RerankScore[];
+  /** Provider-reported processed-token count, when available. */
+  usageTokens?: number;
+}
+
 /** Reranks raw Search Candidates without exposing provider-specific details. */
 export interface Reranker {
   /**
    * Scores Search Candidates for the exact user Search Query.
    * @param query The user's Search Query.
    * @param candidates Raw Search Candidates with stable Baseline Ranking indices.
-   * @returns Provider-neutral candidate indices and relevance scores.
+   * @returns Provider-neutral candidate scores and optional usage metadata.
    */
-  rerank(query: string, candidates: readonly RerankCandidate[]): Promise<RerankScore[]>;
+  rerank(query: string, candidates: readonly RerankCandidate[]): Promise<RerankResult>;
 }
