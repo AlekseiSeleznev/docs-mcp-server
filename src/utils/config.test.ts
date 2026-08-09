@@ -30,6 +30,12 @@ vi.mock("./paths", () => ({
   getProjectRoot: vi.fn().mockReturnValue(undefined), // Default to undefined to rely on explicit searchDirs
 }));
 
+const managedConfigPath = path.join(process.cwd(), ".vitest-config-mock", "config.yaml");
+const managedConfigFixture = fs.readFileSync(
+  path.join(process.cwd(), "test", "fixtures", "managed-default-config.yaml"),
+  "utf8",
+);
+
 describe("Configuration Loading", () => {
   let tmpDir: string;
   let originalEnv: NodeJS.ProcessEnv;
@@ -72,6 +78,12 @@ describe("Configuration Loading", () => {
       expect(
         fs.existsSync(path.join(process.cwd(), ".vitest-config-mock", "config.yaml")),
       ).toBe(true);
+    });
+
+    it("keeps the tracked managed config aligned with generated defaults", () => {
+      loadConfig({}, {});
+
+      expect(fs.readFileSync(managedConfigPath, "utf8")).toBe(managedConfigFixture);
     });
 
     it("should load explicit config from --config and NOT write back", () => {
