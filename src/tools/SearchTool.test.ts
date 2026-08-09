@@ -5,9 +5,17 @@ import {
   VersionNotFoundInStoreError,
 } from "../store";
 import type { StoreSearchResult } from "../store/types";
+import { logger } from "../utils/logger";
 import { SearchTool, type SearchToolOptions } from "./SearchTool";
 
 // Mock dependencies
+
+vi.mock("../utils/logger", () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 describe("SearchTool", () => {
   let mockDocService: Partial<DocumentManagementService>;
@@ -276,5 +284,28 @@ describe("SearchTool", () => {
     (mockDocService.searchStore as Mock).mockRejectedValue(unexpectedError);
 
     await expect(searchTool.execute(options)).rejects.toThrow("Search index corrupted");
+  });
+
+  it("does not expose the Search Query or raw failures in logs", async () => {
+    const query = "private Search Query";
+    const rawFailure = "raw store cause with https://private.example/internal";
+    (mockDocService.searchStore as Mock).mockRejectedValue(new Error(rawFailure));
+
+    await expect(
+      searchTool.execute({
+        library: "test-lib",
+        version: "1.0.0",
+        exactMatch: true,
+        query,
+      }),
+    ).rejects.toThrow(rawFailure);
+
+    const logs = JSON.stringify({
+      errors: vi.mocked(logger.error).mock.calls,
+      info: vi.mocked(logger.info).mock.calls,
+    });
+    expect(logs).not.toContain(query);
+    expect(logs).not.toContain(rawFailure);
+    expect(logs).not.toContain("https://private.example/internal");
   });
 });

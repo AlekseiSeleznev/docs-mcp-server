@@ -85,7 +85,7 @@ export class SearchTool {
     const resolvedVersion = version || "latest";
 
     logger.info(
-      `🔍 Searching ${library}@${resolvedVersion} for: ${query}${exactMatch ? " (exact match)" : ""}`,
+      `🔍 Searching ${library}@${resolvedVersion}${exactMatch ? " (exact match)" : ""}`,
     );
 
     try {
@@ -120,9 +120,7 @@ export class SearchTool {
 
       return { results };
     } catch (error) {
-      logger.error(
-        `❌ Search failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      logger.error("❌ Search failed");
       throw error;
     }
   }

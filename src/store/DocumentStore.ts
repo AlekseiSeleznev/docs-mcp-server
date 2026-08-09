@@ -2197,11 +2197,8 @@ export class DocumentStore {
           });
         });
       }
-    } catch (error) {
-      throw new ConnectionError(
-        `Failed to find documents by content with query "${query}"`,
-        error,
-      );
+    } catch {
+      throw new ConnectionError("Failed to find documents by content");
     }
   }
 
