@@ -1,15 +1,18 @@
 import type { AppConfig } from "../utils/config";
 import { createContentAssemblyStrategy } from "./assembly/ContentAssemblyStrategyFactory";
 import type { DocumentStore } from "./DocumentStore";
+import type { Reranker } from "./Reranker";
 import type { DbChunkRank, DbPageChunk, StoreSearchResult } from "./types";
 
 export class DocumentRetrieverService {
   private documentStore: DocumentStore;
   private config: AppConfig;
+  private reranker?: Reranker;
 
-  constructor(documentStore: DocumentStore, config: AppConfig) {
+  constructor(documentStore: DocumentStore, config: AppConfig, reranker?: Reranker) {
     this.documentStore = documentStore;
     this.config = config;
+    this.reranker = reranker;
   }
 
   /**
@@ -29,19 +32,47 @@ export class DocumentRetrieverService {
     // Normalize version: null/undefined becomes empty string, then lowercase
     const normalizedVersion = (version ?? "").toLowerCase();
 
+    const userLimit = limit ?? 10;
+    const rerankingEnabled = this.config.search.reranker.enabled && this.reranker;
+    const retrievalLimit = rerankingEnabled
+      ? Math.max(userLimit, this.config.search.reranker.candidateLimit)
+      : userLimit;
     const initialResults = await this.documentStore.findByContent(
       library,
       normalizedVersion,
       query,
-      limit ?? 10,
+      retrievalLimit,
     );
 
     if (initialResults.length === 0) {
       return [];
     }
 
+    let rankedCandidates = initialResults;
+    if (rerankingEnabled) {
+      const rerankScores = await rerankingEnabled.rerank(
+        query,
+        initialResults.map((candidate, index) => ({
+          index,
+          content: candidate.content,
+        })),
+      );
+      rankedCandidates = rerankScores
+        .map(({ index, score }) => ({
+          ...initialResults[index],
+          score,
+          baselineIndex: index,
+        }))
+        .sort(
+          (first, second) =>
+            second.score - first.score || first.baselineIndex - second.baselineIndex,
+        )
+        .slice(0, userLimit)
+        .map(({ baselineIndex: _baselineIndex, ...candidate }) => candidate);
+    }
+
     // Group initial results by URL
-    const resultsByUrl = this.groupResultsByUrl(initialResults);
+    const resultsByUrl = this.groupResultsByUrl(rankedCandidates);
 
     // Process each URL group with appropriate strategy
     const results: StoreSearchResult[] = [];
@@ -64,9 +95,14 @@ export class DocumentRetrieverService {
     // Sort all results by score descending
     // This ensures that if a highly relevant chunk was split from a less relevant one,
     // the highly relevant one appears first in the final list.
-    results.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-
-    return results;
+    return results
+      .map((result, rankingIndex) => ({ result, rankingIndex }))
+      .sort(
+        (first, second) =>
+          (second.result.score ?? 0) - (first.result.score ?? 0) ||
+          first.rankingIndex - second.rankingIndex,
+      )
+      .map(({ result }) => result);
   }
 
   /**

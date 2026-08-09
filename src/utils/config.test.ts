@@ -182,6 +182,21 @@ describe("Configuration Loading", () => {
   });
 
   describe("Unit Logic & Edge Cases", () => {
+    it("loads the default-off provider-neutral reranker configuration", () => {
+      const config = loadConfig(
+        {},
+        { configPath: path.join(tmpDir, "reranker-defaults.yaml") },
+      );
+
+      expect(config.search.reranker).toEqual({
+        enabled: false,
+        provider: "voyage",
+        model: "rerank-2.5-lite",
+        candidateLimit: 30,
+        requestTimeoutMs: 5000,
+      });
+    });
+
     it("should handle nested defaults correctly (Assembly)", () => {
       const configPath = path.join(tmpDir, "defaults.yaml");
       fs.writeFileSync(configPath, "");
