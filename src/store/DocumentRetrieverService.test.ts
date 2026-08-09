@@ -1,9 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "../utils/config";
 import { loadConfig } from "../utils/config";
+import { logger } from "../utils/logger";
+import { CircuitBreakingReranker } from "./CircuitBreakingReranker";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { DocumentStore } from "./DocumentStore";
 import type { DbChunkRank, DbPageChunk } from "./types";
+import { VoyageReranker } from "./VoyageReranker";
 
 vi.mock("./DocumentStore");
 
@@ -18,6 +21,11 @@ describe("DocumentRetrieverService", () => {
     store = new DocumentStore(":memory:", config);
     await store.initialize();
     service = new DocumentRetrieverService(store, config);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("skips an enabled reranker when Baseline Ranking is empty", async () => {
@@ -288,6 +296,420 @@ describe("DocumentRetrieverService", () => {
       { index: 0, content: "Raw candidate content" },
     ]);
   });
+
+  it("returns the exact Baseline Ranking prefix when the reranker fails", async () => {
+    const candidates = [
+      {
+        id: "first",
+        content: "Baseline first",
+        url: "https://example.com/first",
+        score: 0.91,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "second",
+        content: "Baseline second",
+        url: "https://example.com/second",
+        score: 0.73,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "third",
+        content: "Outside prefix",
+        url: "https://example.com/third",
+        score: 0.42,
+        sort_order: 1,
+        metadata: {},
+      },
+    ] as (DbPageChunk & DbChunkRank)[];
+    const rerank = vi.fn().mockRejectedValue(new Error("raw provider cause"));
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, { rerank });
+
+    vi.spyOn(store, "findByContent").mockResolvedValue(candidates);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockImplementation(async (_lib, _ver, ids) =>
+      candidates.filter((candidate) => ids.includes(candidate.id)),
+    );
+
+    const results = await service.search("lib", "1.0.0", "private query", 2);
+
+    expect(results).toEqual([
+      {
+        content: "Baseline first",
+        url: "https://example.com/first",
+        score: 0.91,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+      {
+        content: "Baseline second",
+        url: "https://example.com/second",
+        score: 0.73,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+    ]);
+  });
+
+  it.each([400, 401, 403, 429, 500, 502, 503, 504])(
+    "uses the exact Baseline Ranking prefix for Voyage HTTP %i",
+    async (status) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response("private provider response body", {
+            status,
+          }),
+        ),
+      );
+
+      await expectVoyageFailOpen();
+      expectFallbackLogCategory("provider_error");
+    },
+  );
+
+  it("uses the exact Baseline Ranking prefix for a Voyage network failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockRejectedValue(
+          new Error("raw cause from https://private-provider.example/internal"),
+        ),
+    );
+
+    await expectVoyageFailOpen();
+    expectFallbackLogCategory("request_failed");
+  });
+
+  it("uses the exact Baseline Ranking prefix for invalid Voyage JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("{private invalid json", { status: 200 })),
+    );
+
+    await expectVoyageFailOpen();
+    expectFallbackLogCategory("invalid_response");
+  });
+
+  it.each([
+    ["missing data", {}],
+    ["missing result", { data: [{ index: 0, relevance_score: 0.8 }] }],
+    [
+      "duplicate index",
+      {
+        data: [
+          { index: 0, relevance_score: 0.8 },
+          { index: 0, relevance_score: 0.7 },
+          { index: 2, relevance_score: 0.6 },
+        ],
+      },
+    ],
+    [
+      "extra result",
+      {
+        data: [
+          { index: 0, relevance_score: 0.8 },
+          { index: 1, relevance_score: 0.7 },
+          { index: 2, relevance_score: 0.6 },
+          { index: 2, relevance_score: 0.5 },
+        ],
+      },
+    ],
+    [
+      "missing index",
+      {
+        data: [
+          { relevance_score: 0.8 },
+          { index: 1, relevance_score: 0.7 },
+          { index: 2, relevance_score: 0.6 },
+        ],
+      },
+    ],
+    [
+      "non-integer index",
+      {
+        data: [
+          { index: 0.5, relevance_score: 0.8 },
+          { index: 1, relevance_score: 0.7 },
+          { index: 2, relevance_score: 0.6 },
+        ],
+      },
+    ],
+    [
+      "out-of-range index",
+      {
+        data: [
+          { index: 0, relevance_score: 0.8 },
+          { index: 1, relevance_score: 0.7 },
+          { index: 3, relevance_score: 0.6 },
+        ],
+      },
+    ],
+    [
+      "missing score",
+      {
+        data: [
+          { index: 0, relevance_score: 0.8 },
+          { index: 1 },
+          { index: 2, relevance_score: 0.6 },
+        ],
+      },
+    ],
+    [
+      "non-finite score",
+      {
+        data: [
+          { index: 0, relevance_score: 0.8 },
+          { index: 1, relevance_score: Number.POSITIVE_INFINITY },
+          { index: 2, relevance_score: 0.6 },
+        ],
+      },
+    ],
+  ])(
+    "uses the exact Baseline Ranking prefix for Voyage shape: %s",
+    async (_name, body) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(body), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+
+      await expectVoyageFailOpen();
+      expectFallbackLogCategory("invalid_response");
+    },
+  );
+
+  it("uses the exact Baseline Ranking prefix after the Voyage deadline", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+        const signal = init.signal as AbortSignal;
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => {
+            reject(new DOMException("private timeout cause", "AbortError"));
+          });
+        });
+      }),
+    );
+
+    const pendingResults = expectVoyageFailOpen();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await pendingResults;
+    expectFallbackLogCategory("timeout");
+  });
+
+  it("logs successful usage through the same operational metadata whitelist", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: [
+              { index: 1, relevance_score: 0.95 },
+              { index: 0, relevance_score: 0.25 },
+            ],
+            usage: { total_tokens: 42 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    const candidates = [
+      {
+        id: "first",
+        content: "First candidate",
+        url: "https://example.com/first",
+        score: 0.9,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "second",
+        content: "Second candidate",
+        url: "https://example.com/second",
+        score: 0.8,
+        sort_order: 1,
+        metadata: {},
+      },
+    ] as (DbPageChunk & DbChunkRank)[];
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(
+      store,
+      config,
+      new CircuitBreakingReranker(
+        new VoyageReranker({
+          apiKey: "test-voyage-secret",
+          model: config.search.reranker.model,
+          requestTimeoutMs: 5_000,
+        }),
+      ),
+    );
+    vi.spyOn(store, "findByContent").mockResolvedValue(candidates);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockImplementation(async (_lib, _ver, ids) =>
+      candidates.filter((candidate) => ids.includes(candidate.id)),
+    );
+
+    await service.search("lib", "1.0.0", "private Search Query", 2);
+
+    const message = vi
+      .mocked(logger.debug)
+      .mock.calls.map(([loggedMessage]) => loggedMessage)
+      .find((loggedMessage) => loggedMessage.startsWith("Reranker operation "));
+    expect(message).toBeDefined();
+    if (!message) {
+      throw new Error("Missing Reranker operation log");
+    }
+    const metadata = JSON.parse(message.slice(message.indexOf("{")));
+    expect(metadata).toMatchObject({
+      provider: "voyage",
+      model: "rerank-2.5-lite",
+      candidateCount: 2,
+      outcome: "success",
+      returnedCount: 2,
+      usageTokens: 42,
+      fallbackCategory: "none",
+    });
+  });
+
+  it("logs only whitelisted operational metadata for Fail-open Search", async () => {
+    const sensitiveValues = [
+      "test-voyage-secret",
+      "private Search Query",
+      "private Search Candidate",
+      "private provider response body",
+      "raw provider cause",
+      "https://private-provider.example/internal",
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error(sensitiveValues.join(" | "))),
+    );
+
+    await expectVoyageFailOpen(sensitiveValues[1], sensitiveValues[2]);
+
+    expect(logger.warn).toHaveBeenCalledOnce();
+    const message = vi.mocked(logger.warn).mock.calls[0][0];
+    for (const sensitiveValue of sensitiveValues) {
+      expect(message).not.toContain(sensitiveValue);
+    }
+    const metadata = JSON.parse(message.slice(message.indexOf("{")));
+    expect(Object.keys(metadata)).toEqual([
+      "provider",
+      "model",
+      "candidateCount",
+      "elapsedTimeMs",
+      "outcome",
+      "returnedCount",
+      "usageTokens",
+      "fallbackCategory",
+    ]);
+    expect(metadata).toMatchObject({
+      provider: "voyage",
+      model: "rerank-2.5-lite",
+      candidateCount: 3,
+      outcome: "fallback",
+      returnedCount: 2,
+      usageTokens: null,
+      fallbackCategory: "request_failed",
+    });
+    expect(metadata.elapsedTimeMs).toEqual(expect.any(Number));
+  });
+
+  async function expectVoyageFailOpen(
+    query = "private Search Query",
+    firstContent = "private Search Candidate",
+  ): Promise<void> {
+    const candidates = [
+      {
+        id: "baseline-first",
+        content: firstContent,
+        url: "https://example.com/baseline-first",
+        score: 0.91,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "baseline-second",
+        content: "Baseline second",
+        url: "https://example.com/baseline-second",
+        score: 0.73,
+        sort_order: 1,
+        metadata: {},
+      },
+      {
+        id: "outside-prefix",
+        content: "Outside prefix",
+        url: "https://example.com/outside-prefix",
+        score: 0.42,
+        sort_order: 1,
+        metadata: {},
+      },
+    ] as (DbPageChunk & DbChunkRank)[];
+    config.search.reranker.enabled = true;
+    config.search.reranker.requestTimeoutMs = 5_000;
+    service = new DocumentRetrieverService(
+      store,
+      config,
+      new CircuitBreakingReranker(
+        new VoyageReranker({
+          apiKey: "test-voyage-secret",
+          model: config.search.reranker.model,
+          requestTimeoutMs: config.search.reranker.requestTimeoutMs,
+        }),
+      ),
+    );
+    vi.spyOn(store, "findByContent").mockResolvedValue(candidates);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockImplementation(async (_lib, _ver, ids) =>
+      candidates.filter((candidate) => ids.includes(candidate.id)),
+    );
+
+    const results = await service.search("lib", "1.0.0", query, 2);
+
+    expect(results).toEqual([
+      {
+        content: firstContent,
+        url: "https://example.com/baseline-first",
+        score: 0.91,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+      {
+        content: "Baseline second",
+        url: "https://example.com/baseline-second",
+        score: 0.73,
+        mimeType: undefined,
+        sourceMimeType: undefined,
+      },
+    ]);
+  }
+
+  function expectFallbackLogCategory(expectedCategory: string): void {
+    expect(logger.warn).toHaveBeenCalledOnce();
+    const message = vi.mocked(logger.warn).mock.calls[0][0];
+    const metadata = JSON.parse(message.slice(message.indexOf("{")));
+    expect(metadata.fallbackCategory).toBe(expectedCategory);
+  }
 
   it("uses the configured candidate limit when it exceeds the user limit", async () => {
     const candidate = {

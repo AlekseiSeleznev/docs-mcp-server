@@ -1,10 +1,23 @@
 import type { AppConfig } from "../utils/config";
+import { logger } from "../utils/logger";
 import { createContentAssemblyStrategy } from "./assembly/ContentAssemblyStrategyFactory";
+import {
+  getRerankerFallbackCategory,
+  type RerankerFallbackCategory,
+} from "./CircuitBreakingReranker";
 import type { DocumentStore } from "./DocumentStore";
 import type { Reranker } from "./Reranker";
 import type { DbChunkRank, DbPageChunk, StoreSearchResult } from "./types";
 
 type RankedCandidate = DbPageChunk & DbChunkRank & { baselineIndex?: number };
+
+interface RerankerOperation {
+  candidateCount: number;
+  elapsedTimeMs: number;
+  fallbackCategory: RerankerFallbackCategory | "none";
+  outcome: "fallback" | "success";
+  usageTokens: number | null;
+}
 
 export class DocumentRetrieverService {
   private documentStore: DocumentStore;
@@ -51,25 +64,45 @@ export class DocumentRetrieverService {
     }
 
     let rankedCandidates: RankedCandidate[] = initialResults;
+    let rerankerOperation: RerankerOperation | undefined;
     if (activeReranker) {
-      const rerankResult = await activeReranker.rerank(
-        query,
-        initialResults.map((candidate, index) => ({
-          index,
-          content: candidate.content,
-        })),
-      );
-      rankedCandidates = rerankResult.scores
-        .map(({ index, score }) => ({
-          ...initialResults[index],
-          score,
-          baselineIndex: index,
-        }))
-        .sort(
-          (first, second) =>
-            second.score - first.score || first.baselineIndex - second.baselineIndex,
-        )
-        .slice(0, userLimit);
+      const rerankerStartedAt = Date.now();
+      try {
+        const rerankResult = await activeReranker.rerank(
+          query,
+          initialResults.map((candidate, index) => ({
+            index,
+            content: candidate.content,
+          })),
+        );
+        rankedCandidates = rerankResult.scores
+          .map(({ index, score }) => ({
+            ...initialResults[index],
+            score,
+            baselineIndex: index,
+          }))
+          .sort(
+            (first, second) =>
+              second.score - first.score || first.baselineIndex - second.baselineIndex,
+          )
+          .slice(0, userLimit);
+        rerankerOperation = {
+          candidateCount: initialResults.length,
+          elapsedTimeMs: Date.now() - rerankerStartedAt,
+          fallbackCategory: "none",
+          outcome: "success",
+          usageTokens: rerankResult.usageTokens ?? null,
+        };
+      } catch (error) {
+        rankedCandidates = initialResults.slice(0, userLimit);
+        rerankerOperation = {
+          candidateCount: initialResults.length,
+          elapsedTimeMs: Date.now() - rerankerStartedAt,
+          fallbackCategory: getRerankerFallbackCategory(error),
+          outcome: "fallback",
+          usageTokens: null,
+        };
+      }
     }
 
     // Group initial results by URL
@@ -107,13 +140,40 @@ export class DocumentRetrieverService {
     // Sort all results by score descending
     // This ensures that if a highly relevant chunk was split from a less relevant one,
     // the highly relevant one appears first in the final list.
-    return results
+    const assembledResults = results
       .sort(
         (first, second) =>
           (second.result.score ?? 0) - (first.result.score ?? 0) ||
           first.baselineIndex - second.baselineIndex,
       )
       .map(({ result }) => result);
+
+    if (rerankerOperation) {
+      this.logRerankerOperation(rerankerOperation, assembledResults.length);
+    }
+
+    return assembledResults;
+  }
+
+  private logRerankerOperation(
+    operation: RerankerOperation,
+    returnedCount: number,
+  ): void {
+    const safeMetadata = JSON.stringify({
+      provider: this.config.search.reranker.provider,
+      model: this.config.search.reranker.model,
+      candidateCount: operation.candidateCount,
+      elapsedTimeMs: operation.elapsedTimeMs,
+      outcome: operation.outcome,
+      returnedCount,
+      usageTokens: operation.usageTokens,
+      fallbackCategory: operation.fallbackCategory,
+    });
+    if (operation.outcome === "success") {
+      logger.debug(`Reranker operation ${safeMetadata}`);
+      return;
+    }
+    logger.warn(`⚠️  Reranker fallback ${safeMetadata}`);
   }
 
   /**
