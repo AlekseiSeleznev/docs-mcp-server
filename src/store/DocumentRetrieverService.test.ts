@@ -826,6 +826,36 @@ describe("DocumentRetrieverService", () => {
     expect(store.findByContent).toHaveBeenCalledWith("lib", "1.0.0", "query", 30);
   });
 
+  it("does not perform fallback retrieval on a successful rerank", async () => {
+    const candidate = {
+      id: "doc1",
+      content: "Candidate",
+      url: "https://example.com/doc",
+      score: 0.5,
+      sort_order: 1,
+      metadata: {},
+    } as DbPageChunk & DbChunkRank;
+    const rerank = vi.fn().mockResolvedValue({
+      scores: [{ index: 0, score: 0.9 }],
+    });
+    config.search.reranker.enabled = true;
+    service = new DocumentRetrieverService(store, config, { rerank });
+    vi.spyOn(store, "findByContent")
+      .mockResolvedValueOnce([candidate])
+      .mockRejectedValueOnce(new Error("fallback retrieval must remain lazy"));
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue([candidate]);
+
+    await expect(service.search("lib", "1.0.0", "query", 1)).resolves.toEqual([
+      expect.objectContaining({ score: 0.9 }),
+    ]);
+    expect(rerank).toHaveBeenCalledOnce();
+    expect(store.findByContent).toHaveBeenCalledOnce();
+  });
+
   it("propagates reranker scores into final ordering after context assembly", async () => {
     const firstCandidate = {
       id: "first",

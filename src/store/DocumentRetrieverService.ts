@@ -63,16 +63,6 @@ export class DocumentRetrieverService {
       return [];
     }
 
-    const baselineResults =
-      activeReranker && retrievalLimit !== userLimit
-        ? await this.documentStore.findByContent(
-            library,
-            normalizedVersion,
-            query,
-            userLimit,
-          )
-        : initialResults;
-
     let rankedCandidates: RankedCandidate[] = initialResults;
     let rerankerOperation: RerankerOperation | undefined;
     if (activeReranker) {
@@ -104,6 +94,15 @@ export class DocumentRetrieverService {
           usageTokens: rerankResult.usageTokens ?? null,
         };
       } catch (error) {
+        const baselineResults =
+          retrievalLimit === userLimit
+            ? initialResults
+            : await this.documentStore.findByContent(
+                library,
+                normalizedVersion,
+                query,
+                userLimit,
+              );
         rankedCandidates = baselineResults.slice(0, userLimit);
         rerankerOperation = {
           candidateCount: initialResults.length,

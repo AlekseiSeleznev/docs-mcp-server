@@ -209,9 +209,14 @@ describe("Configuration Loading", () => {
       });
     });
 
-    it("rejects a reranker candidate limit above the public search range", () => {
-      process.env.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT = "51";
+    it("uses the local public search range for the reranker candidate limit", () => {
+      process.env.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT = "100";
+      expect(
+        loadConfig({}, { configPath: path.join(tmpDir, "reranker-candidate-limit.yaml") })
+          .search.reranker.candidateLimit,
+      ).toBe(100);
 
+      process.env.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT = "101";
       expect(() =>
         loadConfig(
           {},
