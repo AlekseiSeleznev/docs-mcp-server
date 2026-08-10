@@ -24,7 +24,8 @@ Generated: 2026-08-10T00:27:12.810Z
 | rerank-50 | 0.900000 | 0.908762 | 0.975000 | 1148646 | $0.022973 | 615/660/760/792 | 0 | 0 |
 | forced-fail-open | 0.682650 | 0.712040 | 1.000000 | 0 | $0.000000 | 153/167/178/697 | 0 | 40 |
 
-30 vs Baseline nDCG@5: 15 wins / 20 ties / 5 losses.  
+30 vs Baseline nDCG@5: 15 wins / 20 ties / 5 losses.
+
 50 vs Baseline nDCG@5: 15 wins / 20 ties / 5 losses.
 
 ## Q30 ranks
