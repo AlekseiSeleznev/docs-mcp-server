@@ -590,6 +590,100 @@ describe("DocumentStore - With Embeddings", () => {
       }
     });
 
+    it("keeps top vector-only matches in deep Search Candidate retrieval", async () => {
+      vi.stubEnv("OPENAI_API_KEY", "test-key-for-vector-recall-floor");
+      await store.shutdown();
+      store = new DocumentStore(":memory:", appConfig);
+      await store.initialize();
+      const query = "architecture functionality";
+      for (let index = 0; index < 11; index += 1) {
+        await store.addDocuments(
+          "recallfloor",
+          "1.0.0",
+          1,
+          createScrapeResult(
+            `Semantic distractor ${index}`,
+            `https://example.com/semantic-distractor-${index}`,
+            `dense-only distractor ${index}`,
+          ),
+        );
+      }
+      await store.addDocuments(
+        "recallfloor",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Semantic target",
+          "https://example.com/semantic-target",
+          "candidate expressed without lexical overlap",
+        ),
+      );
+      for (let index = 0; index < 70; index += 1) {
+        await store.addDocuments(
+          "recallfloor",
+          "1.0.0",
+          1,
+          createScrapeResult(
+            `Hybrid ${index}`,
+            `https://example.com/hybrid-${index}`,
+            `${query} lexical candidate ${index}`,
+          ),
+        );
+      }
+
+      // Arrange a vector-only rank-1 target while the lexical matches also
+      // receive weaker vector ranks and therefore dominate unreserved RRF.
+      // @ts-expect-error Accessing test boundary dependencies to seed known vectors
+      const queryVector = await store.embeddings.embedQuery(query);
+      const orthogonalVector = new Array(queryVector.length).fill(0);
+      const emptyDimension = queryVector.findIndex((value: number) => value === 0);
+      orthogonalVector[emptyDimension] = 1;
+      // @ts-expect-error Accessing the real test database to seed known vectors
+      const db = store.db;
+      const rows = db
+        .prepare(
+          "SELECT d.id, p.url, l.id library_id, v.id version_id FROM documents d JOIN pages p ON p.id = d.page_id JOIN versions v ON v.id = p.version_id JOIN libraries l ON l.id = v.library_id WHERE l.name = ? ORDER BY d.id",
+        )
+        .all("recallfloor") as Array<{
+        id: number;
+        url: string;
+        library_id: number;
+        version_id: number;
+      }>;
+      const replaceVector = db.transaction(
+        (row: (typeof rows)[number], vector: number[]) => {
+          db.prepare("DELETE FROM documents_vec WHERE rowid = ?").run(BigInt(row.id));
+          db.prepare(
+            "INSERT INTO documents_vec (rowid, library_id, version_id, embedding) VALUES (?, ?, ?, ?)",
+          ).run(
+            BigInt(row.id),
+            BigInt(row.library_id),
+            BigInt(row.version_id),
+            JSON.stringify(vector),
+          );
+        },
+      );
+      for (const row of rows) {
+        replaceVector(
+          row,
+          row.url.includes("/semantic-") ? queryVector : orthogonalVector,
+        );
+      }
+
+      const results = await store.findByContent("recallfloor", "1.0.0", query, 30);
+
+      expect(results.map((result) => result.url)).toContain(
+        "https://example.com/semantic-target",
+      );
+      const targetIndex = results.findIndex((result) =>
+        result.url.endsWith("semantic-target"),
+      );
+      expect(results[targetIndex].vec_rank).toBe(12);
+      expect(results[targetIndex].fts_rank).toBeUndefined();
+      expect(results[0].url).not.toBe("https://example.com/semantic-target");
+      vi.unstubAllEnvs();
+    });
+
     it("should use partition-filtered vector search for hybrid results", async () => {
       const originalApiKey = process.env.OPENAI_API_KEY;
       try {
