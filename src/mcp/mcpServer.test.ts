@@ -2,11 +2,19 @@
  * Tests for MCP server read-only mode functionality
  */
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it, vi } from "vitest";
+import { telemetry } from "../telemetry";
 import type { AppConfig } from "../utils/config";
 import { createMcpServerInstance } from "./mcpServer";
 import type { McpServerTools } from "./tools";
+
+vi.mock("../telemetry", () => ({
+  TelemetryEvent: { TOOL_USED: "tool_used" },
+  telemetry: { track: vi.fn() },
+}));
 
 // Mock config
 const mockConfig = {
@@ -54,6 +62,30 @@ const mockTools: McpServerTools = {
 };
 
 describe("MCP Server Read-Only Mode", () => {
+  it("does not expose the Search Query or raw search failure", async () => {
+    const query = "private Search Query";
+    const rawFailure = "raw failure with http://private-worker.internal:8080/api";
+    vi.mocked(telemetry.track).mockClear();
+    vi.mocked(mockTools.search.execute).mockRejectedValueOnce(new Error(rawFailure));
+    const server = createMcpServerInstance(mockTools, mockConfig);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "mcp-server-test", version: "1.0.0" });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.callTool({
+      name: "search_docs",
+      arguments: { library: "lib", query, limit: 5 },
+    });
+
+    await client.close();
+    await server.close();
+
+    expect(JSON.stringify(vi.mocked(telemetry.track).mock.calls)).not.toContain(query);
+    expect(JSON.stringify(result)).not.toContain(rawFailure);
+    expect(JSON.stringify(result)).not.toContain("private-worker.internal");
+  });
+
   it("should create server instance in normal mode", () => {
     const server = createMcpServerInstance(mockTools, mockConfig);
     expect(server).toBeInstanceOf(McpServer);

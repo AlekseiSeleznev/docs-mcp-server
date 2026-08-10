@@ -1,12 +1,14 @@
 services:
   worker:
-    image: ghcr.io/arabold/docs-mcp-server:3.0.0
+    image: ${DOCS_MCP_IMAGE:?Set DOCS_MCP_IMAGE to an immutable registry manifest digest}
     command: ["worker", "--host", "0.0.0.0", "--port", "8080", "--quiet"]
     restart: unless-stopped
     env_file:
       - .env.worker
     environment:
       DOCS_MCP_STORE_PATH: /data
+      DOCS_MCP_SEARCH_RERANKER_ENABLED: "true"
+      DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT: "30"
       DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_MODE: allowedRoots
       DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_ALLOWED_ROOTS: /documents
       DOCS_MCP_TELEMETRY: "false"
@@ -22,7 +24,7 @@ services:
       start_period: 20s
 
   web:
-    image: ghcr.io/arabold/docs-mcp-server:3.0.0
+    image: ${DOCS_MCP_IMAGE:?Set DOCS_MCP_IMAGE to an immutable registry manifest digest}
     command: ["web", "--host", "0.0.0.0", "--port", "6280", "--server-url", "http://worker:8080/api", "--no-logo", "--quiet"]
     restart: unless-stopped
     ports:
@@ -42,7 +44,7 @@ services:
       start_period: 15s
 
   mcp-read:
-    image: ghcr.io/arabold/docs-mcp-server:3.0.0
+    image: ${DOCS_MCP_IMAGE:?Set DOCS_MCP_IMAGE to an immutable registry manifest digest}
     command: ["mcp", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280", "--server-url", "http://worker:8080/api", "--read-only", "--no-logo", "--quiet"]
     restart: unless-stopped
     ports:
@@ -62,7 +64,7 @@ services:
       start_period: 15s
 
   mcp-admin:
-    image: ghcr.io/arabold/docs-mcp-server:3.0.0
+    image: ${DOCS_MCP_IMAGE:?Set DOCS_MCP_IMAGE to an immutable registry manifest digest}
     command: ["mcp", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280", "--server-url", "http://worker:8080/api", "--no-logo", "--quiet"]
     restart: unless-stopped
     ports:

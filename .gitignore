@@ -11,5 +11,6 @@ public/index.html
 !.example.secrets.local.env
 *.code-workspace
 .tsbuildinfo
+.vitest-config-mock/
 .claude/worktrees/
 .opencode/package-lock.json

@@ -52,8 +52,8 @@ interface RawSearchResult extends DbChunk {
   source_content_type?: string | null;
   content_type?: string | null;
   // Search scoring fields
-  vec_score?: number;
-  fts_score?: number;
+  vec_score?: number | null;
+  fts_score?: number | null;
 }
 
 interface RankedResult extends RawSearchResult {
@@ -69,6 +69,9 @@ interface EmbeddingBatchContext {
   batchChars: number;
   totalChunks: number;
 }
+
+const DEEP_SEARCH_MIN_LIMIT = 30;
+const VECTOR_RECALL_FLOOR_RATIO = 0.5;
 
 /**
  * Manages document storage and retrieval using SQLite with vector and full-text search capabilities.
@@ -190,7 +193,7 @@ export class DocumentStore {
 
     // Sort by vector scores and assign ranks
     results
-      .filter((r) => r.vec_score !== undefined)
+      .filter((r) => typeof r.vec_score === "number")
       .sort((a, b) => (b.vec_score ?? 0) - (a.vec_score ?? 0))
       .forEach((result, index) => {
         vecRanks.set(Number(result.id), index + 1);
@@ -198,7 +201,7 @@ export class DocumentStore {
 
     // Sort by BM25 scores and assign ranks
     results
-      .filter((r) => r.fts_score !== undefined)
+      .filter((r) => typeof r.fts_score === "number")
       .sort((a, b) => (b.fts_score ?? 0) - (a.fts_score ?? 0))
       .forEach((result, index) => {
         ftsRanks.set(Number(result.id), index + 1);
@@ -214,6 +217,34 @@ export class DocumentStore {
         ftsRanks.get(Number(result.id)),
       ),
     }));
+  }
+
+  /**
+   * Preserves the RRF head while reserving the tail of deep retrievals for the
+   * strongest semantic candidates. This prevents dense-only matches from being
+   * crowded out by chunks that receive both FTS and vector rank contributions.
+   */
+  private selectHybridCandidates(results: RankedResult[], limit: number): RankedResult[] {
+    const rrfRanking = [...results].sort((a, b) => b.rrf_score - a.rrf_score);
+    const selected = rrfRanking.slice(0, limit);
+    if (limit < DEEP_SEARCH_MIN_LIMIT) return selected;
+
+    const vectorFloor = Math.ceil(limit * VECTOR_RECALL_FLOOR_RATIO);
+    const selectedIds = new Set(selected.map((result) => Number(result.id)));
+    const missingVectorCandidates = results
+      .filter(
+        (result) =>
+          result.vec_rank !== undefined &&
+          result.vec_rank <= vectorFloor &&
+          !selectedIds.has(Number(result.id)),
+      )
+      .sort((first, second) => (first.vec_rank ?? 0) - (second.vec_rank ?? 0));
+    if (missingVectorCandidates.length === 0) return selected;
+
+    return [
+      ...selected.slice(0, Math.max(0, limit - missingVectorCandidates.length)),
+      ...missingVectorCandidates.slice(0, limit),
+    ];
   }
 
   constructor(dbPath: string, appConfig: AppConfig) {
@@ -2106,8 +2137,8 @@ export class DocumentStore {
             p.title as title,
             p.source_content_type as source_content_type,
             p.content_type as content_type,
-            COALESCE(1 / (1 + v.vec_distance), 0) as vec_score,
-            COALESCE(-MIN(f.fts_score, 0), 0) as fts_score
+            CASE WHEN v.id IS NULL THEN NULL ELSE 1 / (1 + v.vec_distance) END as vec_score,
+            CASE WHEN f.id IS NULL THEN NULL ELSE -MIN(f.fts_score, 0) END as fts_score
           FROM candidates c
           JOIN documents d ON d.id = c.id
           JOIN pages p ON d.page_id = p.id
@@ -2133,9 +2164,7 @@ export class DocumentStore {
         const rankedResults = this.assignRanks(rawResults);
 
         // Sort by RRF score and take top results (truncate to original limit)
-        const topResults = rankedResults
-          .sort((a, b) => b.rrf_score - a.rrf_score)
-          .slice(0, limit);
+        const topResults = this.selectHybridCandidates(rankedResults, limit);
 
         return topResults.map((row) => {
           const result: DbPageChunk = {
@@ -2197,11 +2226,8 @@ export class DocumentStore {
           });
         });
       }
-    } catch (error) {
-      throw new ConnectionError(
-        `Failed to find documents by content with query "${query}"`,
-        error,
-      );
+    } catch {
+      throw new ConnectionError("Failed to find documents by content");
     }
   }
 
