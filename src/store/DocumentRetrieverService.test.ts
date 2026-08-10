@@ -296,7 +296,11 @@ describe("DocumentRetrieverService", () => {
     await service.search("lib", "1.0.0", "exact search query", 3);
 
     expect(rerank).toHaveBeenCalledWith("exact search query", [
-      { index: 0, content: "Raw candidate content" },
+      {
+        index: 0,
+        content: "Raw candidate content",
+        sourceUrl: "https://example.com/doc",
+      },
     ]);
   });
 

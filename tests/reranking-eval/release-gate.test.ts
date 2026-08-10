@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
-  loadLockedDataset,
   buildModeSummary,
   evaluateReleaseGate,
+  loadLockedDataset,
+  ObservedForcedFailOpenReranker,
   selectCandidateLimit,
+  summarizePageEvidence,
   type QueryMeasurement,
-} from "../tests/reranking-eval/release-gate";
+} from "./release-gate";
 
 const query = (
   id: string,
@@ -30,6 +32,32 @@ const query = (
 });
 
 describe("ONEC reranking release gate", () => {
+  it("derives forced Fail-open evidence from the actual reranker call", async () => {
+    const reranker = new ObservedForcedFailOpenReranker();
+    const candidates = [
+      { index: 0, content: "first", sourceUrl: "https://private.example/a/index.md" },
+      { index: 1, content: "second", sourceUrl: "https://private.example/b/index.md" },
+    ];
+
+    await expect(reranker.rerank("query", candidates)).rejects.toMatchObject({
+      category: "request_failed",
+    });
+
+    expect(reranker.observations.get("query")).toEqual({
+      failureCategory: "request_failed",
+      candidates,
+    });
+  });
+
+  it("counts page identities without persisting full source URLs", () => {
+    expect(
+      summarizePageEvidence([
+        "https://private.example/a/index.md",
+        "https://private.example/b/index.md",
+      ]),
+    ).toEqual({ files: ["index.md", "index.md"], pageCount: 2 });
+  });
+
   it("accepts only the immutable 40-query ONEC dataset contract", () => {
     const entries = Array.from({ length: 40 }, (_, index) => ({
       id: `Q${String(index + 1).padStart(2, "0")}`,
@@ -80,8 +108,8 @@ describe("ONEC reranking release gate", () => {
     expect(summary.returnedPages).toBe(4);
     expect(summary.tokens).toBe(20);
     expect(summary.costUsd).toBeCloseTo(0.0000004, 12);
-    expect(summary.latencyMs).toEqual({ min: 100, p50: 100, p95: 100, max: 100 });
-    expect(summary.rerankerLatencyMs).toEqual({ min: 25, p50: 25, p95: 25, max: 25 });
+    expect(summary.latencyMs).toEqual({ min: 100, mean: 100, p50: 100, p95: 100, max: 100 });
+    expect(summary.rerankerLatencyMs).toEqual({ min: 25, mean: 25, p50: 25, p95: 25, max: 25 });
     expect(summary.providerFailures).toEqual({ total: 0, byCategory: {} });
     expect(summary.fallbacks).toEqual({ total: 0, byCategory: {} });
   });

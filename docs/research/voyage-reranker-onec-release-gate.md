@@ -1,6 +1,6 @@
 # Voyage reranking release gate for ONEC_ERP_IMPLEMENTATION
 
-Generated: 2026-08-10T00:27:12.810Z
+Generated: 2026-08-10T00:55:15.509Z
 
 ## Decision
 
@@ -17,12 +17,12 @@ Generated: 2026-08-10T00:27:12.810Z
 
 ## Headline and operational evidence
 
-| Mode | MRR | nDCG@5 | Recall@30 | Tokens | Tariff cost | Search latency min/p50/p95/max ms | Provider failures | Fallbacks |
+| Mode | MRR | nDCG@5 | Recall@30 | Tokens | Tariff cost | Search latency min/mean/p50/p95/max ms | Provider failures | Fallbacks |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| baseline | 0.682650 | 0.712040 | 1.000000 | 0 | $0.000000 | 157/167/205/424 | 0 | 0 |
-| rerank-30 | 0.901667 | 0.908762 | 1.000000 | 702706 | $0.014054 | 581/658/881/1268 | 0 | 0 |
-| rerank-50 | 0.900000 | 0.908762 | 0.975000 | 1148646 | $0.022973 | 615/660/760/792 | 0 | 0 |
-| forced-fail-open | 0.682650 | 0.712040 | 1.000000 | 0 | $0.000000 | 153/167/178/697 | 0 | 40 |
+| baseline | 0.682650 | 0.712040 | 1.000000 | 0 | $0.000000 | 147/172/162/192/431 | 0 | 0 |
+| rerank-30 | 0.901667 | 0.908762 | 1.000000 | 702706 | $0.014054 | 549/634/588/862/1386 | 0 | 0 |
+| rerank-50 | 0.900000 | 0.908762 | 0.975000 | 1148646 | $0.022973 | 573/654/641/737/911 | 0 | 0 |
+| forced-fail-open | 0.682650 | 0.712040 | 1.000000 | 0 | $0.000000 | 155/192/165/269/660 | 0 | 40 |
 
 30 vs Baseline nDCG@5: 15 wins / 20 ties / 5 losses.
 
@@ -51,4 +51,4 @@ Generated: 2026-08-10T00:27:12.810Z
 
 ## Full evidence
 
-The sibling JSON report contains every per-query deterministic metric input, intent breakdown, candidate/page count, latency, provider/fallback category, and token total. It contains no credentials, private endpoints, provider bodies, Search Candidate content, or raw error causes.
+The sibling JSON report contains every per-query deterministic metric input, intent breakdown, candidate/page count, latency, provider/fallback category, and token total. The evidence uses sanitized categories and aggregate operational data suitable for repository review.

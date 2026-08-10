@@ -25,11 +25,11 @@ Run under Node.js 22:
 npm run evaluate:reranking
 ```
 
-The report excludes credentials, private endpoints, Search Candidate content,
-provider bodies, and raw error causes. It records dataset and snapshot hashes,
-all deterministic metrics and intent breakdowns, per-query ranks, candidate and
-page counts, token use, tariff cost, latency distributions, provider failures,
-fallback counts, wins/ties/losses, the selected candidate limit, and every gate.
+The report records safe operational aggregates and sanitized failure categories:
+dataset and snapshot hashes, all deterministic metrics and intent breakdowns,
+per-query ranks, candidate and page counts, token use, tariff cost, latency
+distributions, provider failures, fallback counts, wins/ties/losses, the selected
+candidate limit, and every gate.
 
 The runner treats an absolute MRR or nDCG@5 gain of at least `0.01` as material.
 When 50 candidates do not reach that threshold without losing Recall@30, the

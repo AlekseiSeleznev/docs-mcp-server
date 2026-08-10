@@ -1,3 +1,12 @@
+import { createHash } from "node:crypto";
+import path from "node:path";
+import yaml from "yaml";
+import { RerankerUnavailableError } from "../../src/store/CircuitBreakingReranker";
+import type { RerankCandidate, Reranker, RerankResult } from "../../src/store/Reranker";
+
+/** Absolute MRR or nDCG@5 gain required to select 50 Search Candidates. */
+export const MATERIAL_BENEFIT_ABSOLUTE = 0.01;
+
 export const DETERMINISTIC_METRIC_KEYS = [
   "mrr",
   "recallAt3",
@@ -77,6 +86,7 @@ export interface ModeSummary {
 
 export interface LatencyDistribution {
   min: number;
+  mean: number;
   p50: number;
   p95: number;
   max: number;
@@ -99,6 +109,31 @@ export interface ReleaseGateResult {
   checks: GateCheck[];
 }
 
+/** Evidence from one forced Reranker failure observed at the production seam. */
+export interface ForcedFailOpenObservation {
+  failureCategory: "request_failed";
+  candidates: readonly RerankCandidate[];
+}
+
+/** Forces and records the failure that exercises Search fail-open behavior. */
+export class ObservedForcedFailOpenReranker implements Reranker {
+  readonly observations = new Map<string, ForcedFailOpenObservation>();
+
+  /**
+   * Records the actual Search Candidates and forces a normalized failure.
+   * @param query Exact Search Query received from the retrieval service.
+   * @param candidates Actual Search Candidates passed by the retrieval service.
+   * @returns A rejected promise that activates fail-open behavior.
+   */
+  async rerank(
+    query: string,
+    candidates: readonly RerankCandidate[],
+  ): Promise<RerankResult> {
+    this.observations.set(query, { failureCategory: "request_failed", candidates });
+    throw new RerankerUnavailableError("request_failed");
+  }
+}
+
 const ZERO_METRICS: DeterministicMetrics = {
   mrr: 0,
   recallAt3: 0,
@@ -112,7 +147,12 @@ const ZERO_METRICS: DeterministicMetrics = {
   hitAt5: 0,
 };
 
-/** Parses the ONEC dataset only when its bytes and 40-query contract match the lock. */
+/**
+ * Parses the ONEC dataset only when its bytes and 40-query contract match the lock.
+ * @param contents Exact dataset file contents.
+ * @param expectedSha256 Immutable expected digest.
+ * @returns Validated 40-query evaluation dataset.
+ */
 export function loadLockedDataset(
   contents: string,
   expectedSha256: string,
@@ -146,7 +186,31 @@ export function loadLockedDataset(
   };
 }
 
-/** Builds the deterministic and operational evidence for one evaluation mode. */
+/**
+ * Builds filename evidence while counting pages by their complete in-memory identity.
+ * @param sourceUrls Source URLs observed at the Search or Reranker seam.
+ * @param deduplicatePages Whether to retain only the first result for each page.
+ * @returns Sanitized filenames and the distinct page count.
+ */
+export function summarizePageEvidence(
+  sourceUrls: readonly string[],
+  deduplicatePages = false,
+): { files: string[]; pageCount: number } {
+  const pageCount = new Set(sourceUrls).size;
+  const evidenceUrls = deduplicatePages ? [...new Set(sourceUrls)] : sourceUrls;
+  return {
+    files: evidenceUrls.map((sourceUrl) => fileFromUrl(sourceUrl)),
+    pageCount,
+  };
+}
+
+/**
+ * Builds the deterministic and operational evidence for one evaluation mode.
+ * @param mode Evaluated search mode.
+ * @param queries Per-query safe measurements.
+ * @param pricePerMillionTokensUsd Reranker tariff used for metered cost.
+ * @returns Complete mode summary.
+ */
 export function buildModeSummary(
   mode: EvaluationMode,
   queries: QueryMeasurement[],
@@ -197,7 +261,12 @@ export function buildModeSummary(
   };
 }
 
-/** Selects 50 only for an absolute one-point quality benefit without Recall loss. */
+/**
+ * Selects 50 only for an absolute one-point quality benefit without Recall loss.
+ * @param metrics30 Quality metrics for 30 Search Candidates.
+ * @param metrics50 Quality metrics for 50 Search Candidates.
+ * @returns Selected limit and deterministic reason.
+ */
 export function selectCandidateLimit(
   metrics30: Pick<DeterministicMetrics, "mrr" | "ndcgAt5" | "recallAt30">,
   metrics50: Pick<DeterministicMetrics, "mrr" | "ndcgAt5" | "recallAt30">,
@@ -207,14 +276,19 @@ export function selectCandidateLimit(
 } {
   const materiallyBetter =
     metrics50.recallAt30 >= metrics30.recallAt30 &&
-    (metrics50.mrr - metrics30.mrr >= 0.01 ||
-      metrics50.ndcgAt5 - metrics30.ndcgAt5 >= 0.01);
+    (metrics50.mrr - metrics30.mrr >= MATERIAL_BENEFIT_ABSOLUTE ||
+      metrics50.ndcgAt5 - metrics30.ndcgAt5 >= MATERIAL_BENEFIT_ABSOLUTE);
   return materiallyBetter
     ? { candidateLimit: 50, reason: "material_quality_benefit" }
     : { candidateLimit: 30, reason: "materially_equivalent" };
 }
 
-/** Compares per-query nDCG@5 outcomes against Baseline Ranking. */
+/**
+ * Compares per-query nDCG@5 outcomes against Baseline Ranking.
+ * @param baseline Baseline Ranking measurements.
+ * @param measured Reranked measurements.
+ * @returns Wins, ties, and losses.
+ */
 export function compareModeOutcomes(
   baseline: ModeSummary,
   measured: ModeSummary,
@@ -234,7 +308,11 @@ export function compareModeOutcomes(
   return { wins, ties, losses };
 }
 
-/** Evaluates every quality, reliability, and forced Fail-open release check. */
+/**
+ * Evaluates every quality, reliability, and forced Fail-open release check.
+ * @param input All four required mode summaries.
+ * @returns Selected configuration and individual gate results.
+ */
 export function evaluateReleaseGate(input: {
   baseline: ModeSummary;
   rerank30: ModeSummary;
@@ -335,9 +413,10 @@ function firstRelevantRank(files: string[], qrels: EvaluationQrel[]): number | n
 
 function latencyDistribution(values: number[]): LatencyDistribution {
   const sorted = [...values].sort((first, second) => first - second);
-  if (sorted.length === 0) return { min: 0, p50: 0, p95: 0, max: 0 };
+  if (sorted.length === 0) return { min: 0, mean: 0, p50: 0, p95: 0, max: 0 };
   return {
     min: sorted[0],
+    mean: sorted.reduce((sum, value) => sum + value, 0) / sorted.length,
     p50: percentile(sorted, 0.5),
     p95: percentile(sorted, 0.95),
     max: sorted[sorted.length - 1],
@@ -393,5 +472,12 @@ function parseDatasetEntry(value: unknown, index: number): EvaluationDatasetEntr
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-import { createHash } from "node:crypto";
-import yaml from "yaml";
+
+function fileFromUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    return decodeURIComponent(path.posix.basename(parsed.pathname));
+  } catch {
+    return decodeURIComponent(path.posix.basename(value.split(/[?#]/, 1)[0]));
+  }
+}

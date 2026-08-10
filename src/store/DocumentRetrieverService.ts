@@ -73,6 +73,7 @@ export class DocumentRetrieverService {
           initialResults.map((candidate, index) => ({
             index,
             content: candidate.content,
+            sourceUrl: candidate.url,
           })),
         );
         rankedCandidates = rerankResult.scores

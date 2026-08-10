@@ -18,23 +18,38 @@ import {
   type EvaluationMode,
   evaluateReleaseGate,
   loadLockedDataset,
+  MATERIAL_BENEFIT_ABSOLUTE,
   type ModeSummary,
+  ObservedForcedFailOpenReranker,
   type QueryMeasurement,
+  summarizePageEvidence,
 } from "./release-gate";
 
 const EXPECTED_DATASET_SHA256 = "6e048569089ec05445f73a1d67975290bc7554357a691e7c0c8d053a802161c5";
+const EMBEDDING_MODEL = "openai:baai/bge-m3";
+const VECTOR_DIMENSION = 1024;
+const RERANKER_MODEL = "rerank-2.5-lite";
+const RERANKER_TIMEOUT_MS = 5000;
 const VOYAGE_PRICE_PER_MILLION_TOKENS_USD = 0.02;
 const RESULT_LIMIT = 30;
+const CANDIDATE_LIMITS = [30, 50] as const;
 
 interface ProviderObservation {
   latencyMs: number;
   usageTokens: number | null;
   failureCategory: string | null;
+  candidateFiles: string[];
+  candidatePageCount: number;
 }
 
 interface CandidateEvidence {
-  limit30: Map<string, string[]>;
-  limit50: Map<string, string[]>;
+  limit30: Map<string, SafePageEvidence>;
+  limit50: Map<string, SafePageEvidence>;
+}
+
+interface SafePageEvidence {
+  files: string[];
+  pageCount: number;
 }
 
 interface SafeReport {
@@ -74,12 +89,17 @@ class ObservedReranker implements Reranker {
 
   async rerank(query: string, candidates: readonly RerankCandidate[]): Promise<RerankResult> {
     const startedAt = performance.now();
+    const candidateEvidence = summarizePageEvidence(
+      candidates.map((candidate) => candidate.sourceUrl ?? ""),
+    );
     try {
       const result = await this.reranker.rerank(query, candidates);
       this.observations.set(query, {
         latencyMs: performance.now() - startedAt,
         usageTokens: result.usageTokens ?? null,
         failureCategory: null,
+        candidateFiles: candidateEvidence.files,
+        candidatePageCount: candidateEvidence.pageCount,
       });
       return result;
     } catch (error) {
@@ -87,15 +107,11 @@ class ObservedReranker implements Reranker {
         latencyMs: performance.now() - startedAt,
         usageTokens: null,
         failureCategory: safeFailureCategory(error),
+        candidateFiles: candidateEvidence.files,
+        candidatePageCount: candidateEvidence.pageCount,
       });
       throw error;
     }
-  }
-}
-
-class ForcedFailOpenReranker implements Reranker {
-  async rerank(): Promise<RerankResult> {
-    throw new RerankerUnavailableError("request_failed");
   }
 }
 
@@ -148,14 +164,14 @@ async function main(): Promise<void> {
       chunkCount: inventory.chunkCount,
     },
     configuration: {
-      embeddingModel: "openai:baai/bge-m3",
-      vectorDimension: 1024,
-      rerankerModel: "rerank-2.5-lite",
+      embeddingModel: EMBEDDING_MODEL,
+      vectorDimension: VECTOR_DIMENSION,
+      rerankerModel: RERANKER_MODEL,
       resultLimit: RESULT_LIMIT,
-      candidateLimits: [30, 50],
-      rerankerTimeoutMs: 5000,
+      candidateLimits: [...CANDIDATE_LIMITS],
+      rerankerTimeoutMs: RERANKER_TIMEOUT_MS,
       pricePerMillionTokensUsd: VOYAGE_PRICE_PER_MILLION_TOKENS_USD,
-      materialBenefitAbsolute: 0.01,
+      materialBenefitAbsolute: MATERIAL_BENEFIT_ABSOLUTE,
     },
     modes,
     comparisons: {
@@ -197,8 +213,8 @@ async function retrieveCandidates(
   store: DocumentStore,
   dataset: EvaluationDataset,
 ): Promise<CandidateEvidence> {
-  const limit30 = new Map<string, string[]>();
-  const limit50 = new Map<string, string[]>();
+  const limit30 = new Map<string, SafePageEvidence>();
+  const limit50 = new Map<string, SafePageEvidence>();
   for (const entry of dataset.entries) {
     const results30 = await store.findByContent(
       dataset.library,
@@ -212,8 +228,14 @@ async function retrieveCandidates(
       entry.query,
       50,
     );
-    limit30.set(entry.id, results30.map((result) => fileFromUrl(result.url)));
-    limit50.set(entry.id, results50.map((result) => fileFromUrl(result.url)));
+    limit30.set(
+      entry.id,
+      summarizePageEvidence(results30.map((result) => result.url)),
+    );
+    limit50.set(
+      entry.id,
+      summarizePageEvidence(results50.map((result) => result.url)),
+    );
   }
   return { limit30, limit50 };
 }
@@ -222,7 +244,7 @@ async function runMode(
   dataset: EvaluationDataset,
   storePath: string,
   mode: EvaluationMode,
-  candidateFilesByQuery: Map<string, string[]>,
+  candidateEvidenceByQuery: Map<string, SafePageEvidence>,
 ): Promise<ModeSummary> {
   const candidateLimit = mode === "rerank-50" ? 50 : 30;
   const enabled = mode !== "baseline";
@@ -239,8 +261,8 @@ async function runMode(
           ),
         )
       : null;
-  const reranker: Reranker | undefined =
-    mode === "forced-fail-open" ? new ForcedFailOpenReranker() : (observed ?? undefined);
+  const forced = mode === "forced-fail-open" ? new ObservedForcedFailOpenReranker() : null;
+  const reranker: Reranker | undefined = forced ?? observed ?? undefined;
   const service = new DocumentManagementService(new EventBusService(), config, reranker);
   await service.initialize();
   const measurements: QueryMeasurement[] = [];
@@ -251,10 +273,7 @@ async function runMode(
           service,
           dataset,
           entry,
-          mode,
-          candidateLimit,
-          candidateFilesByQuery.get(entry.id) ?? [],
-          observed?.observations.get(entry.query),
+          candidateEvidenceByQuery.get(entry.id) ?? { files: [], pageCount: 0 },
         ),
       );
       if (observed) {
@@ -264,6 +283,24 @@ async function runMode(
         measurement.usageTokens = latest?.usageTokens ?? null;
         measurement.providerFailure = latest?.failureCategory ?? null;
         measurement.fallbackCategory = latest?.failureCategory ?? null;
+        if (latest) {
+          measurement.candidateFiles = latest.candidateFiles;
+          measurement.candidateCount = latest.candidateFiles.length;
+          measurement.candidatePageCount = latest.candidatePageCount;
+        }
+      }
+      if (forced) {
+        const latest = forced.observations.get(entry.query);
+        if (latest) {
+          const evidence = summarizePageEvidence(
+            latest.candidates.map((candidate) => candidate.sourceUrl ?? ""),
+          );
+          const measurement = measurements[measurements.length - 1];
+          measurement.candidateFiles = evidence.files;
+          measurement.candidateCount = evidence.files.length;
+          measurement.candidatePageCount = evidence.pageCount;
+          measurement.fallbackCategory = latest.failureCategory;
+        }
       }
     }
   } finally {
@@ -276,10 +313,7 @@ async function measureQuery(
   service: DocumentManagementService,
   dataset: EvaluationDataset,
   entry: EvaluationDatasetEntry,
-  mode: EvaluationMode,
-  candidateLimit: number,
-  allCandidateFiles: string[],
-  observation: ProviderObservation | undefined,
+  candidateEvidence: SafePageEvidence,
 ): Promise<QueryMeasurement> {
   const startedAt = performance.now();
   const results = await service.searchStore(
@@ -288,22 +322,24 @@ async function measureQuery(
     entry.query,
     RESULT_LIMIT,
   );
-  const rankedFiles = unique(results.map((result) => fileFromUrl(result.url)));
-  const candidateFiles = allCandidateFiles.slice(0, candidateLimit);
+  const rankedEvidence = summarizePageEvidence(
+    results.map((result) => result.url),
+    true,
+  );
   return {
     id: entry.id,
     kind: entry.kind,
     qrels: entry.qrels,
-    rankedFiles,
-    candidateFiles,
-    candidateCount: candidateFiles.length,
-    candidatePageCount: new Set(candidateFiles).size,
-    returnedPageCount: rankedFiles.length,
+    rankedFiles: rankedEvidence.files,
+    candidateFiles: candidateEvidence.files,
+    candidateCount: candidateEvidence.files.length,
+    candidatePageCount: candidateEvidence.pageCount,
+    returnedPageCount: rankedEvidence.pageCount,
     searchLatencyMs: performance.now() - startedAt,
-    rerankerLatencyMs: observation?.latencyMs ?? null,
-    usageTokens: observation?.usageTokens ?? null,
-    providerFailure: observation?.failureCategory ?? null,
-    fallbackCategory: mode === "forced-fail-open" ? "request_failed" : null,
+    rerankerLatencyMs: null,
+    usageTokens: null,
+    providerFailure: null,
+    fallbackCategory: null,
   };
 }
 
@@ -313,9 +349,9 @@ function createConfig(storePath: string, enabled: boolean, candidateLimit: numbe
       storePath,
       telemetryEnabled: false,
       readOnly: true,
-      embeddingModel: "openai:baai/bge-m3",
+      embeddingModel: EMBEDDING_MODEL,
     },
-    embeddings: { vectorDimension: 1024 },
+    embeddings: { vectorDimension: VECTOR_DIMENSION },
     search: {
       overfetchFactor: 2,
       weightVec: 1,
@@ -324,9 +360,9 @@ function createConfig(storePath: string, enabled: boolean, candidateLimit: numbe
       reranker: {
         enabled,
         provider: "voyage",
-        model: "rerank-2.5-lite",
+        model: RERANKER_MODEL,
         candidateLimit,
-        requestTimeoutMs: 5000,
+        requestTimeoutMs: RERANKER_TIMEOUT_MS,
       },
     },
   }) as AppConfig;
@@ -368,32 +404,27 @@ function renderMarkdown(report: SafeReport): string {
       return `| ${mode.mode} | ${ranks?.candidateRank ?? "missing"} | ${ranks?.resultRank ?? "missing"} |`;
     })
     .join("\n");
-  return `# Voyage reranking release gate for ONEC_ERP_IMPLEMENTATION\n\nGenerated: ${report.generatedAt}\n\n## Decision\n\n**${report.gate.pass ? "PASS" : "FAIL"}.** Selected Search Candidate limit: **${report.gate.selectedCandidateLimit}** (${report.gate.selectionReason}).\n\n## Immutable inputs\n\n- Dataset SHA-256: \`${report.source.datasetSha256}\`\n- Live snapshot SHA-256: \`${report.source.snapshotSha256}\`\n- Corpus: \`${report.source.library}@${report.source.version}\`, ${report.source.queryCount} queries, ${report.source.pageCount} pages, ${report.source.chunkCount} chunks\n- Retrieval: \`${report.configuration.embeddingModel}\`, ${report.configuration.vectorDimension} dimensions\n- Reranker: \`${report.configuration.rerankerModel}\`, ${report.configuration.rerankerTimeoutMs} ms deadline\n- Cost basis: $${report.configuration.pricePerMillionTokensUsd.toFixed(2)} per million processed tokens\n\n## Headline and operational evidence\n\n| Mode | MRR | nDCG@5 | Recall@30 | Tokens | Tariff cost | Search latency min/p50/p95/max ms | Provider failures | Fallbacks |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|\n${modeRows}\n\n30 vs Baseline nDCG@5: ${formatComparison(report.comparisons.rerank30VsBaseline)}.\n\n50 vs Baseline nDCG@5: ${formatComparison(report.comparisons.rerank50VsBaseline)}.\n\n## Q30 ranks\n\n| Mode | Search Candidate rank | Search Result rank |\n|---|---:|---:|\n${q30Rows}\n\n## Gate checks\n\n${checks}\n\n## Full evidence\n\nThe sibling JSON report contains every per-query deterministic metric input, intent breakdown, candidate/page count, latency, provider/fallback category, and token total. It contains no credentials, private endpoints, provider bodies, Search Candidate content, or raw error causes.\n`;
+  return `# Voyage reranking release gate for ONEC_ERP_IMPLEMENTATION\n\nGenerated: ${report.generatedAt}\n\n## Decision\n\n**${report.gate.pass ? "PASS" : "FAIL"}.** Selected Search Candidate limit: **${report.gate.selectedCandidateLimit}** (${report.gate.selectionReason}).\n\n## Immutable inputs\n\n- Dataset SHA-256: \`${report.source.datasetSha256}\`\n- Live snapshot SHA-256: \`${report.source.snapshotSha256}\`\n- Corpus: \`${report.source.library}@${report.source.version}\`, ${report.source.queryCount} queries, ${report.source.pageCount} pages, ${report.source.chunkCount} chunks\n- Retrieval: \`${report.configuration.embeddingModel}\`, ${report.configuration.vectorDimension} dimensions\n- Reranker: \`${report.configuration.rerankerModel}\`, ${report.configuration.rerankerTimeoutMs} ms deadline\n- Cost basis: $${report.configuration.pricePerMillionTokensUsd.toFixed(2)} per million processed tokens\n\n## Headline and operational evidence\n\n| Mode | MRR | nDCG@5 | Recall@30 | Tokens | Tariff cost | Search latency min/mean/p50/p95/max ms | Provider failures | Fallbacks |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|\n${modeRows}\n\n30 vs Baseline nDCG@5: ${formatComparison(report.comparisons.rerank30VsBaseline)}.\n\n50 vs Baseline nDCG@5: ${formatComparison(report.comparisons.rerank50VsBaseline)}.\n\n## Q30 ranks\n\n| Mode | Search Candidate rank | Search Result rank |\n|---|---:|---:|\n${q30Rows}\n\n## Gate checks\n\n${checks}\n\n## Full evidence\n\nThe sibling JSON report contains every per-query deterministic metric input, intent breakdown, candidate/page count, latency, provider/fallback category, and token total. The evidence uses sanitized categories and aggregate operational data suitable for repository review.\n`;
 }
 
 function formatComparison(value: { wins: number; ties: number; losses: number }): string {
   return `${value.wins} wins / ${value.ties} ties / ${value.losses} losses`;
 }
 
-function formatLatency(value: { min: number; p50: number; p95: number; max: number }): string {
-  return [value.min, value.p50, value.p95, value.max].map((item) => Math.round(item)).join("/");
+function formatLatency(value: {
+  min: number;
+  mean: number;
+  p50: number;
+  p95: number;
+  max: number;
+}): string {
+  return [value.min, value.mean, value.p50, value.p95, value.max]
+    .map((item) => Math.round(item))
+    .join("/");
 }
 
 function format(value: number): string {
   return value.toFixed(6);
-}
-
-function fileFromUrl(value: string): string {
-  try {
-    const parsed = new URL(value);
-    return decodeURIComponent(path.posix.basename(parsed.pathname));
-  } catch {
-    return decodeURIComponent(path.posix.basename(value.split(/[?#]/, 1)[0]));
-  }
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
 }
 
 function sha256File(filePath: string): string {
@@ -415,6 +446,6 @@ function safeFailureCategory(error: unknown): string {
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : "unknown failure";
-  console.error(`Release gate failed: ${message}`);
+  console.error(`❌ Release gate failed: ${message}`);
   process.exitCode = 1;
 });

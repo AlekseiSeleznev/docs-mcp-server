@@ -23,6 +23,8 @@ export interface RerankCandidate {
   index: number;
   /** Raw Search Candidate content before Context Assembly. */
   content: string;
+  /** Source URL used to correlate secret-safe evaluation evidence. */
+  sourceUrl?: string;
 }
 
 /** A provider-neutral relevance score for one Search Candidate. */
