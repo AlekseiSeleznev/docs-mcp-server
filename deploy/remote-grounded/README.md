@@ -22,18 +22,27 @@ that an explicit image reference is present.
 
 ## Place the Voyage secret
 
-Create `deploy/remote-grounded/.env.worker` in the deployment secret store with
-this single required variable:
+Copy `worker.env.example` to `deploy/remote-grounded/.env.worker` in the
+deployment secret store. Preserve the currently deployed embedding model,
+dimension, base URL, and credential while adding the Voyage credential. For the
+ONEC production index, the model remains `openai:baai/bge-m3` at 1024
+dimensions:
 
 ```dotenv
-VOYAGE_API_KEY=<secret value>
+DOCS_MCP_EMBEDDING_MODEL=openai:baai/bge-m3
+DOCS_MCP_EMBEDDINGS_VECTOR_DIMENSION=1024
+OPENAI_API_BASE=<existing provider URL>
+OPENAI_API_KEY=<existing embedding credential>
+VOYAGE_API_KEY=<Voyage credential>
 ```
 
-Keep this variable only in the deployment secret store consumed as
-`.env.worker`; keep that file untracked. The shell-wide Compose environment,
-shared config volume, web service, and both MCP services stay credential-free.
-An enabled local search process exits at startup and reports `VOYAGE_API_KEY`
-when the variable is absent.
+Keep these variables only in the deployment secret store consumed as
+`.env.worker`; keep that file untracked. Merge the Voyage variable into the
+existing file instead of replacing it. Before deployment, resolve the Compose
+configuration and verify the model and dimension still match the existing
+index. The shell-wide Compose environment, shared config volume, web service,
+and both MCP services stay credential-free. An enabled local search process
+exits at startup and reports `VOYAGE_API_KEY` when the variable is absent.
 
 The production Compose file supplies
 `DOCS_MCP_SEARCH_RERANKER_ENABLED=true` and the selected

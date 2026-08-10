@@ -43,6 +43,12 @@ const PRODUCTION_COMPOSE_PATH = path.join(
   "remote-grounded",
   "docker-compose.yml",
 );
+const PRODUCTION_WORKER_ENV_EXAMPLE_PATH = path.join(
+  PROJECT_ROOT,
+  "deploy",
+  "remote-grounded",
+  "worker.env.example",
+);
 // Created by accepted base image 5ae5b7de against test/fixtures/json.json.
 const EXISTING_RERANKER_DB_FIXTURE = path.join(
   PROJECT_ROOT,
@@ -397,7 +403,11 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     const deployDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-compose-"));
     const composePath = path.join(deployDir, "docker-compose.yml");
     fs.copyFileSync(PRODUCTION_COMPOSE_PATH, composePath);
-    fs.writeFileSync(path.join(deployDir, ".env.worker"), "VOYAGE_API_KEY=test-only-key\n");
+    const workerEnvironment = fs
+      .readFileSync(PRODUCTION_WORKER_ENV_EXAMPLE_PATH, "utf8")
+      .replace("<existing-openai-api-key>", "test-only-embedding-key")
+      .replace("<voyage-api-key>", "test-only-key");
+    fs.writeFileSync(path.join(deployDir, ".env.worker"), workerEnvironment);
     fs.mkdirSync(path.join(deployDir, "imports", "ONEC_ERP"), { recursive: true });
 
     try {
@@ -428,6 +438,13 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(worker.environment?.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT).toBe(
         "30",
       );
+      expect(worker.environment?.DOCS_MCP_EMBEDDING_MODEL).toBe(
+        "openai:baai/bge-m3",
+      );
+      expect(worker.environment?.DOCS_MCP_EMBEDDINGS_VECTOR_DIMENSION).toBe(
+        "1024",
+      );
+      expect(worker.environment?.OPENAI_API_KEY).toBe("test-only-embedding-key");
       expect(worker.environment?.VOYAGE_API_KEY).toBe("test-only-key");
 
       for (const serviceName of ["web", "mcp-read", "mcp-admin"]) {
@@ -440,6 +457,7 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
         expect(service.environment).not.toHaveProperty(
           "DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT",
         );
+        expect(service.environment).not.toHaveProperty("OPENAI_API_KEY");
       }
     } finally {
       fs.rmSync(deployDir, { recursive: true, force: true });
