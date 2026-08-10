@@ -384,6 +384,37 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
   }
 }
 
+describe("Production deployment documentation", () => {
+  const instructions = fs.readFileSync(PRODUCTION_DEPLOYMENT_README_PATH, "utf8");
+
+  it("creates the worker secret file without clobbering it and with mode 0600", () => {
+    expect(instructions).toContain(
+      "install -m 600 worker.env.example .env.worker",
+    );
+    expect(instructions).toContain("chmod 600 .env.worker");
+    expect(instructions).not.toContain("cp -n worker.env.example .env.worker");
+  });
+
+  it("validates Compose without rendering its credential-bearing environment", () => {
+    expect(instructions).toContain(
+      "docker compose -f deploy/remote-grounded/docker-compose.yml config --quiet",
+    );
+    expect(instructions).not.toContain(
+      "docker compose -f deploy/remote-grounded/docker-compose.yml config\n",
+    );
+  });
+
+  it("documents publishing and deploying only an immutable registry digest", () => {
+    expect(instructions).toContain(
+      "registry.example/docs-mcp-server:issue-9-<git-sha>",
+    );
+    expect(instructions).toContain(
+      "Set `DOCS_MCP_IMAGE` only to the recorded `name@sha256:...` digest",
+    );
+    expect(instructions).not.toContain("immutable tag or digest");
+  });
+});
+
 describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
   beforeAll(async () => {
     if (PREBUILT_TAG) return;
@@ -403,26 +434,6 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     if (PREBUILT_TAG) return;
     // Best-effort cleanup; ignore failures (image may already be gone).
     spawnSync("docker", ["image", "rm", "-f", IMAGE_TAG], { stdio: "ignore" });
-  });
-
-  it("documents non-clobbering secrets and safe Compose validation", () => {
-    const instructions = fs.readFileSync(
-      PRODUCTION_DEPLOYMENT_README_PATH,
-      "utf8",
-    );
-
-    expect(instructions).toContain("cp -n worker.env.example .env.worker");
-    expect(instructions).toContain("docker compose -f deploy/remote-grounded/docker-compose.yml config --quiet");
-    expect(instructions).toContain(
-      "registry.example/docs-mcp-server:issue-9-<git-sha>",
-    );
-    expect(instructions).toContain(
-      "Set `DOCS_MCP_IMAGE` only to the recorded `name@sha256:...` digest",
-    );
-    expect(instructions).not.toContain("immutable tag or digest");
-    expect(instructions).not.toContain(
-      "docker compose -f deploy/remote-grounded/docker-compose.yml config\n",
-    );
   });
 
   it("keeps the production reranker credential on the search worker", () => {

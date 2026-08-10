@@ -31,7 +31,11 @@ existing file:
 
 ```bash
 cd deploy/remote-grounded
-cp -n worker.env.example .env.worker
+if [ ! -e .env.worker ]; then
+  install -m 600 worker.env.example .env.worker
+else
+  chmod 600 .env.worker
+fi
 ```
 
 For the ONEC production index, the model remains `openai:baai/bge-m3` at 1024
