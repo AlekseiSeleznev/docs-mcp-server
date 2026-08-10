@@ -36,9 +36,10 @@ An enabled local search process exits at startup and reports `VOYAGE_API_KEY`
 when the variable is absent.
 
 The production Compose file supplies
-`DOCS_MCP_SEARCH_RERANKER_ENABLED=true` only to `worker`. The shared application
-configuration remains disabled by default, so credential-free proxy processes
-run only as remote clients of the worker.
+`DOCS_MCP_SEARCH_RERANKER_ENABLED=true` and the selected
+`DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT=30` only to `worker`. The shared
+application configuration remains disabled by default, so credential-free
+proxy processes run only as remote clients of the worker.
 
 ## Start and verify
 

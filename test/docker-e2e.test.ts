@@ -425,6 +425,9 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
         "docs-mcp-server@sha256:test-only-immutable-digest",
       );
       expect(worker.environment?.DOCS_MCP_SEARCH_RERANKER_ENABLED).toBe("true");
+      expect(worker.environment?.DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT).toBe(
+        "30",
+      );
       expect(worker.environment?.VOYAGE_API_KEY).toBe("test-only-key");
 
       for (const serviceName of ["web", "mcp-read", "mcp-admin"]) {
@@ -433,6 +436,9 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
         expect(service.environment).not.toHaveProperty("VOYAGE_API_KEY");
         expect(service.environment).not.toHaveProperty(
           "DOCS_MCP_SEARCH_RERANKER_ENABLED",
+        );
+        expect(service.environment).not.toHaveProperty(
+          "DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT",
         );
       }
     } finally {
