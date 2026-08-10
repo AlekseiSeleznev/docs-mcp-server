@@ -7,25 +7,34 @@ only in the worker environment.
 
 ## Build and pin the image
 
-Build the repository Dockerfile with Node.js 22 and give the result an immutable
-tag. Record its content digest before changing the stack:
+Build the repository Dockerfile with Node.js 22, push the source-specific tag,
+and record its registry manifest digest before changing the stack:
 
 ```bash
-docker build -t registry.example/docs-mcp-server:issue-6-<git-sha> .
-docker image inspect registry.example/docs-mcp-server:issue-6-<git-sha> \
-  --format '{{index .RepoDigests 0}}'
+docker build -t registry.example/docs-mcp-server:issue-9-<git-sha> .
+docker push registry.example/docs-mcp-server:issue-9-<git-sha>
+docker buildx imagetools inspect \
+  registry.example/docs-mcp-server:issue-9-<git-sha>
 ```
 
-Set `DOCS_MCP_IMAGE` to that immutable tag or, preferably, to the recorded
-`name@sha256:...` digest. The operator validates immutability; Compose verifies
-that an explicit image reference is present.
+Set `DOCS_MCP_IMAGE` only to the recorded `name@sha256:...` digest. Do not deploy
+the mutable source-specific tag. The operator validates the full registry
+manifest digest; Compose verifies that an explicit image reference is present.
 
 ## Place the Voyage secret
 
-Copy `worker.env.example` to `deploy/remote-grounded/.env.worker` in the
-deployment secret store. Preserve the currently deployed embedding model,
-dimension, base URL, and credential while adding the Voyage credential. For the
-ONEC production index, the model remains `openai:baai/bge-m3` at 1024
+Use `worker.env.example` as a reference. Update the existing untracked
+`deploy/remote-grounded/.env.worker` in place so its deployed embedding model,
+dimension, base URL, and credential remain intact while adding the Voyage
+credential. Only when `.env.worker` is absent, create it without overwriting an
+existing file:
+
+```bash
+cd deploy/remote-grounded
+cp -n worker.env.example .env.worker
+```
+
+For the ONEC production index, the model remains `openai:baai/bge-m3` at 1024
 dimensions:
 
 ```dotenv
@@ -38,11 +47,13 @@ VOYAGE_API_KEY=<Voyage credential>
 
 Keep these variables only in the deployment secret store consumed as
 `.env.worker`; keep that file untracked. Merge the Voyage variable into the
-existing file instead of replacing it. Before deployment, resolve the Compose
-configuration and verify the model and dimension still match the existing
-index. The shell-wide Compose environment, shared config volume, web service,
-and both MCP services stay credential-free. An enabled local search process
-exits at startup and reports `VOYAGE_API_KEY` when the variable is absent.
+existing file instead of replacing it. Before deployment, validate the Compose
+configuration without rendering its credential-bearing environment. Verify the
+model and dimension through an allowlisted status check that emits only their
+names and safe non-secret values. The shell-wide Compose environment, shared
+config volume, web service, and both MCP services stay credential-free. An
+enabled local search process exits at startup and reports `VOYAGE_API_KEY` when
+the variable is absent.
 
 The production Compose file supplies
 `DOCS_MCP_SEARCH_RERANKER_ENABLED=true` and the selected
@@ -54,7 +65,7 @@ proxy processes run only as remote clients of the worker.
 
 ```bash
 export DOCS_MCP_IMAGE='registry.example/docs-mcp-server@sha256:<digest>'
-docker compose -f deploy/remote-grounded/docker-compose.yml config
+docker compose -f deploy/remote-grounded/docker-compose.yml config --quiet
 docker compose -f deploy/remote-grounded/docker-compose.yml up -d
 docker compose -f deploy/remote-grounded/docker-compose.yml ps
 ```
@@ -84,7 +95,7 @@ complete.
 
 ## Roll back
 
-1. Set `DOCS_MCP_IMAGE` back to the previous immutable tag or digest.
+1. Set `DOCS_MCP_IMAGE` back to the previous immutable registry manifest digest.
 2. Recreate the four services with Docker Compose.
 3. Reuse the existing `grounded-docs-data` volume unchanged.
 4. Verify worker health, both MCP initializations, and a baseline search.

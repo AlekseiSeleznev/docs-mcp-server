@@ -49,6 +49,12 @@ const PRODUCTION_WORKER_ENV_EXAMPLE_PATH = path.join(
   "remote-grounded",
   "worker.env.example",
 );
+const PRODUCTION_DEPLOYMENT_README_PATH = path.join(
+  PROJECT_ROOT,
+  "deploy",
+  "remote-grounded",
+  "README.md",
+);
 // Created by accepted base image 5ae5b7de against test/fixtures/json.json.
 const EXISTING_RERANKER_DB_FIXTURE = path.join(
   PROJECT_ROOT,
@@ -397,6 +403,26 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     if (PREBUILT_TAG) return;
     // Best-effort cleanup; ignore failures (image may already be gone).
     spawnSync("docker", ["image", "rm", "-f", IMAGE_TAG], { stdio: "ignore" });
+  });
+
+  it("documents non-clobbering secrets and safe Compose validation", () => {
+    const instructions = fs.readFileSync(
+      PRODUCTION_DEPLOYMENT_README_PATH,
+      "utf8",
+    );
+
+    expect(instructions).toContain("cp -n worker.env.example .env.worker");
+    expect(instructions).toContain("docker compose -f deploy/remote-grounded/docker-compose.yml config --quiet");
+    expect(instructions).toContain(
+      "registry.example/docs-mcp-server:issue-9-<git-sha>",
+    );
+    expect(instructions).toContain(
+      "Set `DOCS_MCP_IMAGE` only to the recorded `name@sha256:...` digest",
+    );
+    expect(instructions).not.toContain("immutable tag or digest");
+    expect(instructions).not.toContain(
+      "docker compose -f deploy/remote-grounded/docker-compose.yml config\n",
+    );
   });
 
   it("keeps the production reranker credential on the search worker", () => {
