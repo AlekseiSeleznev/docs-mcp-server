@@ -58,8 +58,12 @@ def validate(skill_dir: Path) -> list[str]:
 
     if "не более двух" not in text:
         errors.append("missing two-refinement limit")
-    if "ровно один маркер `[Источник]`" not in text:
+    if "литерал `[Источник]` используй ровно один раз" not in text:
         errors.append("missing one-source-marker rule")
+    if "Никогда не повторяй `[Источник]` после `|`" not in text:
+        errors.append("missing repeated source marker prohibition")
+    if "каждый фрагмент по обе стороны разделителя" not in text:
+        errors.append("missing complete multi-source tuple rule")
     if "не показывай `file://`" not in text:
         errors.append("missing internal file URL suppression rule")
     if "последней строкой без текста после неё" not in text.lower():

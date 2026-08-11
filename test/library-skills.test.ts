@@ -40,8 +40,11 @@ describe.each(Object.entries(librarySkills))("%s", (skill, library) => {
   it("uses the shared grounded answer format", () => {
     expect(text).toContain("## По документации");
     expect(text).toContain("`### 1.`, `### 2.`");
-    expect(text).toContain("ровно один маркер `[Источник]`");
+    expect(text).toContain("литерал `[Источник]` используй ровно один раз");
+    expect(text).toContain("Никогда не повторяй `[Источник]` после `|`");
     expect(text).toContain("через ` | `");
+    expect(text).toContain("каждый фрагмент по обе стороны разделителя");
+    expect(text).toContain("Не ставь после `|` отдельный URL или раздел");
     expect(text).toContain("## Выводы и рекомендации");
     expect(text).toContain("не показывай `file://`");
     expect(text).toContain("Snapshot date");
@@ -89,7 +92,7 @@ describe("lib-skill-creation", () => {
       "Не добавляй конкретные пользовательские вопросы, демонстрационные запросы",
     );
     expect(contract).toContain("Абсолютный максимум — три `search_docs`");
-    expect(contract).toContain("ровно один маркер `[Источник]`");
+    expect(contract).toContain("Литерал `[Источник]` появляется ровно один раз");
     expect(contract).toContain("[Использованы библиотеки: TECHNICAL_NAME]");
     expect(validator).toContain("def validate(skill_dir: Path)");
   });
@@ -97,5 +100,17 @@ describe("lib-skill-creation", () => {
   it("can inspect the target documentation library", () => {
     expect(agent).toContain('value: "lib-docs"');
     expect(agent).toContain("allow_implicit_invocation: true");
+  });
+});
+
+describe("lib-sap-sf-odata ambiguity gate", () => {
+  const text = skillFile("lib-sap-sf-odata");
+
+  it("does not infer SuccessFactors from skill activation alone", () => {
+    expect(text).toContain("Не считай путь к этому `SKILL.md`");
+    expect(text).toContain("выбор библиотеки не достиг 100% определённости");
+    expect(text).toContain("Выведи только вопрос");
+    expect(text).toContain("не делай предположение о SuccessFactors");
+    expect(text).toContain("Это правило имеет приоритет над поиском");
   });
 });
