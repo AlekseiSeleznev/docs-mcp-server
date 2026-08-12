@@ -1,5 +1,5 @@
 interface:
-  display_name: "PM² для IT-проектов"
+  display_name: "PM² для IT-проектов документация"
   short_description: "Поиск по официальной методологии PM² для IT-программ"
   default_prompt: "Используй $lib-pm2-it, чтобы проверить управление IT-проектом или программой по официальной методологии PM²."
 dependencies:
