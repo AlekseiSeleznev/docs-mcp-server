@@ -23,6 +23,9 @@
   "scripts": {
     "prepare": "husky || true",
     "build": "vite build --config vite.config.web.ts && vite build",
+    "build:mcpb:server": "vite build --config vite.config.mcpb.ts",
+    "build:mcpb": "vite-node scripts/build-mcpb.ts",
+    "smoke:mcpb": "vite-node scripts/smoke-mcpb.ts",
     "start": "node --enable-source-maps dist/index.js",
     "cli": "node --enable-source-maps dist/index.js",
     "server": "node --enable-source-maps dist/index.ts",

@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,7 +76,39 @@ vi.mock("./embeddings/EmbeddingFactory", async () => {
   };
 });
 
+describe("DocumentStore read-only connection", () => {
+  it("reads an existing index without changing the database file", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "docs-mcp-read-only-"));
+    const dbPath = join(directory, "documents.db");
+    const config = loadConfig({ storePath: directory, embeddingModel: "" });
+
+    try {
+      const writable = new DocumentStore(dbPath, config);
+      await writable.initialize();
+      await writable.resolveVersionId("example", "1.0.0");
+      await writable.shutdown();
+      const before = sha256(dbPath);
+
+      const readOnly = new DocumentStore(dbPath, config, { readOnly: true });
+      await readOnly.initialize();
+      expect(await readOnly.queryUniqueVersions("example")).toEqual(["1.0.0"]);
+      await expect(readOnly.resolveVersionId("other", "1.0.0")).rejects.toThrow(
+        /readonly|read-only/i,
+      );
+      await readOnly.shutdown();
+
+      expect(sha256(dbPath)).toBe(before);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
+
 const appConfig = loadConfig();
+
+function sha256(filePath: string): string {
+  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
+}
 
 /**
  * Helper function to create minimal ScrapeResult for testing.

@@ -1,4 +1,7 @@
-import { LibraryNotFoundInStoreError, VersionNotFoundInStoreError } from "../store";
+import {
+  LibraryNotFoundInStoreError,
+  VersionNotFoundInStoreError,
+} from "../store/errors";
 import type { IDocumentManagement } from "../store/trpc/interfaces";
 import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
@@ -33,9 +36,17 @@ export interface SearchToolResult {
  * Returns available versions when requested version is not found.
  */
 export class SearchTool {
-  private docService: IDocumentManagement;
+  private docService: Pick<
+    IDocumentManagement,
+    "validateLibraryExists" | "listLibraries" | "findBestVersion" | "searchStore"
+  >;
 
-  constructor(docService: IDocumentManagement) {
+  constructor(
+    docService: Pick<
+      IDocumentManagement,
+      "validateLibraryExists" | "listLibraries" | "findBestVersion" | "searchStore"
+    >,
+  ) {
     this.docService = docService;
   }
 

@@ -95,6 +95,7 @@ export class DocumentStore {
   private readonly embeddingInitTimeoutMs: number;
   private modelDimension: number | null = null;
   private readonly embeddingConfig?: EmbeddingModelConfig | null;
+  private readonly readOnly: boolean;
   private isVectorSearchEnabled: boolean = false;
 
   /**
@@ -247,7 +248,11 @@ export class DocumentStore {
     ];
   }
 
-  constructor(dbPath: string, appConfig: AppConfig) {
+  constructor(
+    dbPath: string,
+    appConfig: AppConfig,
+    options: { readOnly?: boolean } = {},
+  ) {
     if (!dbPath) {
       throw new StoreError("Missing required database path");
     }
@@ -261,9 +266,13 @@ export class DocumentStore {
     this.embeddingBatchSize = this.config.embeddings.batchSize;
     this.embeddingBatchChars = this.config.embeddings.batchChars;
     this.embeddingInitTimeoutMs = this.config.embeddings.initTimeoutMs;
+    this.readOnly = options.readOnly ?? false;
 
     // Only establish database connection in constructor
-    this.db = new Database(dbPath);
+    this.db = new Database(dbPath, {
+      readonly: this.readOnly,
+      fileMustExist: this.readOnly,
+    });
 
     // Store embedding config for later initialization
     this.embeddingConfig = this.resolveEmbeddingConfig(appConfig.app.embeddingModel);
@@ -658,7 +667,9 @@ export class DocumentStore {
    * - aws: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
    * - microsoft: Azure OpenAI credentials (AZURE_OPENAI_API_*)
    */
-  private async initializeEmbeddings(): Promise<void> {
+  private async initializeEmbeddings(
+    options: { persistMetadata?: boolean } = {},
+  ): Promise<void> {
     // If embedding config is explicitly null or undefined, skip embedding initialization
     if (this.embeddingConfig === null || this.embeddingConfig === undefined) {
       logger.debug(
@@ -711,7 +722,9 @@ export class DocumentStore {
       );
 
       // Persist the active embedding model identity for change detection on next startup
-      this.setEmbeddingMetadata(config.modelSpec, this.dbDimension);
+      if (options.persistMetadata ?? true) {
+        this.setEmbeddingMetadata(config.modelSpec, this.dbDimension);
+      }
     } catch (error) {
       this.throwEmbeddingInitializationError(error, config);
     }
@@ -993,6 +1006,14 @@ export class DocumentStore {
     try {
       // 1. Load extensions first (moved before migrations)
       sqliteVec.load(this.db);
+
+      if (this.readOnly) {
+        await this.resolveEffectiveEmbeddingDimension();
+        this.checkEmbeddingModelChange();
+        this.prepareStatements();
+        await this.initializeEmbeddings({ persistMetadata: false });
+        return;
+      }
 
       // 2. Apply migrations (after extensions are loaded, includes metadata table creation)
       await applyMigrations(this.db, {

@@ -1,6 +1,8 @@
 .DS_Store
 node_modules/
 dist/
+mcpb-dist/
+artifacts/
 .store/
 public/assets/
 public/index.html
