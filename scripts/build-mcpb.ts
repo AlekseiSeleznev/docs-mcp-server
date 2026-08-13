@@ -65,8 +65,20 @@ function createRuntimePackage(
     license: packageMetadata.license,
     engines: packageMetadata.engines,
     dependencies: {
+      "@langchain/aws": dependencyVersion("@langchain/aws"),
+      "@langchain/core": dependencyVersion("@langchain/core"),
+      "@langchain/google-genai": dependencyVersion("@langchain/google-genai"),
+      "@langchain/google-vertexai": dependencyVersion("@langchain/google-vertexai"),
+      "@langchain/openai": dependencyVersion("@langchain/openai"),
+      "@modelcontextprotocol/sdk": dependencyVersion("@modelcontextprotocol/sdk"),
       "better-sqlite3": dependencyVersion("better-sqlite3"),
+      "env-paths": dependencyVersion("env-paths"),
+      "fuse.js": dependencyVersion("fuse.js"),
+      mime: dependencyVersion("mime"),
+      semver: dependencyVersion("semver"),
       "sqlite-vec": dependencyVersion("sqlite-vec"),
+      yaml: dependencyVersion("yaml"),
+      zod: dependencyVersion("zod"),
     },
   };
 }
