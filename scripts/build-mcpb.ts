@@ -20,16 +20,13 @@ function readOption(name: string): string | undefined {
 }
 
 function run(command: string, args: string[], cwd: string): void {
-  const executable =
-    process.platform === "win32" && ["npm", "npx"].includes(command)
-      ? `${command}.cmd`
-      : command;
-  execFileSync(executable, args, {
+  execFileSync(command, args, {
     cwd,
     env: {
       ...process.env,
       HUSKY: "0",
     },
+    shell: process.platform === "win32",
     stdio: "inherit",
   });
 }

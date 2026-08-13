@@ -9,10 +9,6 @@ import { type AppConfig, defaults } from "../src/utils/config";
 
 const MCPB_CLI = "@anthropic-ai/mcpb@2.1.2";
 
-function executable(name: string): string {
-  return process.platform === "win32" ? `${name}.cmd` : name;
-}
-
 function findArtifact(input: string): string {
   const resolved = path.resolve(input);
   if (resolved.endsWith(".mcpb")) return resolved;
@@ -33,9 +29,9 @@ async function main(): Promise<void> {
 
   try {
     execFileSync(
-      executable("npx"),
+      "npx",
       ["-y", MCPB_CLI, "unpack", artifact, unpacked],
-      { stdio: "inherit" },
+      { shell: process.platform === "win32", stdio: "inherit" },
     );
 
     const config: AppConfig = {
