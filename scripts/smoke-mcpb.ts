@@ -58,10 +58,22 @@ async function main(): Promise<void> {
       },
       stderr: "pipe",
     });
+    let serverStderr = "";
+    transport.stderr?.on("data", (chunk: Buffer) => {
+      serverStderr += chunk.toString();
+    });
     const client = new Client({ name: "mcpb-smoke", version: "1.0.0" });
-    await client.connect(transport);
-    const tools = await client.listTools();
-    await client.close();
+    let tools: Awaited<ReturnType<typeof client.listTools>>;
+    try {
+      await client.connect(transport);
+      tools = await client.listTools();
+      await client.close();
+    } catch (error) {
+      const details = serverStderr.trim();
+      throw new Error(
+        details.length > 0 ? `${error}\nPackaged server stderr:\n${details}` : String(error),
+      );
+    }
 
     const names = tools.tools.map((tool) => tool.name).sort();
     const expected = ["find_version", "list_libraries", "search_docs"];
