@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { telemetry } from "../telemetry";
 import type { AppConfig } from "../utils/config";
 import { createMcpServerInstance } from "./mcpServer";
+import { createReadOnlyMcpServer } from "./readOnlyMcpServer";
 import type { McpServerTools } from "./tools";
 
 vi.mock("../telemetry", () => ({
@@ -94,6 +95,30 @@ describe("MCP Server Read-Only Mode", () => {
   it("should create server instance in read-only mode", () => {
     const server = createMcpServerInstance(mockTools, mockReadOnlyConfig);
     expect(server).toBeInstanceOf(McpServer);
+  });
+
+  it("creates the packaged extension server with exactly three local read tools", async () => {
+    const server = createReadOnlyMcpServer(mockTools);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "mcpb-server-test", version: "1.0.0" });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    expect(client.getServerVersion()?.name).toBe("lib-docs");
+    const result = await client.listTools();
+
+    await client.close();
+    await server.close();
+
+    expect(result.tools.map((tool) => tool.name).sort()).toEqual([
+      "find_version",
+      "list_libraries",
+      "search_docs",
+    ]);
+    expect(result.tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
+    expect(result.tools.every((tool) => tool.annotations?.openWorldHint === false)).toBe(
+      true,
+    );
   });
 
   it("should create server without prompts capability and not fail", () => {
