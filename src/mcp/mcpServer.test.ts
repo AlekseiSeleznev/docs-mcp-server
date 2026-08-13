@@ -104,6 +104,7 @@ describe("MCP Server Read-Only Mode", () => {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
 
+    expect(client.getServerVersion()?.name).toBe("lib-docs");
     const result = await client.listTools();
 
     await client.close();

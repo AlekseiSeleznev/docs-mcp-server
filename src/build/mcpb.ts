@@ -55,7 +55,7 @@ export const MCPB_TARGETS = {
 
 /** Creates the release filename for a platform-specific MCPB artifact. */
 export function createMcpbArtifactName(version: string, target: McpbTarget): string {
-  return `grounded-docs-read-only-${version}-${target.label}.mcpb`;
+  return `lib-docs-${version}-${target.label}.mcpb`;
 }
 
 /** Prevents native dependencies from being packaged for a different host target. */
@@ -83,8 +83,8 @@ export function createMcpbManifest(
 
   return {
     manifest_version: "0.3",
-    name: "grounded-docs-read-only",
-    display_name: "Grounded Docs (Read Only)",
+    name: "lib-docs",
+    display_name: "lib-docs",
     version: packageMetadata.version,
     description:
       "Search and read a local Grounded Docs index without exposing modification tools.",

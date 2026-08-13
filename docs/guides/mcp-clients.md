@@ -22,11 +22,11 @@ Most clients support two connection modes:
 
 Platform-specific `.mcpb` artifacts install from **Settings → Extensions → Advanced settings → Install Extension**:
 
-- `grounded-docs-read-only-<version>-windows-x64.mcpb`
-- `grounded-docs-read-only-<version>-macos-x64.mcpb`
-- `grounded-docs-read-only-<version>-macos-arm64.mcpb`
+- `lib-docs-<version>-windows-x64.mcpb`
+- `lib-docs-<version>-macos-x64.mcpb`
+- `lib-docs-<version>-macos-arm64.mcpb`
 
-The extension reads the existing system Grounded Docs index and exposes only `search_docs`, `list_libraries`, and `find_version`. It does not expose indexing, refresh, removal, job, or URL-fetching tools. Populate the local index through the CLI or Web UI before using the extension.
+The extension appears in Claude Desktop as `lib-docs`. It reads the existing system Grounded Docs index and exposes only `search_docs`, `list_libraries`, and `find_version`. It does not expose indexing, refresh, removal, job, or URL-fetching tools. Populate the local index through the CLI or Web UI before using the extension.
 
 Maintainers build the native artifacts from **Actions → MCPB Extensions → Run workflow**. Each artifact is built on its matching Windows or macOS runner because the server includes native Node.js dependencies.
 

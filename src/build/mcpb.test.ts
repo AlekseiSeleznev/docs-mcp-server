@@ -23,7 +23,8 @@ describe("MCPB build contract", () => {
 
     expect(manifest).toMatchObject({
       manifest_version: "0.3",
-      name: "grounded-docs-read-only",
+      name: "lib-docs",
+      display_name: "lib-docs",
       version: "3.0.0",
       server: {
         type: "node",
@@ -61,7 +62,7 @@ describe("MCPB build contract", () => {
     const target = MCPB_TARGETS["macos-arm64"];
 
     expect(createMcpbArtifactName("3.0.0", target)).toBe(
-      "grounded-docs-read-only-3.0.0-macos-arm64.mcpb",
+      "lib-docs-3.0.0-macos-arm64.mcpb",
     );
     expect(() => assertNativeTarget(target, "linux", "x64")).toThrow(
       "must be built on darwin/arm64",

@@ -7,7 +7,7 @@ import { createError, createResponse } from "./utils";
 export function createReadOnlyMcpServer(tools: ReadOnlyMcpTools): McpServer {
   const server = new McpServer(
     {
-      name: "grounded-docs-read-only",
+      name: "lib-docs",
       version: "0.1.0",
     },
     {
