@@ -67,6 +67,13 @@ export function createMcpServerInstance(
           .optional()
           .default(true)
           .describe("Follow HTTP redirects (3xx responses)."),
+        clean: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "Remove existing documents for this library version before indexing.",
+          ),
         preserveHashes: z
           .boolean()
           .optional()
@@ -85,6 +92,7 @@ export function createMcpServerInstance(
         maxDepth,
         scope,
         followRedirects,
+        clean,
         preserveHashes,
       }) => {
         // Track MCP tool usage
@@ -112,6 +120,7 @@ export function createMcpServerInstance(
               maxDepth,
               scope,
               followRedirects,
+              clean,
               preserveHashes,
             },
           });

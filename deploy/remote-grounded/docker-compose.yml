@@ -15,7 +15,7 @@ services:
     volumes:
       - grounded-docs-data:/data
       - grounded-docs-config:/config
-      - ./imports/ONEC_ERP:/documents/ONEC_ERP:ro
+      - ./imports:/documents:ro
     healthcheck:
       test: ["CMD", "node", "-e", "require('net').connect(8080,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       interval: 10s
