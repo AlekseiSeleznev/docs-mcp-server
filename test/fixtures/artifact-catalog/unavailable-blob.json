@@ -1,0 +1,13 @@
+{
+  "catalogVersion": "1",
+  "library": "sap_process_navigator",
+  "libraryVersion": "2025.1.0",
+  "sourceRelease": "2025-FPS1-RU",
+  "artifacts": [{
+    "artifactId": "art_2222222222222222222222222222222222222222222222222222222222222222",
+    "process": {"solutionId": "solution", "processId": "2XU", "processName": "Process", "lineOfBusiness": []},
+    "canonicalRelativePath": "manifest/2XU/guide.pdf",
+    "type": "Document", "group": "Implementation", "name": "Guide", "availability": "Missing",
+    "blob": {"originalName": "guide.pdf", "suggestedName": "guide.pdf", "manifestMime": "application/pdf", "effectiveMime": "application/pdf", "sizeBytes": 4, "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "storageKey": "source/2XU/guide.pdf"}
+  }]
+}
