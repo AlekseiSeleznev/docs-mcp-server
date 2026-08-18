@@ -56,6 +56,8 @@ describe("Configuration Loading", () => {
     delete process.env.DOCS_MCP_STORE_PATH;
     delete process.env.DOCS_MCP_AUTH_ENABLED;
     delete process.env.DOCS_MCP_SERVER_PUBLIC_ORIGIN;
+    delete process.env.DOCS_MCP_ARTIFACT_ROOT;
+    delete process.env.DOCS_MCP_MAX_ARTIFACT_BYTES;
   });
 
   afterEach(() => {
@@ -75,9 +77,20 @@ describe("Configuration Loading", () => {
 
       expect(config.server.host).toBe("127.0.0.1");
       expect(config.server.publicOrigin).toBeUndefined();
+      expect(config.artifacts).toEqual({ root: "", maxSizeBytes: 10 * 1024 * 1024 });
       expect(
         fs.existsSync(path.join(process.cwd(), ".vitest-config-mock", "config.yaml")),
       ).toBe(true);
+    });
+
+    it("loads the allowlisted Source Artifact root and byte limit from env", () => {
+      const artifactRoot = path.join(tmpDir, "artifacts");
+      process.env.DOCS_MCP_ARTIFACT_ROOT = artifactRoot;
+      process.env.DOCS_MCP_MAX_ARTIFACT_BYTES = "4096";
+
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "config.yaml") });
+
+      expect(config.artifacts).toEqual({ root: artifactRoot, maxSizeBytes: 4096 });
     });
 
     it("keeps the tracked managed config aligned with generated defaults", () => {

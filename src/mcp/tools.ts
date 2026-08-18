@@ -13,6 +13,7 @@ import {
   GetJobInfoTool,
   ListJobsTool,
   ListLibrariesTool,
+  ReadSourceArtifactTool,
   RefreshVersionTool,
   RemoveTool,
   ScrapeTool,
@@ -37,6 +38,7 @@ export interface McpServerTools extends ReadOnlyMcpTools {
   cancelJob: CancelJobTool;
   remove: RemoveTool;
   fetchUrl: FetchUrlTool;
+  readSourceArtifact: ReadSourceArtifactTool;
 }
 
 /**
@@ -64,6 +66,7 @@ export async function initializeTools(
     // clearCompletedJobs: new ClearCompletedJobsTool(pipeline),
     remove: new RemoveTool(docService, pipeline),
     fetchUrl: new FetchUrlTool(new AutoDetectFetcher(config.scraper), config),
+    readSourceArtifact: new ReadSourceArtifactTool(config.artifacts),
   };
 
   return tools;
