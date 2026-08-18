@@ -4,6 +4,8 @@ import fs from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createArtifactId } from "../src/contracts";
 
 /** Options for one temporary immutable Source Artifact release. */
@@ -22,6 +24,13 @@ export interface SourceArtifactReleaseFixture {
   storagePath: string;
   version: string;
   cleanup(): Promise<void>;
+}
+
+/** Isolated on-disk store and catalog-backed representation for MCP search E2E tests. */
+export interface MatchedArtifactSearchFixture extends SourceArtifactReleaseFixture {
+  env: NodeJS.ProcessEnv;
+  representationContent: string;
+  representationUrl: string;
 }
 
 /**
@@ -108,6 +117,84 @@ export async function createSourceArtifactReleaseFixture(
       await rm(artifactRoot, { recursive: true, force: true });
     },
   };
+}
+
+/**
+ * Creates one catalog-backed representation and isolated store for MCP E2E tests.
+ *
+ * @returns The release fixture plus the isolated server environment.
+ */
+export async function createMatchedArtifactSearchFixture(): Promise<MatchedArtifactSearchFixture> {
+  const release = await createSourceArtifactReleaseFixture();
+  const storePath = await mkdtemp(path.join(tmpdir(), "docs-mcp-search-store-"));
+  const versionRoot = path.dirname(release.catalogPath);
+  const representationPath = path.join(versionRoot, "searchable", "source.md");
+  const representationContent = "Procurement artifact E2E sentinel";
+  await mkdir(path.dirname(representationPath), { recursive: true });
+  await writeFile(representationPath, representationContent);
+  const env: NodeJS.ProcessEnv = {
+    DOCS_MCP_STORE_PATH: storePath,
+    DOCS_MCP_ARTIFACT_ROOT: release.artifactRoot,
+    DOCS_MCP_SCRAPER_SECURITY_FILE_ACCESS_ALLOWED_ROOTS: JSON.stringify([
+      release.artifactRoot,
+    ]),
+    DOCS_MCP_TELEMETRY: "false",
+  };
+
+  return {
+    ...release,
+    env,
+    representationContent,
+    representationUrl: pathToFileURL(representationPath).href,
+    async cleanup() {
+      await release.cleanup();
+      await rm(storePath, { recursive: true, force: true });
+    },
+  };
+}
+
+/**
+ * Indexes a matched-artifact fixture through a connected MCP transport.
+ *
+ * @param client - Connected MCP client.
+ * @param fixture - Catalog-backed representation fixture.
+ */
+export async function indexMatchedArtifactRepresentation(
+  client: Client,
+  fixture: MatchedArtifactSearchFixture,
+): Promise<void> {
+  const scrapeResult = await client.callTool({
+    name: "scrape_docs",
+    arguments: {
+      url: fixture.representationUrl,
+      library: fixture.library,
+      version: fixture.version,
+      maxPages: 1,
+    },
+  });
+  const jobId = JSON.stringify(scrapeResult).match(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i,
+  )?.[0];
+  if (!jobId) {
+    throw new Error("MCP scrape did not return a job ID");
+  }
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const jobResult = await client.callTool({
+      name: "get_job_info",
+      arguments: { jobId },
+    });
+    const jobText = JSON.stringify(jobResult);
+    if (jobText.includes("Status: completed")) {
+      return;
+    }
+    if (jobText.includes("Status: failed")) {
+      throw new Error("MCP scrape job failed");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  throw new Error("MCP scrape job did not complete in time");
 }
 
 /**
