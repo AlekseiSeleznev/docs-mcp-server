@@ -249,30 +249,38 @@ ${r.content}\n`,
           );
         }
         const response = createResponse(formattedResults.join(""));
-        if (!result.matchedArtifacts?.length) {
+        const matchedArtifacts = result.matchedArtifacts ?? [];
+        const relatedArtifacts = result.relatedArtifacts ?? [];
+        if (!matchedArtifacts.length && !relatedArtifacts.length) {
           return response;
         }
 
         response.content.push(
-          ...result.matchedArtifacts.map((artifact) => ({
-            type: "resource_link" as const,
-            uri: artifact.resourceLink,
-            name: artifact.suggestedFilename,
-            title: artifact.name,
-            description: `${artifact.process.processId} / ${artifact.name}`,
-            mimeType: artifact.mediaType,
-            size: artifact.sizeBytes,
-          })),
+          ...matchedArtifacts.map((artifact) =>
+            toArtifactResourceLink(artifact, artifact.process.processId),
+          ),
+          ...relatedArtifacts
+            .filter((artifact) => artifact.availability === "Downloaded")
+            .map((artifact) =>
+              toArtifactResourceLink(artifact, artifact.process.processId),
+            ),
         );
         response.structuredContent = {
-          results: result.matchedArtifacts.flatMap((artifact) =>
+          results: matchedArtifacts.flatMap((artifact) =>
             artifact.searchResultIndexes.map((resultIndex) => ({
               resultIndex,
               processId: artifact.process.processId,
               artifactIds: [artifact.artifactId],
             })),
           ),
-          matchedArtifacts: result.matchedArtifacts,
+          matchedArtifacts,
+          relatedArtifacts,
+          relatedArtifactsSummary: result.relatedArtifactsSummary ?? {
+            total: 0,
+            returned: 0,
+            remaining: 0,
+            truncated: false,
+          },
         };
         return response;
       } catch {
@@ -349,6 +357,52 @@ ${r.content}\n`,
 
         // Tool now returns a structured object with message
         return createResponse(result.message);
+      } catch (error) {
+        return createError(error);
+      }
+    },
+  );
+
+  server.tool(
+    "list_source_artifacts",
+    "List the complete Source Artifact inventory for one exact library version and process.",
+    {
+      library: z.string().trim().describe("Exact library name."),
+      version: z.string().trim().describe("Exact semantic Library Version."),
+      processId: z.string().trim().describe("Exact process ID."),
+    },
+    {
+      title: "List Process Source Artifacts",
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+    async ({ library, version, processId }) => {
+      telemetry.track(TelemetryEvent.TOOL_USED, {
+        tool: "list_source_artifacts",
+        context: "mcp_server",
+        library,
+        version,
+      });
+
+      try {
+        const inventory = await tools.listSourceArtifacts.execute({
+          library,
+          version,
+          processId,
+        });
+        const response = createResponse(
+          `${inventory.total} Source Artifacts for ${inventory.process.processId} (${inventory.process.processName}).`,
+        );
+        response.content.push(
+          ...inventory.artifacts
+            .filter((artifact) => artifact.availability === "Downloaded")
+            .map((artifact) =>
+              toArtifactResourceLink(artifact, inventory.process.processId),
+            ),
+        );
+        response.structuredContent = { ...inventory };
+        return response;
       } catch (error) {
         return createError(error);
       }
@@ -731,4 +785,25 @@ ${r.content}\n`,
   }
 
   return server;
+}
+
+function toArtifactResourceLink(
+  artifact: {
+    resourceLink: string;
+    suggestedFilename: string;
+    name: string;
+    mediaType: string;
+    sizeBytes: number;
+  },
+  processId: string,
+) {
+  return {
+    type: "resource_link" as const,
+    uri: artifact.resourceLink,
+    name: artifact.suggestedFilename,
+    title: artifact.name,
+    description: `${processId} / ${artifact.name}`,
+    mimeType: artifact.mediaType,
+    size: artifact.sizeBytes,
+  };
 }

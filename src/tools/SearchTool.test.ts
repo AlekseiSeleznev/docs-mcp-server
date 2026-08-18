@@ -14,6 +14,56 @@ import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
 import { SearchTool, type SearchToolOptions } from "./SearchTool";
 
+const artifactLibrary = "sap_process_navigator";
+const artifactVersion = "2025.1.0";
+
+function makeCatalogArtifact(
+  processId: string,
+  name: string,
+  availability: "Downloaded" | "Missing" | "ExternalUnresolved",
+  representationKeys: string[] = [],
+) {
+  const canonicalRelativePath = `source/${processId}/${name}`;
+  const sha256 = createHash("sha256").update(`${processId}:${name}`).digest("hex");
+  const artifactBase = {
+    artifactId: createArtifactId({
+      library: artifactLibrary,
+      libraryVersion: artifactVersion,
+      solutionId: "EARL_SolS-055",
+      processId,
+      canonicalRelativePath,
+      ...(availability === "Downloaded" ? { availability, sha256 } : { availability }),
+    }),
+    process: {
+      solutionId: "EARL_SolS-055",
+      processId,
+      processName: `Process ${processId}`,
+      lineOfBusiness: ["Sourcing and Procurement"],
+    },
+    canonicalRelativePath,
+    type: name.endsWith(".bpmn") ? "BPMN" : "Document",
+    group: "Process",
+    name,
+    availability,
+  };
+  return availability === "Downloaded"
+    ? {
+        ...artifactBase,
+        availability,
+        blob: {
+          originalName: name,
+          suggestedName: name,
+          manifestMime: "application/octet-stream",
+          effectiveMime: "application/octet-stream",
+          sizeBytes: 1,
+          sha256,
+          storageKey: canonicalRelativePath,
+        },
+        indexedProvenance: { representationKeys },
+      }
+    : artifactBase;
+}
+
 // Mock dependencies
 
 vi.mock("../utils/logger", () => ({
@@ -337,6 +387,215 @@ describe("SearchTool", () => {
         firstArtifact.artifactId,
         secondArtifact.artifactId,
       ]);
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("returns same-process and unavailable artifacts as deduplicated Related Artifacts", async () => {
+    const artifactRoot = await mkdtemp(path.join(tmpdir(), "related-artifacts-"));
+    const versionRoot = path.join(artifactRoot, artifactLibrary, artifactVersion);
+    const representationKey = "searchable/2xu/source.md";
+    const matched = makeCatalogArtifact("2XU", "source.bpmn", "Downloaded", [
+      representationKey,
+    ]);
+    const secondMatch = makeCatalogArtifact("2XU", "description.txt", "Downloaded", [
+      representationKey,
+    ]);
+    const related = makeCatalogArtifact("2XU", "test-script.docx", "Downloaded", [
+      "searchable/2xu/test-script.md",
+    ]);
+    const missing = makeCatalogArtifact("2XU", "missing.pdf", "Missing");
+    const unresolved = makeCatalogArtifact("2XU", "external.xlsx", "ExternalUnresolved");
+    const otherProcess = makeCatalogArtifact("3XU", "other.bpmn", "Downloaded", [
+      "searchable/3xu/source.md",
+    ]);
+
+    try {
+      await mkdir(path.join(versionRoot, "searchable", "2xu"), { recursive: true });
+      await writeFile(
+        path.join(versionRoot, "artifact-catalog.json"),
+        JSON.stringify({
+          catalogVersion: "1",
+          library: artifactLibrary,
+          libraryVersion: artifactVersion,
+          sourceRelease: "2025-FPS1-RU",
+          artifacts: [matched, secondMatch, related, missing, unresolved, otherProcess],
+        }),
+      );
+      const representationPath = path.join(versionRoot, representationKey);
+      await writeFile(representationPath, "matched");
+      (mockDocService.searchStore as Mock).mockResolvedValue([
+        { url: pathToFileURL(representationPath).href, content: "candidate", score: 1 },
+      ]);
+
+      const result = await new SearchTool(mockDocService as DocumentManagementService, {
+        root: artifactRoot,
+      }).execute({
+        library: artifactLibrary,
+        version: artifactVersion,
+        exactMatch: true,
+        query: "source",
+      });
+
+      expect(result.matchedArtifacts?.map((artifact) => artifact.artifactId)).toEqual([
+        matched.artifactId,
+        secondMatch.artifactId,
+      ]);
+      expect(result.relatedArtifacts).toEqual([
+        expect.objectContaining({
+          artifactId: related.artifactId,
+          availability: "Downloaded",
+          resourceLink: expect.stringContaining(related.artifactId),
+        }),
+        {
+          artifactId: missing.artifactId,
+          availability: "Missing",
+          group: "Process",
+          name: "missing.pdf",
+          process: missing.process,
+          type: "Document",
+        },
+        {
+          artifactId: unresolved.artifactId,
+          availability: "ExternalUnresolved",
+          group: "Process",
+          name: "external.xlsx",
+          process: unresolved.process,
+          type: "Document",
+        },
+      ]);
+      expect(JSON.stringify(result.relatedArtifacts)).not.toContain("blob");
+      expect(
+        result.relatedArtifacts?.map((artifact) => artifact.artifactId),
+      ).not.toContain(matched.artifactId);
+      expect(result.relatedArtifactsSummary).toEqual({
+        total: 3,
+        returned: 3,
+        remaining: 0,
+        truncated: false,
+      });
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("returns every process artifact as Related for a Process Card-only match", async () => {
+    const artifactRoot = await mkdtemp(path.join(tmpdir(), "process-card-artifacts-"));
+    const versionRoot = path.join(artifactRoot, artifactLibrary, artifactVersion);
+    const processCardKey = "searchable/process-cards/2XU.md";
+    const downloaded = makeCatalogArtifact("2XU", "source.bpmn", "Downloaded", [
+      "searchable/representations/2XU.md",
+    ]);
+    const missing = makeCatalogArtifact("2XU", "missing.pdf", "Missing");
+    const otherProcess = makeCatalogArtifact("3XU", "other.pdf", "Missing");
+
+    try {
+      await mkdir(path.join(versionRoot, "searchable", "process-cards"), {
+        recursive: true,
+      });
+      await writeFile(
+        path.join(versionRoot, "artifact-catalog.json"),
+        JSON.stringify({
+          catalogVersion: "1",
+          library: artifactLibrary,
+          libraryVersion: artifactVersion,
+          sourceRelease: "2025-FPS1-RU",
+          artifacts: [downloaded, missing, otherProcess],
+        }),
+      );
+      await writeFile(
+        path.join(versionRoot, "searchable", "searchable-catalog.json"),
+        JSON.stringify({
+          schemaVersion: "1",
+          library: artifactLibrary,
+          libraryVersion: artifactVersion,
+          sourceRelease: "2025-FPS1-RU",
+          counts: {},
+          processCards: [{ representationKey: processCardKey, processId: "2XU" }],
+          representations: [],
+        }),
+      );
+      const processCardPath = path.join(versionRoot, processCardKey);
+      await writeFile(processCardPath, "Process ID: 2XU");
+      (mockDocService.searchStore as Mock).mockResolvedValue([
+        {
+          url: pathToFileURL(processCardPath).href,
+          content: "Process card candidate",
+          score: 1,
+        },
+      ]);
+
+      const result = await new SearchTool(mockDocService as DocumentManagementService, {
+        root: artifactRoot,
+      }).execute({
+        library: artifactLibrary,
+        version: artifactVersion,
+        exactMatch: true,
+        query: "procurement",
+      });
+
+      expect(result.matchedArtifacts).toEqual([]);
+      expect(result.relatedArtifacts?.map((artifact) => artifact.artifactId)).toEqual([
+        downloaded.artifactId,
+        missing.artifactId,
+      ]);
+      expect(result.relatedArtifactsSummary).toEqual({
+        total: 2,
+        returned: 2,
+        remaining: 0,
+        truncated: false,
+      });
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("caps Related Artifacts globally at 50 and reports total and remaining", async () => {
+    const artifactRoot = await mkdtemp(path.join(tmpdir(), "related-artifact-cap-"));
+    const versionRoot = path.join(artifactRoot, artifactLibrary, artifactVersion);
+    const representationKey = "searchable/2xu/source.md";
+    const matched = makeCatalogArtifact("2XU", "source.bpmn", "Downloaded", [
+      representationKey,
+    ]);
+    const related = Array.from({ length: 55 }, (_, index) =>
+      makeCatalogArtifact("2XU", `related-${index}.pdf`, "Missing"),
+    );
+
+    try {
+      await mkdir(path.join(versionRoot, "searchable", "2xu"), { recursive: true });
+      await writeFile(
+        path.join(versionRoot, "artifact-catalog.json"),
+        JSON.stringify({
+          catalogVersion: "1",
+          library: artifactLibrary,
+          libraryVersion: artifactVersion,
+          sourceRelease: "2025-FPS1-RU",
+          artifacts: [matched, ...related],
+        }),
+      );
+      const representationPath = path.join(versionRoot, representationKey);
+      await writeFile(representationPath, "matched");
+      (mockDocService.searchStore as Mock).mockResolvedValue([
+        { url: pathToFileURL(representationPath).href, content: "candidate", score: 1 },
+      ]);
+
+      const result = await new SearchTool(mockDocService as DocumentManagementService, {
+        root: artifactRoot,
+      }).execute({
+        library: artifactLibrary,
+        version: artifactVersion,
+        exactMatch: true,
+        query: "source",
+      });
+
+      expect(result.relatedArtifacts).toHaveLength(50);
+      expect(result.relatedArtifactsSummary).toEqual({
+        total: 55,
+        returned: 50,
+        remaining: 5,
+        truncated: true,
+      });
     } finally {
       await rm(artifactRoot, { recursive: true, force: true });
     }

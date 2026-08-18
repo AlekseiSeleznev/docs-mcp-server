@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createSourceArtifactReleaseFixture } from "../../test/test-helpers";
 import { createArtifactId } from "../contracts";
 import { telemetry } from "../telemetry";
-import { ReadSourceArtifactTool } from "../tools";
+import { ListSourceArtifactsTool, ReadSourceArtifactTool } from "../tools";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { createMcpServerInstance } from "./mcpServer";
@@ -97,6 +97,7 @@ const mockTools: McpServerTools = {
   fetchUrl: {
     execute: vi.fn(async () => "# Mock content"),
   } as any,
+  listSourceArtifacts: new ListSourceArtifactsTool({ root: path.resolve("/") }),
   readSourceArtifact: {
     execute: vi.fn(async () => ({
       mimeType: "application/octet-stream",
@@ -383,7 +384,10 @@ describe("MCP Server Read-Only Mode", () => {
 
   it("keeps search text first and adds matched Artifact References", async () => {
     const artifactId = `art_${"a".repeat(64)}`;
+    const relatedArtifactId = `art_${"b".repeat(64)}`;
+    const missingArtifactId = `art_${"c".repeat(64)}`;
     const resourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${artifactId}`;
+    const relatedResourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${relatedArtifactId}`;
     vi.mocked(mockTools.search.execute).mockResolvedValueOnce({
       results: [
         {
@@ -410,6 +414,45 @@ describe("MCP Server Read-Only Mode", () => {
           searchResultIndexes: [0],
         },
       ],
+      relatedArtifacts: [
+        {
+          artifactId: relatedArtifactId,
+          type: "Document",
+          group: "Implementation",
+          name: "Test script",
+          suggestedFilename: "test-script.docx",
+          mediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          availability: "Downloaded",
+          process: {
+            solutionId: "EARL_SolS-055",
+            processId: "2XU",
+            processName: "Procurement",
+            lineOfBusiness: ["Sourcing and Procurement"],
+          },
+          resourceLink: relatedResourceLink,
+          sizeBytes: 11,
+        },
+        {
+          artifactId: missingArtifactId,
+          type: "PDF",
+          group: "Implementation",
+          name: "Unavailable guide",
+          availability: "Missing",
+          process: {
+            solutionId: "EARL_SolS-055",
+            processId: "2XU",
+            processName: "Procurement",
+            lineOfBusiness: ["Sourcing and Procurement"],
+          },
+        },
+      ],
+      relatedArtifactsSummary: {
+        total: 2,
+        returned: 2,
+        remaining: 0,
+        truncated: false,
+      },
     });
     const server = createMcpServerInstance(mockTools, mockConfig);
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -438,6 +481,17 @@ describe("MCP Server Read-Only Mode", () => {
         mimeType: "application/xml",
         size: 7,
       });
+      expect(result.content[2]).toEqual({
+        type: "resource_link",
+        uri: relatedResourceLink,
+        name: "test-script.docx",
+        title: "Test script",
+        description: "2XU / Test script",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        size: 11,
+      });
+      expect(result.content).toHaveLength(3);
       expect(result.structuredContent).toEqual({
         results: [{ resultIndex: 0, processId: "2XU", artifactIds: [artifactId] }],
         matchedArtifacts: [
@@ -449,7 +503,107 @@ describe("MCP Server Read-Only Mode", () => {
             resourceLink,
           }),
         ],
+        relatedArtifacts: [
+          expect.objectContaining({
+            artifactId: relatedArtifactId,
+            availability: "Downloaded",
+            resourceLink: relatedResourceLink,
+          }),
+          {
+            artifactId: missingArtifactId,
+            type: "PDF",
+            group: "Implementation",
+            name: "Unavailable guide",
+            availability: "Missing",
+            process: {
+              solutionId: "EARL_SolS-055",
+              processId: "2XU",
+              processName: "Procurement",
+              lineOfBusiness: ["Sourcing and Procurement"],
+            },
+          },
+        ],
+        relatedArtifactsSummary: {
+          total: 2,
+          returned: 2,
+          remaining: 0,
+          truncated: false,
+        },
       });
+      expect(JSON.stringify(result)).not.toContain("blob");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it("returns Related Artifacts when only a Process Card matched", async () => {
+    const artifactId = `art_${"f".repeat(64)}`;
+    const resourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${artifactId}`;
+    vi.mocked(mockTools.search.execute).mockResolvedValueOnce({
+      results: [
+        {
+          url: "file:///artifacts/sap_process_navigator/2025.1.0/searchable/process-cards/2XU.md",
+          content: "Procurement process card",
+          score: 1,
+        },
+      ],
+      matchedArtifacts: [],
+      relatedArtifacts: [
+        {
+          artifactId,
+          type: "BPMN",
+          group: "Process",
+          name: "Source model",
+          suggestedFilename: "source.bpmn",
+          mediaType: "application/xml",
+          availability: "Downloaded",
+          process: {
+            solutionId: "EARL_SolS-055",
+            processId: "2XU",
+            processName: "Procurement",
+            lineOfBusiness: ["Sourcing and Procurement"],
+          },
+          resourceLink,
+          sizeBytes: 7,
+        },
+      ],
+      relatedArtifactsSummary: {
+        total: 1,
+        returned: 1,
+        remaining: 0,
+        truncated: false,
+      },
+    });
+    const server = createMcpServerInstance(mockTools, mockConfig);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "process-card-test", version: "1.0.0" });
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const result = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "search_docs",
+          arguments: { library: "sap_process_navigator", query: "procurement" },
+        }),
+      );
+
+      expect(result.content[0]).toEqual(
+        expect.objectContaining({
+          type: "text",
+          text: expect.stringContaining("Procurement process card"),
+        }),
+      );
+      expect(result.content[1]).toEqual(
+        expect.objectContaining({ type: "resource_link", uri: resourceLink }),
+      );
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({
+          matchedArtifacts: [],
+          relatedArtifacts: [expect.objectContaining({ artifactId })],
+        }),
+      );
       expect(JSON.stringify(result)).not.toContain("blob");
     } finally {
       await client.close();
@@ -465,6 +619,106 @@ describe("MCP Server Read-Only Mode", () => {
   it("should create server instance in read-only mode", () => {
     const server = createMcpServerInstance(mockTools, mockReadOnlyConfig);
     expect(server).toBeInstanceOf(McpServer);
+  });
+
+  it("lists a complete process inventory through a closed-world read-only tool", async () => {
+    const downloadedId = `art_${"d".repeat(64)}`;
+    const missingId = `art_${"e".repeat(64)}`;
+    const resourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${downloadedId}`;
+    const inventory = {
+      library: "sap_process_navigator",
+      libraryVersion: "2025.1.0",
+      sourceRelease: "2025-FPS1-RU",
+      process: {
+        solutionId: "EARL_SolS-055",
+        processId: "2XU",
+        processName: "Procurement",
+        lineOfBusiness: ["Sourcing and Procurement"],
+      },
+      total: 2,
+      artifacts: [
+        {
+          artifactId: downloadedId,
+          type: "BPMN",
+          group: "Process",
+          name: "Source model",
+          availability: "Downloaded" as const,
+          suggestedFilename: "2XU.bpmn",
+          mediaType: "application/xml",
+          sizeBytes: 7,
+          resourceLink,
+        },
+        {
+          artifactId: missingId,
+          type: "PDF",
+          group: "Implementation",
+          name: "Unavailable guide",
+          availability: "Missing" as const,
+        },
+      ],
+    };
+    const listSourceArtifacts = new ListSourceArtifactsTool({ root: path.resolve("/") });
+    const listInventory = vi
+      .spyOn(listSourceArtifacts, "execute")
+      .mockResolvedValue(inventory);
+    const server = createMcpServerInstance(
+      { ...mockTools, listSourceArtifacts },
+      mockReadOnlyConfig,
+    );
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "artifact-inventory-test", version: "1.0.0" });
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const definitions = await client.listTools();
+      const definition = definitions.tools.find(
+        (tool) => tool.name === "list_source_artifacts",
+      );
+      expect(definition?.annotations).toEqual(
+        expect.objectContaining({
+          readOnlyHint: true,
+          destructiveHint: false,
+          openWorldHint: false,
+        }),
+      );
+      expect(Object.keys(definition?.inputSchema.properties ?? {}).sort()).toEqual([
+        "library",
+        "processId",
+        "version",
+      ]);
+
+      const result = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "list_source_artifacts",
+          arguments: {
+            library: "sap_process_navigator",
+            version: "2025.1.0",
+            processId: "2XU",
+          },
+        }),
+      );
+
+      expect(listInventory).toHaveBeenCalledWith({
+        library: "sap_process_navigator",
+        version: "2025.1.0",
+        processId: "2XU",
+      });
+      expect(result.content[0]).toEqual({
+        type: "text",
+        text: "2 Source Artifacts for 2XU (Procurement).",
+      });
+      expect(result.content[1]).toEqual(
+        expect.objectContaining({ type: "resource_link", uri: resourceLink }),
+      );
+      expect(result.content).toHaveLength(2);
+      expect(result.structuredContent).toEqual(inventory);
+      expect(JSON.stringify(result)).not.toContain("blob");
+      expect(JSON.stringify(result)).not.toContain("storageKey");
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("creates the packaged extension server with exactly three local read tools", async () => {

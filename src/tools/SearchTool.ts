@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
+import type { ArtifactCatalog } from "../contracts";
 import { parseArtifactCatalog } from "../contracts";
 import {
   LibraryNotFoundInStoreError,
@@ -9,6 +11,10 @@ import {
 import type { IDocumentManagement } from "../store/trpc/interfaces";
 import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
+import {
+  type PublicArtifactMetadata,
+  toPublicArtifactMetadata,
+} from "./ArtifactReferenceMetadata";
 import { ToolError, ValidationError } from "./errors";
 
 export interface SearchToolOptions {
@@ -33,6 +39,8 @@ export interface SearchToolResultError {
 export interface SearchToolResult {
   results: StoreSearchResult[];
   matchedArtifacts?: MatchedArtifact[];
+  relatedArtifacts?: RelatedArtifact[];
+  relatedArtifactsSummary?: RelatedArtifactsSummary;
 }
 
 /** Read-only Artifact Catalog location used to enrich Search Results. */
@@ -57,6 +65,39 @@ export interface MatchedArtifact {
   sizeBytes: number;
   searchResultIndexes: number[];
 }
+
+/** A Source Artifact from a matched process that did not contribute to a Search Result. */
+export type RelatedArtifact = PublicArtifactMetadata & {
+  process: MatchedArtifact["process"];
+};
+
+/** Related Artifact pagination facts for the bounded search response. */
+export interface RelatedArtifactsSummary {
+  total: number;
+  returned: number;
+  remaining: number;
+  truncated: boolean;
+}
+
+const RELATED_ARTIFACT_LIMIT = 50;
+const searchableProcessCatalogSchema = z
+  .object({
+    schemaVersion: z.literal("1"),
+    library: z.string(),
+    libraryVersion: z.string(),
+    sourceRelease: z.string(),
+    counts: z.unknown(),
+    processCards: z.array(
+      z
+        .object({
+          representationKey: z.string().trim().min(1),
+          processId: z.string().trim().min(1),
+        })
+        .strict(),
+    ),
+    representations: z.array(z.unknown()),
+  })
+  .strict();
 
 /**
  * Tool for searching indexed documentation.
@@ -160,12 +201,12 @@ export class SearchTool {
       );
       logger.info(`✅ Found ${results.length} matching results`);
 
-      const matchedArtifacts = await this.findMatchedArtifacts(
+      const enrichment = await this.findArtifactReferences(
         library,
         versionToSearch,
         results,
       );
-      return matchedArtifacts.length > 0 ? { results, matchedArtifacts } : { results };
+      return enrichment ? { results, ...enrichment } : { results };
     } catch (error) {
       logger.error(`❌ Search failed during ${failureStage}`);
       if (
@@ -178,20 +219,24 @@ export class SearchTool {
     }
   }
 
-  private async findMatchedArtifacts(
+  private async findArtifactReferences(
     library: string,
     version: string | null | undefined,
     results: StoreSearchResult[],
-  ): Promise<MatchedArtifact[]> {
+  ): Promise<{
+    matchedArtifacts: MatchedArtifact[];
+    relatedArtifacts: RelatedArtifact[];
+    relatedArtifactsSummary: RelatedArtifactsSummary;
+  } | null> {
     const root = this.artifactConfig?.root;
     if (!root || !path.isAbsolute(root) || !version) {
-      return [];
+      return null;
     }
 
     try {
       const versionRoot = path.resolve(root, library, version);
       if (!isContained(root, versionRoot)) {
-        return [];
+        return null;
       }
       const catalog = parseArtifactCatalog(
         JSON.parse(
@@ -199,7 +244,7 @@ export class SearchTool {
         ),
       );
       if (catalog.library !== library || catalog.libraryVersion !== version) {
-        return [];
+        return null;
       }
 
       const artifactsByRepresentation = new Map<
@@ -247,16 +292,126 @@ export class SearchTool {
         }
       });
 
-      return [...matchedById.values()];
+      const matchedProcessKeys = await this.findProcessCardMatches(
+        versionRoot,
+        catalog,
+        results,
+      );
+      for (const { process } of matchedById.values()) {
+        matchedProcessKeys.add(processKey(process));
+      }
+      if (matchedProcessKeys.size === 0) {
+        return null;
+      }
+
+      const relatedById = new Map<string, RelatedArtifact>();
+      for (const artifact of catalog.artifacts) {
+        if (
+          matchedById.has(artifact.artifactId) ||
+          !matchedProcessKeys.has(processKey(artifact.process)) ||
+          relatedById.has(artifact.artifactId)
+        ) {
+          continue;
+        }
+        relatedById.set(artifact.artifactId, {
+          ...toPublicArtifactMetadata(artifact, catalog.library, catalog.libraryVersion),
+          process: artifact.process,
+        });
+      }
+
+      const allRelatedArtifacts = [...relatedById.values()];
+      const relatedArtifacts = allRelatedArtifacts.slice(0, RELATED_ARTIFACT_LIMIT);
+      const remaining = allRelatedArtifacts.length - relatedArtifacts.length;
+      return {
+        matchedArtifacts: [...matchedById.values()],
+        relatedArtifacts,
+        relatedArtifactsSummary: {
+          total: allRelatedArtifacts.length,
+          returned: relatedArtifacts.length,
+          remaining,
+          truncated: remaining > 0,
+        },
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         logger.warn(
           "⚠️ Matched Artifact enrichment skipped because its catalog is invalid",
         );
       }
-      return [];
+      return null;
     }
   }
+
+  private async findProcessCardMatches(
+    versionRoot: string,
+    artifactCatalog: ArtifactCatalog,
+    results: StoreSearchResult[],
+  ): Promise<Set<string>> {
+    try {
+      const searchableCatalog = searchableProcessCatalogSchema.parse(
+        JSON.parse(
+          await readFile(
+            path.join(versionRoot, "searchable", "searchable-catalog.json"),
+            "utf8",
+          ),
+        ) as unknown,
+      );
+      if (
+        searchableCatalog.library !== artifactCatalog.library ||
+        searchableCatalog.libraryVersion !== artifactCatalog.libraryVersion ||
+        searchableCatalog.sourceRelease !== artifactCatalog.sourceRelease
+      ) {
+        return new Set();
+      }
+
+      const processKeysById = new Map<string, string>();
+      const ambiguousProcessIds = new Set<string>();
+      for (const artifact of artifactCatalog.artifacts) {
+        const key = processKey(artifact.process);
+        const existing = processKeysById.get(artifact.process.processId);
+        if (existing && existing !== key) {
+          ambiguousProcessIds.add(artifact.process.processId);
+          processKeysById.delete(artifact.process.processId);
+        } else if (!ambiguousProcessIds.has(artifact.process.processId)) {
+          processKeysById.set(artifact.process.processId, key);
+        }
+      }
+
+      const processKeysByRepresentation = new Map<string, string>();
+      for (const card of searchableCatalog.processCards) {
+        const key = processKeysById.get(card.processId);
+        if (!key) {
+          continue;
+        }
+        const representationPath = path.resolve(versionRoot, card.representationKey);
+        if (!isContained(versionRoot, representationPath)) {
+          continue;
+        }
+        processKeysByRepresentation.set(representationPath, key);
+      }
+
+      const matchedProcessKeys = new Set<string>();
+      for (const result of results) {
+        const resultPath = toContainedFilePath(result.url, versionRoot);
+        const key = resultPath ? processKeysByRepresentation.get(resultPath) : undefined;
+        if (key) {
+          matchedProcessKeys.add(key);
+        }
+      }
+      return matchedProcessKeys;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn(
+          "⚠️ Process Card enrichment skipped because its searchable catalog is invalid",
+        );
+      }
+      return new Set();
+    }
+  }
+}
+
+function processKey(process: { solutionId: string; processId: string }): string {
+  return `${process.solutionId}\0${process.processId}`;
 }
 
 function isContained(root: string, candidate: string): boolean {

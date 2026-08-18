@@ -152,7 +152,7 @@ describe("MCP stdio server E2E", () => {
     transport = null;
   }, 30000);
 
-  it("returns text-first matched artifacts without binary content", async () => {
+  it("returns process discovery and complete inventory without binary content", async () => {
     const fixture = await createMatchedArtifactSearchFixture();
     const projectRoot = path.resolve(import.meta.dirname, "..");
     const testEnv: Record<string, string> = {};
@@ -205,9 +205,50 @@ describe("MCP stdio server E2E", () => {
           matchedArtifacts: [
             expect.objectContaining({ artifactId: fixture.artifactId }),
           ],
+          relatedArtifacts: [
+            expect.objectContaining({
+              artifactId: fixture.relatedArtifactId,
+              availability: "Downloaded",
+            }),
+            expect.objectContaining({
+              artifactId: fixture.missingArtifactId,
+              availability: "Missing",
+            }),
+          ],
+          relatedArtifactsSummary: {
+            total: 2,
+            returned: 2,
+            remaining: 0,
+            truncated: false,
+          },
         }),
       );
+      const inventory = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "list_source_artifacts",
+          arguments: {
+            library: fixture.library,
+            version: fixture.version,
+            processId: "2XU",
+          },
+        }),
+      );
+      expect(inventory.structuredContent).toEqual(
+        expect.objectContaining({
+          total: 3,
+          artifacts: [
+            expect.objectContaining({ artifactId: fixture.artifactId }),
+            expect.objectContaining({ artifactId: fixture.relatedArtifactId }),
+            expect.objectContaining({
+              artifactId: fixture.missingArtifactId,
+              availability: "Missing",
+            }),
+          ],
+        }),
+      );
+      expect(inventory.content).toHaveLength(3);
       expect(JSON.stringify(result)).not.toContain('"blob"');
+      expect(JSON.stringify(inventory)).not.toContain('"blob"');
     } finally {
       await fixture.cleanup();
     }

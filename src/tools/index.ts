@@ -1,3 +1,4 @@
+export * from "./ArtifactReferenceMetadata";
 export * from "./CancelJobTool";
 export * from "./ClearCompletedJobsTool";
 export * from "./errors";
@@ -6,6 +7,7 @@ export * from "./FindVersionTool";
 export * from "./GetJobInfoTool";
 export * from "./ListJobsTool";
 export * from "./ListLibrariesTool";
+export * from "./ListSourceArtifactsTool";
 export * from "./ReadSourceArtifactTool";
 export * from "./RefreshVersionTool";
 export * from "./RemoveTool";
