@@ -3,6 +3,7 @@ import { z } from "zod/v3";
 import { PipelineJobStatus } from "../pipeline/types";
 import { TelemetryEvent, telemetry } from "../telemetry";
 import type { JobInfo } from "../tools";
+import { SourceArtifactReadError } from "../tools";
 import { ToolError } from "../tools/errors";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
@@ -527,6 +528,49 @@ ${r.content}\n`,
           text: lib.name,
         })),
       };
+    },
+  );
+
+  server.resource(
+    "source-artifact",
+    new ResourceTemplate("sap-artifact://{library}/{version}/{artifactId}", {
+      list: undefined,
+    }),
+    {
+      description: "Read one immutable Source Artifact by opaque identity",
+    },
+    async (uri: URL, { artifactId, library, version }) => {
+      try {
+        if (
+          typeof artifactId !== "string" ||
+          typeof library !== "string" ||
+          typeof version !== "string" ||
+          uri.search !== "" ||
+          uri.hash !== ""
+        ) {
+          throw new SourceArtifactReadError("Invalid Source Artifact resource URI");
+        }
+        const artifact = await tools.readSourceArtifact.execute({
+          library,
+          version,
+          artifactId,
+        });
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType: artifact.mimeType,
+              blob: artifact.bytes.toString("base64"),
+            },
+          ],
+        };
+      } catch (error) {
+        logger.error("❌ Source Artifact resource read failed");
+        if (error instanceof SourceArtifactReadError) {
+          throw error;
+        }
+        throw new Error("Source Artifact could not be read");
+      }
     },
   );
 

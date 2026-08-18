@@ -19,6 +19,9 @@ auth:
   enabled: false
   issuerUrl: ""
   audience: ""
+artifacts:
+  root: ""
+  maxSizeBytes: 10485760
 scraper:
   maxPages: 1000
   maxDepth: 3

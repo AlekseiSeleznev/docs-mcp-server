@@ -99,6 +99,10 @@ export const DEFAULT_CONFIG = {
     issuerUrl: "",
     audience: "",
   },
+  artifacts: {
+    root: "",
+    maxSizeBytes: 10 * 1024 * 1024,
+  },
   scraper: {
     maxPages: 1000,
     maxDepth: 3,
@@ -219,6 +223,22 @@ export const AppConfigSchema = z.object({
       audience: z.string().default(DEFAULT_CONFIG.auth.audience),
     })
     .default(DEFAULT_CONFIG.auth),
+  artifacts: z
+    .object({
+      root: z
+        .string()
+        .refine((value) => value === "" || path.isAbsolute(value), {
+          message: "Source Artifact root must be empty or absolute",
+        })
+        .default(DEFAULT_CONFIG.artifacts.root),
+      maxSizeBytes: z.coerce
+        .number()
+        .int()
+        .safe()
+        .positive()
+        .default(DEFAULT_CONFIG.artifacts.maxSizeBytes),
+    })
+    .default(DEFAULT_CONFIG.artifacts),
   scraper: z
     .object({
       maxPages: z.coerce.number().int().default(DEFAULT_CONFIG.scraper.maxPages),
@@ -459,6 +479,14 @@ const configMappings: ConfigMapping[] = [
   { path: ["app", "storePath"], env: ["DOCS_MCP_STORE_PATH"], cli: "storePath" },
   { path: ["app", "telemetryEnabled"], env: ["DOCS_MCP_TELEMETRY"] }, // Handled via --no-telemetry in CLI usually
   { path: ["app", "readOnly"], env: ["DOCS_MCP_READ_ONLY"], cli: "readOnly" },
+  {
+    path: ["artifacts", "root"],
+    env: ["DOCS_MCP_ARTIFACT_ROOT"],
+  },
+  {
+    path: ["artifacts", "maxSizeBytes"],
+    env: ["DOCS_MCP_MAX_ARTIFACT_BYTES"],
+  },
   // Ports - Special handling for shared env vars is done in mapping logic
   {
     path: ["server", "ports", "default"],

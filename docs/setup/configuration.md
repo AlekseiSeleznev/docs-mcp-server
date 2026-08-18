@@ -184,6 +184,17 @@ Security settings for the HTTP server.
 | `issuerUrl` | - | OIDC Issuer URL (e.g., Clerk, Auth0). |
 | `audience` | - | Expected JWT audience claim. |
 
+### Source Artifacts (`artifacts`)
+
+Source Artifact reads are disabled until an absolute read-only release root is
+configured. The root contains immutable releases at
+`<root>/<library>/<version>/artifact-catalog.json` with their exact source bytes.
+
+| Option | Default | Description |
+|:-------|:--------|:------------|
+| `root` | - | Absolute allowlisted root for immutable Source Artifact releases. Environment: `DOCS_MCP_ARTIFACT_ROOT`. |
+| `maxSizeBytes` | `10485760` | Maximum exact Source Artifact size returned by one MCP resource read. Environment: `DOCS_MCP_MAX_ARTIFACT_BYTES`. |
+
 ### Scraper (`scraper`)
 
 Settings controlling the web scraping behavior.
