@@ -1,0 +1,62 @@
+{
+  "catalogVersion": "1",
+  "library": "sap_process_navigator",
+  "libraryVersion": "2025.1.0",
+  "sourceRelease": "2025-FPS1-RU",
+  "artifacts": [
+    {
+      "artifactId": "art_a9564419c27f1211ebce9495d25a271785001b35f1a22e14a7d1e82faeb0f75e",
+      "process": {
+        "solutionId": "EARL_SolS-055",
+        "processId": "2XU",
+        "processName": "Procurement of Materials with Variant Configuration",
+        "lineOfBusiness": ["R&D/Engineering", "Sourcing and Procurement"]
+      },
+      "canonicalRelativePath": "source/2XU/Test_script.docx",
+      "type": "Accelerator",
+      "group": "Implementation",
+      "name": "Test script",
+      "availability": "Downloaded",
+      "blob": {
+        "originalName": "Test script",
+        "suggestedName": "Test script.docx",
+        "manifestMime": "application/octet-stream",
+        "effectiveMime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "sizeBytes": 126011,
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "storageKey": "source/2XU/Test_script.docx"
+      },
+      "indexedProvenance": {
+        "representationKeys": ["index/artifacts/art_2xu.md"]
+      }
+    },
+    {
+      "artifactId": "art_76a2bd99f57176a3d6b0a558c3504dc6e79821f2964945efa32c0e3ec4876568",
+      "process": {
+        "solutionId": "EARL_SolS-055",
+        "processId": "2XU",
+        "processName": "Procurement of Materials with Variant Configuration",
+        "lineOfBusiness": ["Sourcing and Procurement"]
+      },
+      "canonicalRelativePath": "manifest/2XU/Unavailable_guide.pdf",
+      "type": "Accelerator",
+      "group": "Implementation",
+      "name": "Unavailable guide",
+      "availability": "Missing"
+    },
+    {
+      "artifactId": "art_c883397309d3912bf10425732eaba352e08392d490df2366ab12ff73896c19f1",
+      "process": {
+        "solutionId": "EARL_SolS-055",
+        "processId": "2XU",
+        "processName": "Procurement of Materials with Variant Configuration",
+        "lineOfBusiness": []
+      },
+      "canonicalRelativePath": "manifest/2XU/External_reference.url",
+      "type": "Accelerator",
+      "group": "External",
+      "name": "External reference",
+      "availability": "ExternalUnresolved"
+    }
+  ]
+}
