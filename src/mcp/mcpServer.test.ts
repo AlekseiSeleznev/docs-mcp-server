@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createSourceArtifactReleaseFixture } from "../../test/test-helpers";
 import { createArtifactId } from "../contracts";
 import { telemetry } from "../telemetry";
-import { ReadSourceArtifactTool } from "../tools";
+import { ListSourceArtifactsTool, ReadSourceArtifactTool } from "../tools";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { createMcpServerInstance } from "./mcpServer";
@@ -97,11 +97,7 @@ const mockTools: McpServerTools = {
   fetchUrl: {
     execute: vi.fn(async () => "# Mock content"),
   } as any,
-  listSourceArtifacts: {
-    execute: vi.fn(async () => {
-      throw new Error("Not configured in this test");
-    }),
-  } as any,
+  listSourceArtifacts: new ListSourceArtifactsTool({ root: path.resolve("/") }),
   readSourceArtifact: {
     execute: vi.fn(async () => ({
       mimeType: "application/octet-stream",
@@ -541,6 +537,80 @@ describe("MCP Server Read-Only Mode", () => {
     }
   });
 
+  it("returns Related Artifacts when only a Process Card matched", async () => {
+    const artifactId = `art_${"f".repeat(64)}`;
+    const resourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${artifactId}`;
+    vi.mocked(mockTools.search.execute).mockResolvedValueOnce({
+      results: [
+        {
+          url: "file:///artifacts/sap_process_navigator/2025.1.0/searchable/process-cards/2XU.md",
+          content: "Procurement process card",
+          score: 1,
+        },
+      ],
+      matchedArtifacts: [],
+      relatedArtifacts: [
+        {
+          artifactId,
+          type: "BPMN",
+          group: "Process",
+          name: "Source model",
+          suggestedFilename: "source.bpmn",
+          mediaType: "application/xml",
+          availability: "Downloaded",
+          process: {
+            solutionId: "EARL_SolS-055",
+            processId: "2XU",
+            processName: "Procurement",
+            lineOfBusiness: ["Sourcing and Procurement"],
+          },
+          resourceLink,
+          sizeBytes: 7,
+        },
+      ],
+      relatedArtifactsSummary: {
+        total: 1,
+        returned: 1,
+        remaining: 0,
+        truncated: false,
+      },
+    });
+    const server = createMcpServerInstance(mockTools, mockConfig);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "process-card-test", version: "1.0.0" });
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const result = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "search_docs",
+          arguments: { library: "sap_process_navigator", query: "procurement" },
+        }),
+      );
+
+      expect(result.content[0]).toEqual(
+        expect.objectContaining({
+          type: "text",
+          text: expect.stringContaining("Procurement process card"),
+        }),
+      );
+      expect(result.content[1]).toEqual(
+        expect.objectContaining({ type: "resource_link", uri: resourceLink }),
+      );
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({
+          matchedArtifacts: [],
+          relatedArtifacts: [expect.objectContaining({ artifactId })],
+        }),
+      );
+      expect(JSON.stringify(result)).not.toContain("blob");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("should create server instance in normal mode", () => {
     const server = createMcpServerInstance(mockTools, mockConfig);
     expect(server).toBeInstanceOf(McpServer);
@@ -587,7 +657,10 @@ describe("MCP Server Read-Only Mode", () => {
         },
       ],
     };
-    const listSourceArtifacts = { execute: vi.fn(async () => inventory) } as any;
+    const listSourceArtifacts = new ListSourceArtifactsTool({ root: path.resolve("/") });
+    const listInventory = vi
+      .spyOn(listSourceArtifacts, "execute")
+      .mockResolvedValue(inventory);
     const server = createMcpServerInstance(
       { ...mockTools, listSourceArtifacts },
       mockReadOnlyConfig,
@@ -626,7 +699,7 @@ describe("MCP Server Read-Only Mode", () => {
         }),
       );
 
-      expect(listSourceArtifacts.execute).toHaveBeenCalledWith({
+      expect(listInventory).toHaveBeenCalledWith({
         library: "sap_process_navigator",
         version: "2025.1.0",
         processId: "2XU",

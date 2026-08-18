@@ -1,3 +1,4 @@
+export * from "./ArtifactReferenceMetadata";
 export * from "./CancelJobTool";
 export * from "./ClearCompletedJobsTool";
 export * from "./errors";

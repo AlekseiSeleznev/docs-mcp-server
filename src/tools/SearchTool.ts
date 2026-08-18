@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
+import type { ArtifactCatalog } from "../contracts";
 import { parseArtifactCatalog } from "../contracts";
 import {
   LibraryNotFoundInStoreError,
@@ -9,6 +11,10 @@ import {
 import type { IDocumentManagement } from "../store/trpc/interfaces";
 import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
+import {
+  type PublicArtifactMetadata,
+  toPublicArtifactMetadata,
+} from "./ArtifactReferenceMetadata";
 import { ToolError, ValidationError } from "./errors";
 
 export interface SearchToolOptions {
@@ -61,27 +67,9 @@ export interface MatchedArtifact {
 }
 
 /** A Source Artifact from a matched process that did not contribute to a Search Result. */
-export type RelatedArtifact =
-  | {
-      artifactId: string;
-      type: string;
-      group: string;
-      name: string;
-      availability: "Missing" | "ExternalUnresolved";
-      process: MatchedArtifact["process"];
-    }
-  | {
-      artifactId: string;
-      type: string;
-      group: string;
-      name: string;
-      suggestedFilename: string;
-      mediaType: string;
-      availability: "Downloaded";
-      process: MatchedArtifact["process"];
-      resourceLink: string;
-      sizeBytes: number;
-    };
+export type RelatedArtifact = PublicArtifactMetadata & {
+  process: MatchedArtifact["process"];
+};
 
 /** Related Artifact pagination facts for the bounded search response. */
 export interface RelatedArtifactsSummary {
@@ -92,6 +80,24 @@ export interface RelatedArtifactsSummary {
 }
 
 const RELATED_ARTIFACT_LIMIT = 50;
+const searchableProcessCatalogSchema = z
+  .object({
+    schemaVersion: z.literal("1"),
+    library: z.string(),
+    libraryVersion: z.string(),
+    sourceRelease: z.string(),
+    counts: z.unknown(),
+    processCards: z.array(
+      z
+        .object({
+          representationKey: z.string().trim().min(1),
+          processId: z.string().trim().min(1),
+        })
+        .strict(),
+    ),
+    representations: z.array(z.unknown()),
+  })
+  .strict();
 
 /**
  * Tool for searching indexed documentation.
@@ -286,13 +292,18 @@ export class SearchTool {
         }
       });
 
-      if (matchedById.size === 0) {
+      const matchedProcessKeys = await this.findProcessCardMatches(
+        versionRoot,
+        catalog,
+        results,
+      );
+      for (const { process } of matchedById.values()) {
+        matchedProcessKeys.add(processKey(process));
+      }
+      if (matchedProcessKeys.size === 0) {
         return null;
       }
 
-      const matchedProcessKeys = new Set(
-        [...matchedById.values()].map(({ process }) => processKey(process)),
-      );
       const relatedById = new Map<string, RelatedArtifact>();
       for (const artifact of catalog.artifacts) {
         if (
@@ -302,30 +313,10 @@ export class SearchTool {
         ) {
           continue;
         }
-        relatedById.set(
-          artifact.artifactId,
-          artifact.availability === "Downloaded"
-            ? {
-                artifactId: artifact.artifactId,
-                type: artifact.type,
-                group: artifact.group,
-                name: artifact.name,
-                suggestedFilename: artifact.blob.suggestedName,
-                mediaType: artifact.blob.effectiveMime,
-                availability: artifact.availability,
-                process: artifact.process,
-                resourceLink: `sap-artifact://${catalog.library}/${catalog.libraryVersion}/${artifact.artifactId}`,
-                sizeBytes: artifact.blob.sizeBytes,
-              }
-            : {
-                artifactId: artifact.artifactId,
-                type: artifact.type,
-                group: artifact.group,
-                name: artifact.name,
-                availability: artifact.availability,
-                process: artifact.process,
-              },
-        );
+        relatedById.set(artifact.artifactId, {
+          ...toPublicArtifactMetadata(artifact, catalog.library, catalog.libraryVersion),
+          process: artifact.process,
+        });
       }
 
       const allRelatedArtifacts = [...relatedById.values()];
@@ -348,6 +339,73 @@ export class SearchTool {
         );
       }
       return null;
+    }
+  }
+
+  private async findProcessCardMatches(
+    versionRoot: string,
+    artifactCatalog: ArtifactCatalog,
+    results: StoreSearchResult[],
+  ): Promise<Set<string>> {
+    try {
+      const searchableCatalog = searchableProcessCatalogSchema.parse(
+        JSON.parse(
+          await readFile(
+            path.join(versionRoot, "searchable", "searchable-catalog.json"),
+            "utf8",
+          ),
+        ) as unknown,
+      );
+      if (
+        searchableCatalog.library !== artifactCatalog.library ||
+        searchableCatalog.libraryVersion !== artifactCatalog.libraryVersion ||
+        searchableCatalog.sourceRelease !== artifactCatalog.sourceRelease
+      ) {
+        return new Set();
+      }
+
+      const processKeysById = new Map<string, string>();
+      const ambiguousProcessIds = new Set<string>();
+      for (const artifact of artifactCatalog.artifacts) {
+        const key = processKey(artifact.process);
+        const existing = processKeysById.get(artifact.process.processId);
+        if (existing && existing !== key) {
+          ambiguousProcessIds.add(artifact.process.processId);
+          processKeysById.delete(artifact.process.processId);
+        } else if (!ambiguousProcessIds.has(artifact.process.processId)) {
+          processKeysById.set(artifact.process.processId, key);
+        }
+      }
+
+      const processKeysByRepresentation = new Map<string, string>();
+      for (const card of searchableCatalog.processCards) {
+        const key = processKeysById.get(card.processId);
+        if (!key) {
+          continue;
+        }
+        const representationPath = path.resolve(versionRoot, card.representationKey);
+        if (!isContained(versionRoot, representationPath)) {
+          continue;
+        }
+        processKeysByRepresentation.set(representationPath, key);
+      }
+
+      const matchedProcessKeys = new Set<string>();
+      for (const result of results) {
+        const resultPath = toContainedFilePath(result.url, versionRoot);
+        const key = resultPath ? processKeysByRepresentation.get(resultPath) : undefined;
+        if (key) {
+          matchedProcessKeys.add(key);
+        }
+      }
+      return matchedProcessKeys;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn(
+          "⚠️ Process Card enrichment skipped because its searchable catalog is invalid",
+        );
+      }
+      return new Set();
     }
   }
 }

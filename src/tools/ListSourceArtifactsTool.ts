@@ -2,6 +2,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import semver from "semver";
 import { parseArtifactCatalog } from "../contracts";
+import {
+  type PublicArtifactMetadata,
+  toPublicArtifactMetadata,
+} from "./ArtifactReferenceMetadata";
 
 const LIBRARY_PATTERN = /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/;
 
@@ -19,25 +23,7 @@ export interface ListSourceArtifactsConfig {
 }
 
 /** Public metadata for one Source Artifact in a process inventory. */
-export type ListedSourceArtifact =
-  | {
-      artifactId: string;
-      type: string;
-      group: string;
-      name: string;
-      availability: "Missing" | "ExternalUnresolved";
-    }
-  | {
-      artifactId: string;
-      type: string;
-      group: string;
-      name: string;
-      availability: "Downloaded";
-      suggestedFilename: string;
-      mediaType: string;
-      sizeBytes: number;
-      resourceLink: string;
-    };
+export type ListedSourceArtifact = PublicArtifactMetadata;
 
 /** Complete stable Source Artifact inventory for one exact process and version. */
 export interface SourceArtifactInventory {
@@ -118,25 +104,7 @@ export class ListSourceArtifactsTool {
         process: firstArtifact.process,
         total: processArtifacts.length,
         artifacts: processArtifacts.map((artifact) =>
-          artifact.availability === "Downloaded"
-            ? {
-                artifactId: artifact.artifactId,
-                type: artifact.type,
-                group: artifact.group,
-                name: artifact.name,
-                availability: artifact.availability,
-                suggestedFilename: artifact.blob.suggestedName,
-                mediaType: artifact.blob.effectiveMime,
-                sizeBytes: artifact.blob.sizeBytes,
-                resourceLink: `sap-artifact://${library}/${version}/${artifact.artifactId}`,
-              }
-            : {
-                artifactId: artifact.artifactId,
-                type: artifact.type,
-                group: artifact.group,
-                name: artifact.name,
-                availability: artifact.availability,
-              },
+          toPublicArtifactMetadata(artifact, library, version),
         ),
       };
     } catch (error) {
