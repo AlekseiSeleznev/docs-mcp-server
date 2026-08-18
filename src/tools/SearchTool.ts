@@ -1,3 +1,7 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseArtifactCatalog } from "../contracts";
 import {
   LibraryNotFoundInStoreError,
   VersionNotFoundInStoreError,
@@ -28,6 +32,30 @@ export interface SearchToolResultError {
 
 export interface SearchToolResult {
   results: StoreSearchResult[];
+  matchedArtifacts?: MatchedArtifact[];
+}
+
+/** Read-only Artifact Catalog location used to enrich Search Results. */
+export interface SearchArtifactConfig {
+  root: string;
+}
+
+/** A Source Artifact whose representation contributed to one or more Search Results. */
+export interface MatchedArtifact {
+  artifactId: string;
+  name: string;
+  suggestedFilename: string;
+  mediaType: string;
+  availability: "Downloaded";
+  process: {
+    solutionId: string;
+    processId: string;
+    processName: string;
+    lineOfBusiness: string[];
+  };
+  resourceLink: string;
+  sizeBytes: number;
+  searchResultIndexes: number[];
 }
 
 /**
@@ -46,6 +74,7 @@ export class SearchTool {
       IDocumentManagement,
       "validateLibraryExists" | "listLibraries" | "findBestVersion" | "searchStore"
     >,
+    private readonly artifactConfig?: SearchArtifactConfig,
   ) {
     this.docService = docService;
   }
@@ -131,7 +160,12 @@ export class SearchTool {
       );
       logger.info(`✅ Found ${results.length} matching results`);
 
-      return { results };
+      const matchedArtifacts = await this.findMatchedArtifacts(
+        library,
+        versionToSearch,
+        results,
+      );
+      return matchedArtifacts.length > 0 ? { results, matchedArtifacts } : { results };
     } catch (error) {
       logger.error(`❌ Search failed during ${failureStage}`);
       if (
@@ -143,4 +177,98 @@ export class SearchTool {
       throw new ToolError(`Search failed during ${failureStage}`, this.constructor.name);
     }
   }
+
+  private async findMatchedArtifacts(
+    library: string,
+    version: string | null | undefined,
+    results: StoreSearchResult[],
+  ): Promise<MatchedArtifact[]> {
+    const root = this.artifactConfig?.root;
+    if (!root || !path.isAbsolute(root) || !version) {
+      return [];
+    }
+
+    try {
+      const versionRoot = path.resolve(root, library, version);
+      if (!isContained(root, versionRoot)) {
+        return [];
+      }
+      const catalog = parseArtifactCatalog(
+        JSON.parse(
+          await readFile(path.join(versionRoot, "artifact-catalog.json"), "utf8"),
+        ),
+      );
+      if (catalog.library !== library || catalog.libraryVersion !== version) {
+        return [];
+      }
+
+      const artifactsByRepresentation = new Map<
+        string,
+        Array<(typeof catalog.artifacts)[number] & { availability: "Downloaded" }>
+      >();
+      for (const artifact of catalog.artifacts) {
+        if (artifact.availability !== "Downloaded") {
+          continue;
+        }
+        for (const representationKey of artifact.indexedProvenance.representationKeys) {
+          const representationPath = path.resolve(versionRoot, representationKey);
+          if (!isContained(versionRoot, representationPath)) {
+            continue;
+          }
+          const entries = artifactsByRepresentation.get(representationPath) ?? [];
+          entries.push(artifact);
+          artifactsByRepresentation.set(representationPath, entries);
+        }
+      }
+
+      const matchedById = new Map<string, MatchedArtifact>();
+      results.forEach((result, resultIndex) => {
+        const resultPath = toContainedFilePath(result.url, versionRoot);
+        if (!resultPath) {
+          return;
+        }
+        for (const artifact of artifactsByRepresentation.get(resultPath) ?? []) {
+          const existing = matchedById.get(artifact.artifactId);
+          if (existing) {
+            existing.searchResultIndexes.push(resultIndex);
+            continue;
+          }
+          matchedById.set(artifact.artifactId, {
+            artifactId: artifact.artifactId,
+            name: artifact.name,
+            suggestedFilename: artifact.blob.suggestedName,
+            mediaType: artifact.blob.effectiveMime,
+            availability: artifact.availability,
+            process: artifact.process,
+            resourceLink: `sap-artifact://${catalog.library}/${catalog.libraryVersion}/${artifact.artifactId}`,
+            sizeBytes: artifact.blob.sizeBytes,
+            searchResultIndexes: [resultIndex],
+          });
+        }
+      });
+
+      return [...matchedById.values()];
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn(
+          "⚠️ Matched Artifact enrichment skipped because its catalog is invalid",
+        );
+      }
+      return [];
+    }
+  }
+}
+
+function isContained(root: string, candidate: string): boolean {
+  const relative = path.relative(path.resolve(root), path.resolve(candidate));
+  return relative !== "" && !relative.startsWith(`..${path.sep}`) && relative !== "..";
+}
+
+function toContainedFilePath(url: string, versionRoot: string): string | null {
+  const parsedUrl = new URL(url);
+  if (parsedUrl.protocol !== "file:") {
+    return null;
+  }
+  const filePath = path.resolve(fileURLToPath(parsedUrl));
+  return isContained(versionRoot, filePath) ? filePath : null;
 }

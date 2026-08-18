@@ -59,7 +59,7 @@ export async function initializeTools(
     findVersion: new FindVersionTool(docService),
     scrape: new ScrapeTool(pipeline, config.scraper),
     refresh: new RefreshVersionTool(pipeline),
-    search: new SearchTool(docService),
+    search: new SearchTool(docService, config.artifacts),
     listJobs: new ListJobsTool(pipeline),
     getJobInfo: new GetJobInfoTool(pipeline),
     cancelJob: new CancelJobTool(pipeline),

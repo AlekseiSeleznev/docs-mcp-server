@@ -248,7 +248,33 @@ ${r.content}\n`,
             `No results found for '${query}' in ${library}. Try to use a different or more general query.`,
           );
         }
-        return createResponse(formattedResults.join(""));
+        const response = createResponse(formattedResults.join(""));
+        if (!result.matchedArtifacts?.length) {
+          return response;
+        }
+
+        response.content.push(
+          ...result.matchedArtifacts.map((artifact) => ({
+            type: "resource_link" as const,
+            uri: artifact.resourceLink,
+            name: artifact.suggestedFilename,
+            title: artifact.name,
+            description: `${artifact.process.processId} / ${artifact.name}`,
+            mimeType: artifact.mediaType,
+            size: artifact.sizeBytes,
+          })),
+        );
+        response.structuredContent = {
+          results: result.matchedArtifacts.flatMap((artifact) =>
+            artifact.searchResultIndexes.map((resultIndex) => ({
+              resultIndex,
+              processId: artifact.process.processId,
+              artifactIds: [artifact.artifactId],
+            })),
+          ),
+          matchedArtifacts: result.matchedArtifacts,
+        };
+        return response;
       } catch {
         return createError("Search failed");
       }

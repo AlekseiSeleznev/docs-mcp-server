@@ -1,4 +1,10 @@
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { createArtifactId } from "../contracts";
 import {
   type DocumentManagementService,
   LibraryNotFoundInStoreError,
@@ -218,6 +224,143 @@ describe("SearchTool", () => {
       "test query",
       10, // Specified limit
     );
+  });
+
+  it("maps Search Results to deduplicated occurrence-specific Matched Artifacts", async () => {
+    const artifactRoot = await mkdtemp(path.join(tmpdir(), "matched-artifacts-"));
+    const library = "sap_process_navigator";
+    const version = "2025.1.0";
+    const versionRoot = path.join(artifactRoot, library, version);
+    const firstRepresentation = "searchable/2xu/source.md";
+    const secondRepresentation = "searchable/3xu/source.md";
+    const sharedBytesHash = createHash("sha256").update("same bytes").digest("hex");
+    const makeArtifact = (processId: string, representationKey: string) => {
+      const canonicalRelativePath = `source/${processId}/source.bpmn`;
+      return {
+        artifactId: createArtifactId({
+          library,
+          libraryVersion: version,
+          solutionId: "EARL_SolS-055",
+          processId,
+          canonicalRelativePath,
+          availability: "Downloaded",
+          sha256: sharedBytesHash,
+        }),
+        process: {
+          solutionId: "EARL_SolS-055",
+          processId,
+          processName: `Process ${processId}`,
+          lineOfBusiness: ["Sourcing and Procurement"],
+        },
+        canonicalRelativePath,
+        type: "BPMN",
+        group: "Process",
+        name: `Source model ${processId}`,
+        availability: "Downloaded" as const,
+        blob: {
+          originalName: "source.bpmn",
+          suggestedName: `${processId}.bpmn`,
+          manifestMime: "application/xml",
+          effectiveMime: "application/xml",
+          sizeBytes: 10,
+          sha256: sharedBytesHash,
+          storageKey: canonicalRelativePath,
+        },
+        indexedProvenance: { representationKeys: [representationKey] },
+      };
+    };
+    const firstArtifact = makeArtifact("2XU", firstRepresentation);
+    const secondArtifact = makeArtifact("3XU", secondRepresentation);
+
+    try {
+      await mkdir(path.join(versionRoot, "searchable", "2xu"), { recursive: true });
+      await mkdir(path.join(versionRoot, "searchable", "3xu"), { recursive: true });
+      await writeFile(
+        path.join(versionRoot, "artifact-catalog.json"),
+        JSON.stringify({
+          catalogVersion: "1",
+          library,
+          libraryVersion: version,
+          sourceRelease: "2025-FPS1-RU",
+          artifacts: [firstArtifact, secondArtifact],
+        }),
+      );
+      await writeFile(path.join(versionRoot, firstRepresentation), "first");
+      await writeFile(path.join(versionRoot, secondRepresentation), "second");
+      const searchResults: StoreSearchResult[] = [
+        {
+          url: pathToFileURL(path.join(versionRoot, firstRepresentation)).href,
+          content: "first candidate",
+          score: 0.9,
+        },
+        {
+          url: pathToFileURL(path.join(versionRoot, firstRepresentation)).href,
+          content: "repeated candidate",
+          score: 0.8,
+        },
+        {
+          url: pathToFileURL(path.join(versionRoot, secondRepresentation)).href,
+          content: "same bytes, different process",
+          score: 0.7,
+        },
+      ];
+      (mockDocService.searchStore as Mock).mockResolvedValue(searchResults);
+      const catalogBackedSearch = new SearchTool(
+        mockDocService as DocumentManagementService,
+        { root: artifactRoot },
+      );
+
+      const result = await catalogBackedSearch.execute({
+        library,
+        version,
+        exactMatch: true,
+        query: "source",
+      });
+
+      expect(result.results).toEqual(searchResults);
+      expect(result.matchedArtifacts).toEqual([
+        expect.objectContaining({
+          artifactId: firstArtifact.artifactId,
+          suggestedFilename: "2XU.bpmn",
+          mediaType: "application/xml",
+          availability: "Downloaded",
+          process: firstArtifact.process,
+          searchResultIndexes: [0, 1],
+        }),
+        expect.objectContaining({
+          artifactId: secondArtifact.artifactId,
+          process: secondArtifact.process,
+          searchResultIndexes: [2],
+        }),
+      ]);
+      expect(result.matchedArtifacts?.map(({ artifactId }) => artifactId)).toEqual([
+        firstArtifact.artifactId,
+        secondArtifact.artifactId,
+      ]);
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps catalog-less search output text-only", async () => {
+    const artifactRoot = await mkdtemp(path.join(tmpdir(), "catalog-less-search-"));
+    (mockDocService.searchStore as Mock).mockResolvedValue(mockSearchResults);
+    const catalogLessSearch = new SearchTool(
+      mockDocService as DocumentManagementService,
+      { root: artifactRoot },
+    );
+
+    try {
+      await expect(
+        catalogLessSearch.execute({
+          ...baseOptions,
+          version: "1.0.0",
+          exactMatch: true,
+        }),
+      ).resolves.toEqual({ results: mockSearchResults });
+    } finally {
+      await rm(artifactRoot, { recursive: true, force: true });
+    }
   });
 
   // --- Error Handling & Result Structure ---

@@ -8,6 +8,7 @@ import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
 import { createSourceArtifactReleaseFixture } from "../../test/test-helpers";
 import { createArtifactId } from "../contracts";
@@ -378,6 +379,82 @@ describe("MCP Server Read-Only Mode", () => {
     expect(JSON.stringify(vi.mocked(telemetry.track).mock.calls)).not.toContain(query);
     expect(JSON.stringify(result)).not.toContain(rawFailure);
     expect(JSON.stringify(result)).not.toContain("private-worker.internal");
+  });
+
+  it("keeps search text first and adds matched Artifact References", async () => {
+    const artifactId = `art_${"a".repeat(64)}`;
+    const resourceLink = `sap-artifact://sap_process_navigator/2025.1.0/${artifactId}`;
+    vi.mocked(mockTools.search.execute).mockResolvedValueOnce({
+      results: [
+        {
+          url: "file:///artifacts/sap_process_navigator/2025.1.0/searchable/source.md",
+          content: "Procurement source content",
+          score: 0.9,
+        },
+      ],
+      matchedArtifacts: [
+        {
+          artifactId,
+          name: "Source model",
+          suggestedFilename: "source.bpmn",
+          mediaType: "application/xml",
+          availability: "Downloaded",
+          process: {
+            solutionId: "EARL_SolS-055",
+            processId: "2XU",
+            processName: "Procurement",
+            lineOfBusiness: ["Sourcing and Procurement"],
+          },
+          resourceLink,
+          sizeBytes: 7,
+          searchResultIndexes: [0],
+        },
+      ],
+    });
+    const server = createMcpServerInstance(mockTools, mockConfig);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "matched-artifact-test", version: "1.0.0" });
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const result = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "search_docs",
+          arguments: { library: "sap_process_navigator", query: "procurement" },
+        }),
+      );
+
+      expect(result.content[0]).toEqual({
+        type: "text",
+        text: `\n------------------------------------------------------------\nResult 1: file:///artifacts/sap_process_navigator/2025.1.0/searchable/source.md\n\nProcurement source content\n`,
+      });
+      expect(result.content[1]).toEqual({
+        type: "resource_link",
+        uri: resourceLink,
+        name: "source.bpmn",
+        title: "Source model",
+        description: "2XU / Source model",
+        mimeType: "application/xml",
+        size: 7,
+      });
+      expect(result.structuredContent).toEqual({
+        results: [{ resultIndex: 0, processId: "2XU", artifactIds: [artifactId] }],
+        matchedArtifacts: [
+          expect.objectContaining({
+            artifactId,
+            suggestedFilename: "source.bpmn",
+            mediaType: "application/xml",
+            availability: "Downloaded",
+            resourceLink,
+          }),
+        ],
+      });
+      expect(JSON.stringify(result)).not.toContain("blob");
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("should create server instance in normal mode", () => {

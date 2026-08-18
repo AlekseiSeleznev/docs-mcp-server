@@ -14,11 +14,16 @@ import http from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
 // Using deprecated SSEClientTransport intentionally to test the legacy /sse endpoint
 // eslint-disable-next-line deprecation/deprecation
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { getCliCommand } from "./test-helpers";
+import {
+  createMatchedArtifactSearchFixture,
+  getCliCommand,
+  indexMatchedArtifactRepresentation,
+} from "./test-helpers";
 
 describe("MCP HTTP server E2E", () => {
   // Handle unhandled rejections that might occur during client shutdown
@@ -104,7 +109,11 @@ describe("MCP HTTP server E2E", () => {
    * Spawns the server and waits for it to be ready.
    * Returns the server URL when ready.
    */
-  async function startServer(port: number): Promise<string> {
+  async function startServer(
+    port: number,
+    envOverrides: NodeJS.ProcessEnv = {},
+    startupTimeoutMs = 30000,
+  ): Promise<string> {
     const projectRoot = path.resolve(import.meta.dirname, "..");
 
     // Build environment without VITEST_WORKER_ID
@@ -124,6 +133,7 @@ describe("MCP HTTP server E2E", () => {
           DOCS_MCP_STORE_PATH: path.join(projectRoot, "test", ".test-store-http"),
           DOCS_MCP_TELEMETRY: "false",
           LOG_LEVEL: "info",
+          ...envOverrides,
         },
       },
     );
@@ -132,7 +142,7 @@ describe("MCP HTTP server E2E", () => {
     const serverUrl = await new Promise<string>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Server startup timed out"));
-      }, 30000);
+      }, startupTimeoutMs);
 
       let output = "";
 
@@ -300,6 +310,55 @@ describe("MCP HTTP server E2E", () => {
     }
     transport = null;
   }, 30000);
+
+  it("returns text-first matched artifacts without binary content", async () => {
+    const fixture = await createMatchedArtifactSearchFixture();
+
+    try {
+      const port = await getAvailablePort();
+      const serverUrl = await startServer(port, fixture.env, 60000);
+      transport = createSseTransport(new URL("/sse", serverUrl));
+      client = new Client({ name: "artifact-search-http-e2e", version: "1.0.0" });
+      await client.connect(transport);
+      await indexMatchedArtifactRepresentation(client, fixture);
+
+      const result = CallToolResultSchema.parse(
+        await client.callTool({
+          name: "search_docs",
+          arguments: {
+            library: fixture.library,
+            version: fixture.version,
+            query: "Procurement artifact sentinel",
+          },
+        }),
+      );
+
+      expect(result.content[0]).toEqual(
+        expect.objectContaining({
+          type: "text",
+          text: expect.stringContaining(fixture.representationContent),
+        }),
+      );
+      expect(result.content).toContainEqual(
+        expect.objectContaining({
+          type: "resource_link",
+          uri: `sap-artifact://${fixture.library}/${fixture.version}/${fixture.artifactId}`,
+          name: "source.bpmn",
+          mimeType: "application/xml",
+        }),
+      );
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({
+          matchedArtifacts: [
+            expect.objectContaining({ artifactId: fixture.artifactId }),
+          ],
+        }),
+      );
+      expect(JSON.stringify(result)).not.toContain('"blob"');
+    } finally {
+      await fixture.cleanup();
+    }
+  }, 90000);
 
   it("should send SSE heartbeat messages to keep connection alive", async () => {
     const port = await getAvailablePort();
