@@ -1,7 +1,7 @@
 
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -29,6 +29,8 @@ export interface SourceArtifactReleaseFixture {
 /** Isolated on-disk store and catalog-backed representation for MCP search E2E tests. */
 export interface MatchedArtifactSearchFixture extends SourceArtifactReleaseFixture {
   env: NodeJS.ProcessEnv;
+  missingArtifactId: string;
+  relatedArtifactId: string;
   representationContent: string;
   representationUrl: string;
 }
@@ -130,6 +132,63 @@ export async function createMatchedArtifactSearchFixture(): Promise<MatchedArtif
   const versionRoot = path.dirname(release.catalogPath);
   const representationPath = path.join(versionRoot, "searchable", "source.md");
   const representationContent = "Procurement artifact E2E sentinel";
+  const catalog = JSON.parse(await readFile(release.catalogPath, "utf8")) as {
+    artifacts: Array<Record<string, unknown>>;
+  };
+  const process = (catalog.artifacts[0] as { process: Record<string, unknown> }).process;
+  const relatedPath = "source/2XU/test-script.docx";
+  const relatedSha256 = createHash("sha256").update("related").digest("hex");
+  const relatedArtifactId = createArtifactId({
+    library: release.library,
+    libraryVersion: release.version,
+    solutionId: String(process.solutionId),
+    processId: String(process.processId),
+    canonicalRelativePath: relatedPath,
+    availability: "Downloaded",
+    sha256: relatedSha256,
+  });
+  const missingPath = "source/2XU/unavailable.pdf";
+  const missingArtifactId = createArtifactId({
+    library: release.library,
+    libraryVersion: release.version,
+    solutionId: String(process.solutionId),
+    processId: String(process.processId),
+    canonicalRelativePath: missingPath,
+    availability: "Missing",
+  });
+  catalog.artifacts.push(
+    {
+      artifactId: relatedArtifactId,
+      process,
+      canonicalRelativePath: relatedPath,
+      type: "Document",
+      group: "Implementation",
+      name: "Test script",
+      availability: "Downloaded",
+      blob: {
+        originalName: "test-script.docx",
+        suggestedName: "test-script.docx",
+        manifestMime:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        effectiveMime:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        sizeBytes: 7,
+        sha256: relatedSha256,
+        storageKey: relatedPath,
+      },
+      indexedProvenance: { representationKeys: ["searchable/test-script.md"] },
+    },
+    {
+      artifactId: missingArtifactId,
+      process,
+      canonicalRelativePath: missingPath,
+      type: "PDF",
+      group: "Implementation",
+      name: "Unavailable guide",
+      availability: "Missing",
+    },
+  );
+  await writeFile(release.catalogPath, JSON.stringify(catalog));
   await mkdir(path.dirname(representationPath), { recursive: true });
   await writeFile(representationPath, representationContent);
   const env: NodeJS.ProcessEnv = {
@@ -144,6 +203,8 @@ export async function createMatchedArtifactSearchFixture(): Promise<MatchedArtif
   return {
     ...release,
     env,
+    missingArtifactId,
+    relatedArtifactId,
     representationContent,
     representationUrl: pathToFileURL(representationPath).href,
     async cleanup() {

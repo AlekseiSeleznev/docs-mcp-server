@@ -263,6 +263,17 @@ ${r.content}\n`,
             mimeType: artifact.mediaType,
             size: artifact.sizeBytes,
           })),
+          ...(result.relatedArtifacts ?? [])
+            .filter((artifact) => artifact.availability === "Downloaded")
+            .map((artifact) => ({
+              type: "resource_link" as const,
+              uri: artifact.resourceLink,
+              name: artifact.suggestedFilename,
+              title: artifact.name,
+              description: `${artifact.process.processId} / ${artifact.name}`,
+              mimeType: artifact.mediaType,
+              size: artifact.sizeBytes,
+            })),
         );
         response.structuredContent = {
           results: result.matchedArtifacts.flatMap((artifact) =>
@@ -273,6 +284,13 @@ ${r.content}\n`,
             })),
           ),
           matchedArtifacts: result.matchedArtifacts,
+          relatedArtifacts: result.relatedArtifacts ?? [],
+          relatedArtifactsSummary: result.relatedArtifactsSummary ?? {
+            total: 0,
+            returned: 0,
+            remaining: 0,
+            truncated: false,
+          },
         };
         return response;
       } catch {
@@ -349,6 +367,58 @@ ${r.content}\n`,
 
         // Tool now returns a structured object with message
         return createResponse(result.message);
+      } catch (error) {
+        return createError(error);
+      }
+    },
+  );
+
+  server.tool(
+    "list_source_artifacts",
+    "List the complete Source Artifact inventory for one exact library version and process.",
+    {
+      library: z.string().trim().describe("Exact library name."),
+      version: z.string().trim().describe("Exact semantic Library Version."),
+      processId: z.string().trim().describe("Exact process ID."),
+    },
+    {
+      title: "List Process Source Artifacts",
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+    async ({ library, version, processId }) => {
+      telemetry.track(TelemetryEvent.TOOL_USED, {
+        tool: "list_source_artifacts",
+        context: "mcp_server",
+        library,
+        version,
+      });
+
+      try {
+        const inventory = await tools.listSourceArtifacts.execute({
+          library,
+          version,
+          processId,
+        });
+        const response = createResponse(
+          `${inventory.total} Source Artifacts for ${inventory.process.processId} (${inventory.process.processName}).`,
+        );
+        response.content.push(
+          ...inventory.artifacts
+            .filter((artifact) => artifact.availability === "Downloaded")
+            .map((artifact) => ({
+              type: "resource_link" as const,
+              uri: artifact.resourceLink,
+              name: artifact.suggestedFilename,
+              title: artifact.name,
+              description: `${inventory.process.processId} / ${artifact.name}`,
+              mimeType: artifact.mediaType,
+              size: artifact.sizeBytes,
+            })),
+        );
+        response.structuredContent = { ...inventory };
+        return response;
       } catch (error) {
         return createError(error);
       }

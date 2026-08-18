@@ -33,6 +33,8 @@ export interface SearchToolResultError {
 export interface SearchToolResult {
   results: StoreSearchResult[];
   matchedArtifacts?: MatchedArtifact[];
+  relatedArtifacts?: RelatedArtifact[];
+  relatedArtifactsSummary?: RelatedArtifactsSummary;
 }
 
 /** Read-only Artifact Catalog location used to enrich Search Results. */
@@ -57,6 +59,39 @@ export interface MatchedArtifact {
   sizeBytes: number;
   searchResultIndexes: number[];
 }
+
+/** A Source Artifact from a matched process that did not contribute to a Search Result. */
+export type RelatedArtifact =
+  | {
+      artifactId: string;
+      type: string;
+      group: string;
+      name: string;
+      availability: "Missing" | "ExternalUnresolved";
+      process: MatchedArtifact["process"];
+    }
+  | {
+      artifactId: string;
+      type: string;
+      group: string;
+      name: string;
+      suggestedFilename: string;
+      mediaType: string;
+      availability: "Downloaded";
+      process: MatchedArtifact["process"];
+      resourceLink: string;
+      sizeBytes: number;
+    };
+
+/** Related Artifact pagination facts for the bounded search response. */
+export interface RelatedArtifactsSummary {
+  total: number;
+  returned: number;
+  remaining: number;
+  truncated: boolean;
+}
+
+const RELATED_ARTIFACT_LIMIT = 50;
 
 /**
  * Tool for searching indexed documentation.
@@ -160,12 +195,12 @@ export class SearchTool {
       );
       logger.info(`✅ Found ${results.length} matching results`);
 
-      const matchedArtifacts = await this.findMatchedArtifacts(
+      const enrichment = await this.findArtifactReferences(
         library,
         versionToSearch,
         results,
       );
-      return matchedArtifacts.length > 0 ? { results, matchedArtifacts } : { results };
+      return enrichment ? { results, ...enrichment } : { results };
     } catch (error) {
       logger.error(`❌ Search failed during ${failureStage}`);
       if (
@@ -178,20 +213,24 @@ export class SearchTool {
     }
   }
 
-  private async findMatchedArtifacts(
+  private async findArtifactReferences(
     library: string,
     version: string | null | undefined,
     results: StoreSearchResult[],
-  ): Promise<MatchedArtifact[]> {
+  ): Promise<{
+    matchedArtifacts: MatchedArtifact[];
+    relatedArtifacts: RelatedArtifact[];
+    relatedArtifactsSummary: RelatedArtifactsSummary;
+  } | null> {
     const root = this.artifactConfig?.root;
     if (!root || !path.isAbsolute(root) || !version) {
-      return [];
+      return null;
     }
 
     try {
       const versionRoot = path.resolve(root, library, version);
       if (!isContained(root, versionRoot)) {
-        return [];
+        return null;
       }
       const catalog = parseArtifactCatalog(
         JSON.parse(
@@ -199,7 +238,7 @@ export class SearchTool {
         ),
       );
       if (catalog.library !== library || catalog.libraryVersion !== version) {
-        return [];
+        return null;
       }
 
       const artifactsByRepresentation = new Map<
@@ -247,16 +286,74 @@ export class SearchTool {
         }
       });
 
-      return [...matchedById.values()];
+      if (matchedById.size === 0) {
+        return null;
+      }
+
+      const matchedProcessKeys = new Set(
+        [...matchedById.values()].map(({ process }) => processKey(process)),
+      );
+      const relatedById = new Map<string, RelatedArtifact>();
+      for (const artifact of catalog.artifacts) {
+        if (
+          matchedById.has(artifact.artifactId) ||
+          !matchedProcessKeys.has(processKey(artifact.process)) ||
+          relatedById.has(artifact.artifactId)
+        ) {
+          continue;
+        }
+        relatedById.set(
+          artifact.artifactId,
+          artifact.availability === "Downloaded"
+            ? {
+                artifactId: artifact.artifactId,
+                type: artifact.type,
+                group: artifact.group,
+                name: artifact.name,
+                suggestedFilename: artifact.blob.suggestedName,
+                mediaType: artifact.blob.effectiveMime,
+                availability: artifact.availability,
+                process: artifact.process,
+                resourceLink: `sap-artifact://${catalog.library}/${catalog.libraryVersion}/${artifact.artifactId}`,
+                sizeBytes: artifact.blob.sizeBytes,
+              }
+            : {
+                artifactId: artifact.artifactId,
+                type: artifact.type,
+                group: artifact.group,
+                name: artifact.name,
+                availability: artifact.availability,
+                process: artifact.process,
+              },
+        );
+      }
+
+      const allRelatedArtifacts = [...relatedById.values()];
+      const relatedArtifacts = allRelatedArtifacts.slice(0, RELATED_ARTIFACT_LIMIT);
+      const remaining = allRelatedArtifacts.length - relatedArtifacts.length;
+      return {
+        matchedArtifacts: [...matchedById.values()],
+        relatedArtifacts,
+        relatedArtifactsSummary: {
+          total: allRelatedArtifacts.length,
+          returned: relatedArtifacts.length,
+          remaining,
+          truncated: remaining > 0,
+        },
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         logger.warn(
           "⚠️ Matched Artifact enrichment skipped because its catalog is invalid",
         );
       }
-      return [];
+      return null;
     }
   }
+}
+
+function processKey(process: { solutionId: string; processId: string }): string {
+  return `${process.solutionId}\0${process.processId}`;
 }
 
 function isContained(root: string, candidate: string): boolean {
