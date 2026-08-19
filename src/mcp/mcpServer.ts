@@ -215,6 +215,7 @@ export function createMcpServerInstance(
       title: "Search Library Documentation",
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
     },
     async ({ library, version, query, limit }) => {
       // Track MCP tool usage
@@ -300,6 +301,7 @@ ${r.content}\n`,
       title: "List Libraries",
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
     },
     async () => {
       // Track MCP tool usage
@@ -339,6 +341,7 @@ ${r.content}\n`,
       title: "Find Library Version",
       readOnlyHint: true,
       destructiveHint: false,
+      openWorldHint: false,
     },
     async ({ library, targetVersion }) => {
       // Track MCP tool usage
@@ -616,41 +619,43 @@ ${r.content}\n`,
     );
   }
 
-  // Fetch URL tool
-  server.tool(
-    "fetch_url",
-    "Fetch a single URL and convert its content to Markdown. Use this tool to read the content of any web page.",
-    {
-      url: z.string().url().describe("URL to fetch and convert to Markdown."),
-      followRedirects: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Follow HTTP redirects (3xx responses)."),
-    },
-    {
-      title: "Fetch URL",
-      readOnlyHint: true,
-      destructiveHint: false,
-      openWorldHint: true, // requires internet access
-    },
-    async ({ url, followRedirects }) => {
-      // Track MCP tool usage
-      telemetry.track(TelemetryEvent.TOOL_USED, {
-        tool: "fetch_url",
-        context: "mcp_server",
-        url: new URL(url).hostname, // Privacy-safe URL tracking
-        followRedirects,
-      });
+  if (!readOnly) {
+    // Fetch URL tool
+    server.tool(
+      "fetch_url",
+      "Fetch a single URL and convert its content to Markdown. Use this tool to read the content of any web page.",
+      {
+        url: z.string().url().describe("URL to fetch and convert to Markdown."),
+        followRedirects: z
+          .boolean()
+          .optional()
+          .default(true)
+          .describe("Follow HTTP redirects (3xx responses)."),
+      },
+      {
+        title: "Fetch URL",
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true, // requires internet access
+      },
+      async ({ url, followRedirects }) => {
+        // Track MCP tool usage
+        telemetry.track(TelemetryEvent.TOOL_USED, {
+          tool: "fetch_url",
+          context: "mcp_server",
+          url: new URL(url).hostname, // Privacy-safe URL tracking
+          followRedirects,
+        });
 
-      try {
-        const result = await tools.fetchUrl.execute({ url, followRedirects });
-        return createResponse(result);
-      } catch (error) {
-        return createError(error);
-      }
-    },
-  );
+        try {
+          const result = await tools.fetchUrl.execute({ url, followRedirects });
+          return createResponse(result);
+        } catch (error) {
+          return createError(error);
+        }
+      },
+    );
+  }
 
   server.resource(
     "libraries",

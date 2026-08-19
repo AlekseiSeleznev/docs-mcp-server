@@ -89,6 +89,9 @@ interface DatabaseSnapshot {
 }
 
 interface DistributedStackEvidence {
+  artifactMountReadOnly: boolean;
+  artifactRead: string;
+  artifactWriteDenied: string;
   before: DatabaseSnapshot;
   after: DatabaseSnapshot;
   composeStatus: string;
@@ -324,6 +327,35 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
   let runningEvidence: Omit<DistributedStackEvidence, "after"> | undefined;
   try {
     try {
+      const artifactVolume = `${projectName}_grounded-docs-data`;
+      const createVolume = await docker([
+        "volume",
+        "create",
+        "--label",
+        `com.docker.compose.project=${projectName}`,
+        "--label",
+        "com.docker.compose.volume=grounded-docs-data",
+        artifactVolume,
+      ]);
+      if (createVolume.status !== 0) {
+        throw new Error(`Artifact volume creation failed: ${createVolume.stderr}`);
+      }
+      const seedArtifact = await docker([
+        "run",
+        "--rm",
+        "--user",
+        "0",
+        "-v",
+        `${artifactVolume}:/seed`,
+        "--entrypoint",
+        "node",
+        IMAGE_TAG,
+        "-e",
+        "const fs=require('node:fs');fs.mkdirSync('/seed/artifacts');fs.writeFileSync('/seed/artifacts/runtime-proof.txt','artifact-marker')",
+      ]);
+      if (seedArtifact.status !== 0) {
+        throw new Error(`Artifact volume seeding failed: ${seedArtifact.stderr}`);
+      }
       const up = await dockerCompose(
         composeContext,
         ["up", "-d", "--wait", "--wait-timeout", "120"],
@@ -351,12 +383,47 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
       ).text();
       const readOnlySearch = await callSearchTool(readOnlyUrl);
       const administrativeSearch = await callSearchTool(administrativeUrl);
+      const readOnlyContainer = await dockerCompose(composeContext, [
+        "ps",
+        "-q",
+        "mcp-read",
+      ]);
+      const containerId = readOnlyContainer.stdout.trim();
+      const mountInspection = await docker([
+        "inspect",
+        containerId,
+        "--format",
+        "{{json .Mounts}}",
+      ]);
+      const artifactMountReadOnly = (
+        JSON.parse(mountInspection.stdout) as Array<{
+          Destination: string;
+          RW: boolean;
+        }>
+      ).some(({ Destination, RW }) => Destination === "/artifacts" && !RW);
+      const artifactRead = await docker([
+        "exec",
+        containerId,
+        "node",
+        "-e",
+        "process.stdout.write(require('node:fs').readFileSync('/artifacts/runtime-proof.txt','utf8'))",
+      ]);
+      const artifactWrite = await docker([
+        "exec",
+        containerId,
+        "node",
+        "-e",
+        "try{require('node:fs').writeFileSync('/artifacts/write-proof.txt','blocked');process.exit(2)}catch(error){if(error.code!=='EROFS'&&error.code!=='EACCES')throw error;process.stdout.write('WRITE_DENIED')}",
+      ]);
       const logs = await dockerCompose(composeContext, [
         "logs",
         "--no-color",
         "worker",
       ]);
       runningEvidence = {
+        artifactMountReadOnly,
+        artifactRead: artifactRead.stdout,
+        artifactWriteDenied: artifactWrite.stdout,
         before,
         composeStatus: status.stdout,
         webHealth,
@@ -387,6 +454,78 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
 describe("Production deployment documentation", () => {
   const instructions = fs.readFileSync(PRODUCTION_DEPLOYMENT_README_PATH, "utf8");
 
+  it.skipIf(!DOCKER_AVAILABLE)(
+    "mounts the immutable Source Artifact directory read-only only in the read-only MCP coordinator",
+    () => {
+      const deployDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "docs-mcp-artifact-compose-"),
+      );
+      const composePath = path.join(deployDir, "docker-compose.yml");
+      fs.copyFileSync(PRODUCTION_COMPOSE_PATH, composePath);
+      fs.writeFileSync(path.join(deployDir, ".env.worker"), "");
+      fs.mkdirSync(path.join(deployDir, "imports"));
+
+      try {
+        const result = spawnSync(
+          "docker",
+          ["compose", "-f", composePath, "config", "--format", "json"],
+          {
+            cwd: deployDir,
+            encoding: "utf8",
+            env: {
+              ...process.env,
+              DOCS_MCP_IMAGE:
+                "docs-mcp-server@sha256:test-only-immutable-digest",
+            },
+          },
+        );
+        expect(result.status, result.stderr).toBe(0);
+        const config = JSON.parse(result.stdout) as {
+          services: Record<
+            string,
+            {
+              environment?: Record<string, string>;
+              volumes?: Array<{
+                read_only?: boolean;
+                source: string;
+                target: string;
+                type: string;
+                volume?: { subpath?: string };
+              }>;
+            }
+          >;
+        };
+        const artifactMount = config.services["mcp-read"].volumes?.find(
+          ({ target }) => target === "/artifacts",
+        );
+        expect(config.services["mcp-read"].environment?.DOCS_MCP_ARTIFACT_ROOT).toBe(
+          "/artifacts",
+        );
+        expect(artifactMount).toEqual(
+          expect.objectContaining({
+            read_only: true,
+            source: "grounded-docs-data",
+            target: "/artifacts",
+            type: "volume",
+            volume: expect.objectContaining({ subpath: "artifacts" }),
+          }),
+        );
+
+        for (const serviceName of ["worker", "web", "mcp-admin"]) {
+          const service = config.services[serviceName];
+          expect(service.environment).not.toHaveProperty("DOCS_MCP_ARTIFACT_ROOT");
+          expect(service.volumes ?? []).not.toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ target: "/artifacts" }),
+            ]),
+          );
+        }
+      } finally {
+        fs.rmSync(deployDir, { recursive: true, force: true });
+      }
+    },
+  );
+
   it("creates the worker secret file without clobbering it and with mode 0600", () => {
     expect(instructions).toContain(
       "install -m 600 worker.env.example .env.worker",
@@ -406,12 +545,25 @@ describe("Production deployment documentation", () => {
 
   it("documents publishing and deploying only an immutable registry digest", () => {
     expect(instructions).toContain(
-      "registry.example/docs-mcp-server:issue-9-<git-sha>",
+      "registry.example/docs-mcp-server:issue-24-<git-sha>",
     );
     expect(instructions).toContain(
       "Set `DOCS_MCP_IMAGE` only to the recorded `name@sha256:...` digest",
     );
     expect(instructions).not.toContain("immutable tag or digest");
+  });
+
+  it("documents the revision-to-digest association and sanitized acceptance matrix", () => {
+    expect(instructions).toContain(
+      "exact merged Git revision, source-specific image tag, and immutable\nregistry digest as one association",
+    );
+    expect(instructions).toContain(
+      "BPMN, DOCX, XLSX,\nPDF, and TXT catalog SHA-256 match results",
+    );
+    expect(instructions).toContain("exact read-only MCP tool-name allowlist");
+    expect(instructions).toContain(
+      "Do not retain artifact bytes, private\npaths or URLs, credentials, raw Search Results, or raw error payloads",
+    );
   });
 });
 
@@ -537,6 +689,12 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
     beforeAll(async () => {
       evidence = await exerciseProductionComposeStack();
     }, 300_000);
+
+    it("serves the Source Artifact volume subpath read-only in mcp-read", () => {
+      expect(evidence.artifactMountReadOnly).toBe(true);
+      expect(evidence.artifactRead).toBe("artifact-marker");
+      expect(evidence.artifactWriteDenied).toBe("WRITE_DENIED");
+    });
 
     it("starts every service healthy with remote web and MCP initialization", () => {
       expect(evidence.composeStatus).toContain('"Health":"healthy"');
