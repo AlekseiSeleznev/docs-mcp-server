@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "executionBoundary": {
+    "codexSkillRuns": "Real Codex MCP tool calls guided by the canonical skill",
+    "sdkProtocolChecks": "Protocol-only surface and save/hash verification; not counted as agent runs"
+  },
+  "codexContext": "fresh issue-26 executor",
+  "scenarioTraces": [
+    {
+      "id": "RU-01",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "responsibility teams concept", "limit": 5 }, "resultRef": "RU-01.queries.0" },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_6538d065a9d75f50ec08da74a8fdcb3e7563e7756f1219e21ec58e9704f6e0e0" }, "resultRef": "RU-01.retrieval" }
+      ]
+    },
+    {
+      "id": "RU-02",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "standardized event mechanism", "limit": 5 }, "resultRef": "RU-02.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-03",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "comprehensive nine-step maintenance process", "limit": 5 }, "resultRef": "RU-03.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-04",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "assign or unassign functions to team members", "limit": 5 }, "resultRef": "RU-04.queries.0" },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_b601c47b5e0ddbbc4f34f7a0ebfe96fd8a5936fa55cddc553c4fc37f9e74e11b" }, "resultRef": "RU-04.retrieval" }
+      ]
+    },
+    {
+      "id": "RU-05",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "monitor situation automation dashboard", "limit": 5 }, "resultRef": "RU-05.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-06",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "execute emergency work", "limit": 5 }, "resultRef": "RU-06.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-07",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "maintain hierarchy across teams", "limit": 5 }, "resultRef": "RU-07.queries.0" },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_cff03a61418bac186749ef12e530ff033804bb3c6c2bcc3fff9279b3fb693444" }, "resultRef": "RU-07.retrieval" }
+      ]
+    },
+    {
+      "id": "RU-08",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "create and trigger situation type", "limit": 5 }, "resultRef": "RU-08.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-09",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "configure flexible workflow for maintenance orders", "limit": 5 }, "resultRef": "RU-09.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-10",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "maintain functions and function profiles", "limit": 5 }, "resultRef": "RU-10.queries.0" },
+        { "sequence": 3, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "Responsibility Management maintain functions and function profiles", "limit": 5 }, "resultRef": "RU-10.queries.1" },
+        { "sequence": 4, "tool": "get_source_artifact", "arguments": { "artifactId": "art_9cfb926be51380e181e34cbad358a86635c372c9789076d8111e6d9e7e3d617c" }, "resultRef": "RU-10.retrieval" }
+      ]
+    },
+    {
+      "id": "RU-11",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "technical configuration settings", "limit": 5 }, "resultRef": "RU-11.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-12",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "activate machine learning cash application", "limit": 5 }, "resultRef": "RU-12.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-13",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "responsibility management cloud alm test script", "limit": 5 }, "resultRef": "RU-13.queries.0" },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_b1839d6aabf23b677e151b80cbcea510cf694711083900429da3c479d6831e44" }, "resultRef": "RU-13.retrieval" }
+      ]
+    },
+    {
+      "id": "RU-14",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "situation handling cloud alm test script", "limit": 5 }, "resultRef": "RU-14.queries.0" }
+      ]
+    },
+    {
+      "id": "RU-15",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "sap_process_navigator", "targetVersion": "2025.x" }, "result": { "version": "2025.1.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "sap_process_navigator", "version": "2025.1.0", "query": "reactive maintenance cloud alm test script", "limit": 5 }, "resultRef": "RU-15.queries.0" }
+      ]
+    }
+  ],
+  "relatedEvidence": [
+    { "id": "RU-01", "processId": "1NJ", "artifactId": "art_b601c47b5e0ddbbc4f34f7a0ebfe96fd8a5936fa55cddc553c4fc37f9e74e11b", "name": "1NJ - Responsibility Management.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-02", "processId": "1NN", "artifactId": "art_99b827d9f90b7699841ec026ee2b7fe25e1fd058784696aa2c8679429cbc875b", "name": "Solution Process Flow", "type": "BPMN", "availability": "Missing", "retrieved": false },
+    { "id": "RU-03", "processId": "4HH", "artifactId": "art_5ba6b1db69393a104c4b4a65a14a392e3ba33635f70db753423c77be06c24536", "name": "4HH - Reactive Maintenance", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-04", "processId": "1NJ", "artifactId": "art_cff03a61418bac186749ef12e530ff033804bb3c6c2bcc3fff9279b3fb693444", "name": "Test script", "type": "Accelerator", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-05", "processId": "31N", "artifactId": "art_f9061797f9b7a8cd2de2084da817caaba8eddbcf0a4683a579095a2316956bcc", "name": "31N - XX - 02 - Situation Handling - Extended Framework.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-06", "processId": "4HH", "artifactId": "art_9473b746f62c5e794fb551c9d58d243cfdd111824ed02adce8daafb46d9adf86", "name": "Description.txt", "type": "Description", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-07", "processId": "1NJ", "artifactId": "art_b1839d6aabf23b677e151b80cbcea510cf694711083900429da3c479d6831e44", "name": "Test script (SAP Cloud ALM)", "type": "Accelerator", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-08", "processId": "31N", "artifactId": "art_f806e860ae5ad6c488e27dfa929e6087c18311547d83ec5c5c3f7aa7f8e6e613", "name": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-09", "processId": "4HH", "artifactId": "art_9473b746f62c5e794fb551c9d58d243cfdd111824ed02adce8daafb46d9adf86", "name": "Description.txt", "type": "Description", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-10", "processId": "1NJ", "artifactId": "art_cff03a61418bac186749ef12e530ff033804bb3c6c2bcc3fff9279b3fb693444", "name": "Test script", "type": "Accelerator", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-11", "processId": "31N", "artifactId": "art_f806e860ae5ad6c488e27dfa929e6087c18311547d83ec5c5c3f7aa7f8e6e613", "name": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-12", "processId": "1MV", "artifactId": "art_4452b90a471099140a337792e7b02ee4f7dd25fb906407159e2d6ff6e7885e01", "name": "Description.txt", "type": "Description", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-13", "processId": "1NJ", "artifactId": "art_b601c47b5e0ddbbc4f34f7a0ebfe96fd8a5936fa55cddc553c4fc37f9e74e11b", "name": "1NJ - Responsibility Management.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-14", "processId": "31N", "artifactId": "art_f806e860ae5ad6c488e27dfa929e6087c18311547d83ec5c5c3f7aa7f8e6e613", "name": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2", "type": "BPMN", "availability": "Downloaded", "retrieved": false },
+    { "id": "RU-15", "processId": "4HH", "artifactId": "art_9473b746f62c5e794fb551c9d58d243cfdd111824ed02adce8daafb46d9adf86", "name": "Description.txt", "type": "Description", "availability": "Downloaded", "retrieved": false }
+  ],
+  "supplementalBlindContext": {
+    "contextId": "blind-ambiguity",
+    "promptRu": "Найди BPMN для процесса закупки",
+    "answerRu": "Вы ищете BPMN именно в SAP Process Navigator?",
+    "toolCalls": []
+  },
+  "sdkProtocolChecks": {
+    "countedAsAgentRuns": false,
+    "checks": ["exact five-tool surface", "save and reread five files", "size and SHA-256 equality"]
+  }
+}

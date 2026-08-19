@@ -12,7 +12,19 @@
       "list_libraries",
       "list_source_artifacts",
       "search_docs"
-    ]
+    ],
+    "publication": {
+      "sourceRef": "3d8bb31967abe6ca297f7bd700d09e018afb697d",
+      "canonicalSkillCommit": "4bc78a3d22a99bde1a4f963ec7f6effeb879e278",
+      "installedPath": "~/.codex/skills/lib-sap-process-navigator",
+      "files": {
+        "SKILL.md": "0c7d89207e067349311a4f44eb1d0594a3bf8d49a9ace34101bcff862c05b9ed",
+        "agents/openai.yaml": "82b7bf2a706b0ec3fcd84b97d159f2c51e855a334a2cf65b67180be77d67f165"
+      },
+      "canonicalEqualsInstalled": true,
+      "quickValidate": "PASS",
+      "librarySkillValidate": "PASS"
+    }
   },
   "cases": [
     {
