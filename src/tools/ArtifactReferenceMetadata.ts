@@ -22,6 +22,22 @@ export type PublicArtifactMetadata =
     };
 
 /**
+ * Builds the canonical MCP resource URI for one opaque Source Artifact identity.
+ *
+ * @param library - Exact catalog library.
+ * @param version - Exact catalog Library Version.
+ * @param artifactId - Opaque Artifact Reference identity.
+ * @returns Canonical Source Artifact resource URI.
+ */
+export function createSourceArtifactResourceUri(
+  library: string,
+  version: string,
+  artifactId: string,
+): string {
+  return `sap-artifact://${library}/${version}/${artifactId}`;
+}
+
+/**
  * Projects a trusted catalog record into safe public metadata.
  *
  * @param artifact - Validated Artifact Catalog record.
@@ -47,7 +63,11 @@ export function toPublicArtifactMetadata(
         suggestedFilename: artifact.blob.suggestedName,
         mediaType: artifact.blob.effectiveMime,
         sizeBytes: artifact.blob.sizeBytes,
-        resourceLink: `sap-artifact://${library}/${version}/${artifact.artifactId}`,
+        resourceLink: createSourceArtifactResourceUri(
+          library,
+          version,
+          artifact.artifactId,
+        ),
       }
     : { ...base, availability: artifact.availability };
 }

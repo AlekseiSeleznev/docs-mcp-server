@@ -409,6 +409,65 @@ ${r.content}\n`,
     },
   );
 
+  server.registerTool(
+    "get_source_artifact",
+    {
+      title: "Get Source Artifact",
+      description: "Return one exact Source Artifact by its opaque artifact ID.",
+      inputSchema: z
+        .object({
+          artifactId: z.string().trim().describe("Opaque Source Artifact ID."),
+        })
+        .strict(),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ artifactId }) => {
+      telemetry.track(TelemetryEvent.TOOL_USED, {
+        tool: "get_source_artifact",
+        context: "mcp_server",
+      });
+
+      try {
+        const artifact = await tools.readSourceArtifact.execute({ artifactId });
+        const { bytes, ...metadata } = artifact;
+        return {
+          content: [
+            {
+              type: "resource" as const,
+              resource: {
+                uri: artifact.resourceUri,
+                mimeType: artifact.mimeType,
+                blob: bytes.toString("base64"),
+              },
+            },
+          ],
+          structuredContent: metadata,
+          isError: false,
+        };
+      } catch (error) {
+        logger.error("❌ Source Artifact tool read failed");
+        if (error instanceof SourceArtifactReadError) {
+          return {
+            ...createError(error),
+            ...(error.metadata
+              ? {
+                  structuredContent: {
+                    ...error.metadata,
+                    maxSizeBytes: config.artifacts.maxSizeBytes,
+                  },
+                }
+              : {}),
+          };
+        }
+        return createError("Source Artifact could not be read");
+      }
+    },
+  );
+
   // Job and write tools - only available when not in read-only mode
   if (!readOnly) {
     // List jobs tool - suppress deep inference issues

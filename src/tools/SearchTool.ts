@@ -12,6 +12,7 @@ import type { IDocumentManagement } from "../store/trpc/interfaces";
 import type { StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
 import {
+  createSourceArtifactResourceUri,
   type PublicArtifactMetadata,
   toPublicArtifactMetadata,
 } from "./ArtifactReferenceMetadata";
@@ -285,7 +286,11 @@ export class SearchTool {
             mediaType: artifact.blob.effectiveMime,
             availability: artifact.availability,
             process: artifact.process,
-            resourceLink: `sap-artifact://${catalog.library}/${catalog.libraryVersion}/${artifact.artifactId}`,
+            resourceLink: createSourceArtifactResourceUri(
+              catalog.library,
+              catalog.libraryVersion,
+              artifact.artifactId,
+            ),
             sizeBytes: artifact.blob.sizeBytes,
             searchResultIndexes: [resultIndex],
           });
