@@ -989,6 +989,33 @@ describe("MCP Server Read-Only Mode", () => {
     expect(server).toBeInstanceOf(McpServer);
   });
 
+  it("exposes only closed-world retrieval tools in read-only mode", async () => {
+    const server = createMcpServerInstance(mockTools, mockReadOnlyConfig);
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "read-only-surface-test", version: "1.0.0" });
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const result = await client.listTools();
+
+      expect(result.tools.map(({ name }) => name).sort()).toEqual([
+        "find_version",
+        "get_source_artifact",
+        "list_libraries",
+        "list_source_artifacts",
+        "search_docs",
+      ]);
+      expect(result.tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
+      expect(
+        result.tools.every((tool) => tool.annotations?.openWorldHint === false),
+      ).toBe(true);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("lists a complete process inventory through a closed-world read-only tool", async () => {
     const downloadedId = `art_${"d".repeat(64)}`;
     const missingId = `art_${"e".repeat(64)}`;
