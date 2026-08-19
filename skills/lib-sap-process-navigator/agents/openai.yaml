@@ -1,0 +1,13 @@
+interface:
+  display_name: "SAP Process Navigator"
+  short_description: "Поиск процессов SAP и получение исходных артефактов"
+  default_prompt: "Используй $lib-sap-process-navigator, чтобы найти официальный процесс SAP и при необходимости получить исходный артефакт."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Удалённая read-only библиотека документации"
+
+policy:
+  allow_implicit_invocation: true
