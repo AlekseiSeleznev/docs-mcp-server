@@ -8,6 +8,7 @@ import {
   type ArtifactReference,
   parseArtifactCatalog,
 } from "../contracts/index.js";
+import { createSourceArtifactResourceUri } from "./ArtifactReferenceMetadata.js";
 
 const LIBRARY_PATTERN = /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/;
 const ARTIFACT_ID_PATTERN = /^art_[0-9a-f]{64}$/;
@@ -149,17 +150,16 @@ export class ReadSourceArtifactTool {
     version: string,
     artifactId: string,
   ): Promise<LocatedArtifact> {
-    const versionRoot = await realpath(path.resolve(root, library, version));
-    ensureContained(root, versionRoot);
-    const catalog = await readCatalog(versionRoot);
-    if (catalog.library !== library || catalog.libraryVersion !== version) {
-      throw new SourceArtifactReadError("Source Artifact library or version mismatch");
-    }
-    const artifact = catalog.artifacts.find((entry) => entry.artifactId === artifactId);
-    if (!artifact) {
+    const located = await this.locateOptionalInRelease(
+      root,
+      library,
+      version,
+      artifactId,
+    );
+    if (!located) {
       throw new SourceArtifactReadError("Source Artifact not found");
     }
-    return { artifact, catalog, versionRoot };
+    return located;
   }
 
   private async locateByArtifactId(
@@ -258,7 +258,11 @@ function createSourceArtifactMetadata(
     mimeType: artifact.blob.effectiveMime,
     sizeBytes: artifact.blob.sizeBytes,
     sha256: artifact.blob.sha256,
-    resourceUri: `sap-artifact://${catalog.library}/${catalog.libraryVersion}/${artifact.artifactId}`,
+    resourceUri: createSourceArtifactResourceUri(
+      catalog.library,
+      catalog.libraryVersion,
+      artifact.artifactId,
+    ),
   };
 }
 

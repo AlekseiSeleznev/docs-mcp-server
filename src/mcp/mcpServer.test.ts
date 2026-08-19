@@ -457,7 +457,7 @@ describe("MCP Server Read-Only Mode", () => {
     }
   });
 
-  it("rejects path-shaped and additional tool arguments", async () => {
+  it("rejects a path-shaped artifactId", async () => {
     const fixture = await createArtifactFixture();
     try {
       const invalidId = await fixture.client.callTool(
@@ -467,6 +467,17 @@ describe("MCP Server Read-Only Mode", () => {
         },
         CallToolResultSchema,
       );
+
+      expect(invalidId.isError).toBe(true);
+      expect(JSON.stringify(invalidId)).not.toContain(fixture.artifactRoot);
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("rejects additional path arguments", async () => {
+    const fixture = await createArtifactFixture();
+    try {
       const pathArgument = await fixture.client.callTool(
         {
           name: "get_source_artifact",
@@ -475,11 +486,8 @@ describe("MCP Server Read-Only Mode", () => {
         CallToolResultSchema,
       );
 
-      expect(invalidId.isError).toBe(true);
       expect(pathArgument.isError).toBe(true);
-      expect(JSON.stringify([invalidId, pathArgument])).not.toContain(
-        fixture.artifactRoot,
-      );
+      expect(JSON.stringify(pathArgument)).not.toContain(fixture.artifactRoot);
     } finally {
       await fixture.close();
     }
