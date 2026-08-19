@@ -8,7 +8,12 @@
     "representationType": "description",
     "expectedProcessId": "1NJ",
     "expectedArtifactName": "Description.txt",
-    "retrieveSource": true
+    "mustContain": "Teams concept",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "Description.txt",
+      "mediaType": "text/plain"
+    }
   },
   {
     "id": "RU-02",
@@ -19,6 +24,7 @@
     "representationType": "description",
     "expectedProcessId": "1NN",
     "expectedArtifactName": "Description.txt",
+    "mustContain": "standardized event mechanism",
     "retrieveSource": false
   },
   {
@@ -30,6 +36,7 @@
     "representationType": "description",
     "expectedProcessId": "4HH",
     "expectedArtifactName": "Description.txt",
+    "mustContain": "comprehensive nine-step process",
     "retrieveSource": false
   },
   {
@@ -41,7 +48,12 @@
     "representationType": "bpmn",
     "expectedProcessId": "1NJ",
     "expectedArtifactName": "1NJ - Responsibility Management.bpmn2",
-    "retrieveSource": true
+    "mustContain": "Assign or Unassign functions to team members",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ - Responsibility Management.bpmn2",
+      "mediaType": "text/xml"
+    }
   },
   {
     "id": "RU-05",
@@ -52,6 +64,7 @@
     "representationType": "bpmn",
     "expectedProcessId": "31N",
     "expectedArtifactName": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
+    "mustContain": "Monitor situation automation dashboard",
     "retrieveSource": false
   },
   {
@@ -63,6 +76,7 @@
     "representationType": "bpmn",
     "expectedProcessId": "4HH",
     "expectedArtifactName": "4HH - Emergency Work (SAP S4HANA)",
+    "mustContain": "Execute Emergency Work",
     "retrieveSource": false
   },
   {
@@ -74,7 +88,12 @@
     "representationType": "docx",
     "expectedProcessId": "1NJ",
     "expectedArtifactName": "Test script",
-    "retrieveSource": true
+    "mustContain": "Maintain Hierarchy Across Teams",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.docx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
   },
   {
     "id": "RU-08",
@@ -85,6 +104,7 @@
     "representationType": "docx",
     "expectedProcessId": "31N",
     "expectedArtifactName": "Test script",
+    "mustContain": "Create and Trigger Situation Type",
     "retrieveSource": false
   },
   {
@@ -96,6 +116,7 @@
     "representationType": "docx",
     "expectedProcessId": "4HH",
     "expectedArtifactName": "Test script",
+    "mustContain": "Configure Flexible Workflow for Maintenance Orders",
     "retrieveSource": false
   },
   {
@@ -109,7 +130,12 @@
     "representationType": "pdf",
     "expectedProcessId": "1NJ",
     "expectedArtifactName": "Set-up instructions",
-    "retrieveSource": true
+    "mustContain": "Maintain Functions and Function Profiles",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_Set-Up_EN_XX.pdf",
+      "mediaType": "application/pdf"
+    }
   },
   {
     "id": "RU-11",
@@ -120,6 +146,7 @@
     "representationType": "pdf",
     "expectedProcessId": "31N",
     "expectedArtifactName": "Set-up instructions",
+    "mustContain": "Technical Configuration Settings",
     "retrieveSource": false
   },
   {
@@ -131,6 +158,7 @@
     "representationType": "pdf",
     "expectedProcessId": "1MV",
     "expectedArtifactName": "Set-up instructions",
+    "mustContain": "Activate Machine Learning",
     "retrieveSource": false
   },
   {
@@ -142,7 +170,12 @@
     "representationType": "xlsx",
     "expectedProcessId": "1NJ",
     "expectedArtifactName": "Test script (SAP Cloud ALM)",
-    "retrieveSource": true
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.xlsx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
   },
   {
     "id": "RU-14",
@@ -153,6 +186,7 @@
     "representationType": "xlsx",
     "expectedProcessId": "31N",
     "expectedArtifactName": "Test script (SAP Cloud ALM)",
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
     "retrieveSource": false
   },
   {
@@ -164,6 +198,7 @@
     "representationType": "xlsx",
     "expectedProcessId": "4HH",
     "expectedArtifactName": "Test script (SAP Cloud ALM)",
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
     "retrieveSource": false
   }
 ]

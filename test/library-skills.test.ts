@@ -118,137 +118,232 @@ describe("lib-sap-sf-odata ambiguity gate", () => {
 
 describe("lib-sap-process-navigator artifact workflow", () => {
   const text = skillFile("lib-sap-process-navigator");
+  type EnglishCase = {
+    id: string;
+    type: string;
+    query: string;
+    expectedProcessId: string;
+    expectedArtifactName: string;
+    mustContain: string;
+  };
+  type SourceExpectation = { suggestedFilename: string; mediaType: string };
+  type RussianCase = {
+    id: string;
+    englishCaseId: string;
+    promptRu: string;
+    initialQuery: string;
+    refinements: string[];
+    representationType: string;
+    expectedProcessId: string;
+    expectedArtifactName: string;
+    mustContain: string;
+    retrieveSource: boolean;
+    expectedSource?: SourceExpectation;
+  };
+  type QueryObservation = {
+    query: string;
+    limit: number;
+    rank: number;
+    topProcessIds: string[];
+  };
+  type RetrievalObservation = SourceExpectation & {
+    sizeBytes: number;
+    catalogSha256: string;
+    savedSha256: string;
+    formatCheck: string;
+    temporaryCopyRemoved: boolean;
+  };
+  type ResultCase = {
+    id: string;
+    queries: QueryObservation[];
+    matchedArtifact: {
+      artifactId: string;
+      name: string;
+      mediaType: string;
+      availability: string;
+    };
+    relatedArtifacts: { returned: number; truncated: boolean };
+    answerRu: string;
+    retrieval: RetrievalObservation | null;
+  };
+  const englishSnapshot = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/sap-process-navigator-english-acceptance.json"),
+      "utf8",
+    ),
+  ) as {
+    provenance: {
+      repository: string;
+      commit: string;
+      sourcePath: string;
+      sourceSha256: string;
+    };
+    cases: EnglishCase[];
+  };
+  const matrix = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/sap-process-navigator-russian-acceptance.json"),
+      "utf8",
+    ),
+  ) as RussianCase[];
+  const observations = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/sap-process-navigator-russian-results.json"),
+      "utf8",
+    ),
+  ) as {
+    runtime: { library: string; version: string; toolSurface: string[] };
+    cases: ResultCase[];
+    unavailableEvidence: Array<{ availability: string; blobReturned: boolean }>;
+    negativeEvidence: {
+      rawBinaryOrBase64Recorded: boolean;
+      privateUrlRecorded: boolean;
+      serverPathRecorded: boolean;
+    };
+  };
 
-  it("publishes the accepted Russian scenarios one-to-one with the English release cases", () => {
-    const matrix = JSON.parse(
-      readFileSync(
-        resolve(
-          root,
-          "test/fixtures/sap-process-navigator-russian-acceptance.json",
-        ),
-        "utf8",
-      ),
-    ) as Array<{
-      id: string;
-      englishCaseId: string;
-      promptRu: string;
-      initialQuery: string;
-      refinements: string[];
-      representationType: string;
-      expectedProcessId: string;
-      expectedArtifactName: string;
-      retrieveSource: boolean;
-    }>;
+  it("pins the complete accepted English corpus to its source revision", () => {
+    expect(englishSnapshot.provenance).toEqual({
+      repository: "AlekseiSeleznev/sap-library-mcp",
+      commit: "5b8ce99a668f98c1eefcbb099c8d4680e2a3bb46",
+      sourcePath: "scripts/build-searchable-index.mjs",
+      sourceSha256: "43863f302f34bf124ee8f2d4a6ebea1a2e465dee9c96a36e719938e7b920bdd6",
+    });
+    expect(englishSnapshot.cases).toHaveLength(15);
+    expect(englishSnapshot.cases.every(({ mustContain }) => mustContain.length > 0)).toBe(
+      true,
+    );
+  });
 
-    expect(matrix).toHaveLength(15);
+  it("maps every Russian scenario to one complete accepted English case", () => {
+    const englishById = new Map(
+      englishSnapshot.cases.map((acceptanceCase) => [acceptanceCase.id, acceptanceCase]),
+    );
     expect(matrix.map(({ id }) => id)).toEqual(
       Array.from({ length: 15 }, (_, index) =>
         `RU-${String(index + 1).padStart(2, "0")}`,
       ),
     );
-    expect(matrix.map(({ englishCaseId }) => englishCaseId)).toEqual(
-      Array.from({ length: 15 }, (_, index) =>
-        `EN-${String(index + 1).padStart(2, "0")}`,
-      ),
-    );
-    expect(
-      matrix.map(
-        ({ initialQuery, representationType, expectedProcessId, expectedArtifactName }) => [
-          initialQuery,
-          representationType,
-          expectedProcessId,
-          expectedArtifactName,
-        ],
-      ),
-    ).toEqual([
-      ["responsibility teams concept", "description", "1NJ", "Description.txt"],
-      ["standardized event mechanism", "description", "1NN", "Description.txt"],
-      [
-        "comprehensive nine-step maintenance process",
-        "description",
-        "4HH",
-        "Description.txt",
-      ],
-      [
-        "assign or unassign functions to team members",
-        "bpmn",
-        "1NJ",
-        "1NJ - Responsibility Management.bpmn2",
-      ],
-      [
-        "monitor situation automation dashboard",
-        "bpmn",
-        "31N",
-        "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
-      ],
-      [
-        "execute emergency work",
-        "bpmn",
-        "4HH",
-        "4HH - Emergency Work (SAP S4HANA)",
-      ],
-      ["maintain hierarchy across teams", "docx", "1NJ", "Test script"],
-      ["create and trigger situation type", "docx", "31N", "Test script"],
-      [
-        "configure flexible workflow for maintenance orders",
-        "docx",
-        "4HH",
-        "Test script",
-      ],
-      [
-        "maintain functions and function profiles",
-        "pdf",
-        "1NJ",
-        "Set-up instructions",
-      ],
-      ["technical configuration settings", "pdf", "31N", "Set-up instructions"],
-      [
-        "activate machine learning cash application",
-        "pdf",
-        "1MV",
-        "Set-up instructions",
-      ],
-      [
-        "responsibility management cloud alm test script",
-        "xlsx",
-        "1NJ",
-        "Test script (SAP Cloud ALM)",
-      ],
-      [
-        "situation handling cloud alm test script",
-        "xlsx",
-        "31N",
-        "Test script (SAP Cloud ALM)",
-      ],
-      [
-        "reactive maintenance cloud alm test script",
-        "xlsx",
-        "4HH",
-        "Test script (SAP Cloud ALM)",
-      ],
-    ]);
-    expect(matrix.every(({ promptRu }) => /[А-Яа-яЁё]/u.test(promptRu))).toBe(
-      true,
-    );
-    expect(
-      matrix.reduce<Record<string, number>>((counts, acceptanceCase) => {
-        counts[acceptanceCase.representationType] =
-          (counts[acceptanceCase.representationType] ?? 0) + 1;
-        return counts;
-      }, {}),
-    ).toEqual({ description: 3, bpmn: 3, docx: 3, pdf: 3, xlsx: 3 });
-    expect(matrix.filter(({ retrieveSource }) => retrieveSource)).toHaveLength(5);
-    expect(
-      new Set(
-        matrix
-          .filter(({ retrieveSource }) => retrieveSource)
-          .map(({ representationType }) => representationType),
-      ),
-    ).toEqual(new Set(["description", "bpmn", "docx", "pdf", "xlsx"]));
-    expect(matrix.every(({ refinements }) => refinements.length <= 2)).toBe(true);
+    for (const acceptanceCase of matrix) {
+      const englishCase = englishById.get(acceptanceCase.englishCaseId);
+      expect({
+        query: acceptanceCase.initialQuery,
+        type: acceptanceCase.representationType,
+        expectedProcessId: acceptanceCase.expectedProcessId,
+        expectedArtifactName: acceptanceCase.expectedArtifactName,
+        mustContain: acceptanceCase.mustContain,
+      }).toEqual(
+        englishCase
+          ? {
+              query: englishCase.query,
+              type: englishCase.type,
+              expectedProcessId: englishCase.expectedProcessId,
+              expectedArtifactName: englishCase.expectedArtifactName,
+              mustContain: englishCase.mustContain,
+            }
+          : undefined,
+      );
+    }
+  });
+
+  it("keeps Russian prompts on bounded English search traces", () => {
+    expect(matrix.every(({ promptRu }) => /[А-Яа-яЁё]/u.test(promptRu))).toBe(true);
     expect(matrix.every(({ initialQuery }) => !/[А-Яа-яЁё]/u.test(initialQuery))).toBe(
       true,
     );
+    expect(matrix.every(({ refinements }) => refinements.length <= 2)).toBe(true);
+    expect(
+      observations.cases.every(
+        ({ queries }) =>
+          queries.length <= 3 && queries.every(({ limit }) => limit === 5 || limit === 10),
+      ),
+    ).toBe(true);
+  });
+
+  it("records a grounded top-five Russian verdict for all fifteen scenarios", () => {
+    const matrixById = new Map(matrix.map((acceptanceCase) => [acceptanceCase.id, acceptanceCase]));
+    expect(observations.cases).toHaveLength(15);
+    for (const observation of observations.cases) {
+      const acceptanceCase = matrixById.get(observation.id);
+      const finalQuery = observation.queries.at(-1);
+      expect(acceptanceCase).toBeDefined();
+      expect(observation.queries.map(({ query }) => query)).toEqual([
+        acceptanceCase?.initialQuery,
+        ...(acceptanceCase?.refinements ?? []),
+      ]);
+      expect(finalQuery?.rank).toBeGreaterThanOrEqual(1);
+      expect(finalQuery?.rank).toBeLessThanOrEqual(5);
+      expect(finalQuery?.topProcessIds).toContain(acceptanceCase?.expectedProcessId);
+      expect(observation.matchedArtifact.name).toBe(acceptanceCase?.expectedArtifactName);
+      expect(observation.matchedArtifact.availability).toBe("Downloaded");
+      expect(observation.answerRu).toMatch(/[А-Яа-яЁё]/u);
+    }
+  });
+
+  it("keeps ten factual scenarios free of source retrieval", () => {
+    const factualIds = matrix
+      .filter(({ retrieveSource }) => !retrieveSource)
+      .map(({ id }) => id);
+    expect(factualIds).toHaveLength(10);
+    expect(
+      observations.cases
+        .filter(({ id }) => factualIds.includes(id))
+        .every(({ retrieval }) => retrieval === null),
+    ).toBe(true);
+  });
+
+  it("records one saved and hash-verified source for every required file type", () => {
+    const sourceCases = matrix.filter(({ retrieveSource }) => retrieveSource);
+    const resultById = new Map(observations.cases.map((result) => [result.id, result]));
+    expect(sourceCases.map(({ representationType }) => representationType).sort()).toEqual(
+      ["bpmn", "description", "docx", "pdf", "xlsx"],
+    );
+    for (const acceptanceCase of sourceCases) {
+      const retrieval = resultById.get(acceptanceCase.id)?.retrieval;
+      expect(retrieval).toMatchObject(acceptanceCase.expectedSource ?? {});
+      expect(retrieval?.sizeBytes).toBeGreaterThan(0);
+      expect(retrieval?.savedSha256).toBe(retrieval?.catalogSha256);
+      expect(retrieval?.temporaryCopyRemoved).toBe(true);
+    }
+  });
+
+  it("records Matched and Related Artifact observations separately", () => {
+    expect(
+      observations.cases.every(
+        ({ matchedArtifact, relatedArtifacts }) =>
+          matchedArtifact.artifactId.startsWith("art_") &&
+          relatedArtifacts.returned > 0 &&
+          !relatedArtifacts.truncated,
+      ),
+    ).toBe(true);
+  });
+
+  it("records honest unavailable statuses without blobs", () => {
+    expect(
+      new Set(observations.unavailableEvidence.map(({ availability }) => availability)),
+    ).toEqual(new Set(["Missing", "ExternalUnresolved"]));
+    expect(
+      observations.unavailableEvidence.every(({ blobReturned }) => !blobReturned),
+    ).toBe(true);
+  });
+
+  it("records the exact closed read-only MCP surface without sensitive payloads", () => {
+    expect(observations.runtime).toMatchObject({
+      library: "sap_process_navigator",
+      version: "2025.1.0",
+      toolSurface: [
+        "find_version",
+        "get_source_artifact",
+        "list_libraries",
+        "list_source_artifacts",
+        "search_docs",
+      ],
+    });
+    expect(observations.negativeEvidence).toMatchObject({
+      rawBinaryOrBase64Recorded: false,
+      privateUrlRecorded: false,
+      serverPathRecorded: false,
+    });
   });
 
   it("grounds Russian questions through bounded English SAP searches", () => {
