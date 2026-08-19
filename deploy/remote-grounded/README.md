@@ -7,9 +7,12 @@ only in the worker environment.
 
 The read-only MCP coordinator also serves immutable Source Artifacts from the
 existing `artifacts` directory in `grounded-docs-data`. Compose mounts only that
-volume subpath at `/artifacts` with `read_only: true` and sets
-`DOCS_MCP_ARTIFACT_ROOT=/artifacts` only on `mcp-read`. The worker, web UI, and
-administrative MCP keep their existing storage and search configuration.
+volume subpath at `/data/artifacts` with `read_only: true` and sets
+`DOCS_MCP_ARTIFACT_ROOT=/data/artifacts` only on `mcp-read`. This canonical path
+matches the stored `file://` representation URLs, so search can attach Matched
+and Related Artifacts while exact reads stay on the read-only nested mount. The
+worker, web UI, and administrative MCP keep their existing storage and search
+configuration.
 
 ## Build and pin the image
 
@@ -83,10 +86,11 @@ docker compose -f deploy/remote-grounded/docker-compose.yml ps
 Verify the worker healthcheck, the web health response, MCP initialization on
 both MCP endpoints, and one normal search through each MCP endpoint. Both
 searches execute on the worker and therefore use the worker-owned Reranker.
-Inspect the `mcp-read` container and confirm that `/artifacts` is a read-only
-volume mount and `DOCS_MCP_ARTIFACT_ROOT` resolves to `/artifacts`. Confirm that
-the other three services do not receive either setting. The `artifacts` subpath
-must already exist from the accepted publication before recreating `mcp-read`.
+Inspect the `mcp-read` container and confirm that `/data/artifacts` is a
+read-only volume mount and `DOCS_MCP_ARTIFACT_ROOT` resolves to
+`/data/artifacts`. Confirm that the other three services do not receive either
+setting. The `artifacts` subpath must already exist from the accepted publication
+before recreating `mcp-read`.
 
 Safe operational evidence consists only of the image digest, process health,
 MCP initialization status, candidate count, elapsed time, outcome, returned
