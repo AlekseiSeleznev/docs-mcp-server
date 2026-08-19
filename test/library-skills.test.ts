@@ -1,5 +1,8 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = resolve(import.meta.dirname, "..");
@@ -463,7 +466,7 @@ describe("lib-sap-process-navigator artifact workflow", () => {
     expect(text).toContain("artifactId");
     expect(text).toContain("Не принимай от пользователя путь сервера");
     expect(text).toContain(
-      "Никогда не вызывай `fetch_url`, Chromium, browser, инструменты записи или удаления",
+      "Получай байты только через `get_source_artifact`",
     );
     expect(text).toContain(
       "`[Источник] {Официальная публикация}; {Process ID, Process Name или раздел}; <{публичный URL}>`",
@@ -471,5 +474,163 @@ describe("lib-sap-process-navigator artifact workflow", () => {
     expect(text).toContain(
       "явном контексте процессов SAP",
     );
+  });
+
+  it("groups a concise final artifact list by user-facing type", () => {
+    expect(text).toContain("## Артефакты");
+    expect(text).toContain("Диаграммы процессов");
+    expect(text).toContain("Описания процессов");
+    expect(text).toContain("Акселераторы");
+    expect(text).toContain("Оставь названия групп обычным текстом");
+    expect(text).toContain("для `Downloaded` только `suggestedFilename`");
+    expect(text).toContain("для недоступной записи — её `name`");
+    expect(text).toContain("Не выводи пустую группу");
+    expect(text).toContain("не показывай `artifactId`");
+    expect(text).toContain(
+      "`list_source_artifacts` один раз для каждого process ID",
+    );
+    expect(text).toContain("массива `structuredContent.artifacts`");
+    expect(text).toContain("инвентарём выбранного процесса");
+  });
+
+  it("uses a deterministic destination policy for requested downloads", () => {
+    expect(text).toContain("`artifacts/sap-process-navigator/<Process ID>/`");
+    expect(text).toContain("Если проектная папка не найдена");
+    expect(text).toContain("предложи рабочий стол как вариант по умолчанию");
+    expect(text).toContain("разреши относительный путь от текущей рабочей папки");
+    expect(text).toContain("`.git`, `package.json`, `pyproject.toml`");
+    expect(text).toContain("Сначала определи папку назначения");
+    expect(text).toContain("остановись до ответа");
+    expect(text).toContain("Bundled writer сам");
+    expect(text).toContain("сохраняет через `create-new`");
+    expect(text).toContain("без временных файлов и удаления");
+    expect(text).toContain("**Скачано**");
+    expect(text).toContain("по одной строке `имя файла → полный путь`");
+  });
+
+  it("keeps the download sequence ordered and multiple processes identifiable", () => {
+    const destination = text.indexOf("Сначала определи папку назначения");
+    const retrieval = text.indexOf("Получи выбранные исходники только через");
+    const persistence = text.indexOf("После завершения всех retrieval-вызовов");
+    expect(destination).toBeGreaterThan(-1);
+    expect(destination).toBeLessThan(retrieval);
+    expect(retrieval).toBeLessThan(persistence);
+    expect(text).toContain("`<Process ID> — <Process Name>`");
+  });
+
+  it("downloads every selected artifact and keeps a follow-up response concise", () => {
+    expect(text).toContain("выбери все доступные записи");
+    expect(text).toContain("Для каждого результата передай writer");
+    expect(text).toContain("параллельно одним batch");
+    expect(text).toContain("независимо от того, первый он или последующий");
+    expect(text).toContain("не выводи разделы с документацией");
+    expect(text).toContain("по одной строке `имя файла → полный путь`");
+  });
+
+  it("uses a ready interactive writer without narrating recoverable retries", () => {
+    expect(text).toContain("В Codex сразу используй интерактивный режим");
+    expect(text).toContain("дождись активной сессии");
+    expect(text).toContain('JSON `{"ready":true}`');
+    expect(text).toContain("Сохраняю {количество} файлов в {папка}");
+    expect(text).toContain("Не сообщай о восстановимой внутренней ошибке");
+  });
+
+  it("renders every downloaded file as a clickable Codex local link", () => {
+    expect(text).toContain("`- [имя файла](<абсолютный путь>)`");
+    expect(text).toContain("оберни target в `<...>`");
+    expect(text).toContain("не экранируй круглые скобки");
+    expect(text).toContain("одну ссылку на каждый сохранённый файл");
+  });
+
+  it("uses one bundled fast-path writer after parallel artifact retrieval", () => {
+    expect(text).toContain("`scripts/save-source-artifacts.mjs`");
+    expect(text).toContain("параллельно одним batch");
+    expect(text).toContain("После завершения всех retrieval-вызовов");
+    expect(text).toContain("запусти writer ровно один раз");
+    expect(text).toContain("Не генерируй inline Python");
+    expect(text).toContain("не запускай диагностические sleep/probe-команды");
+  });
+
+  it("saves large JSONL payloads and resolves reuse and collisions", () => {
+    const writer = resolve(
+      root,
+      "skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs",
+    );
+    const destination = mkdtempSync(join(tmpdir(), "sap-artifact-writer-"));
+    try {
+      const first = Buffer.from("A".repeat(16_384));
+      const second = Buffer.from("B".repeat(16_384));
+      const record = (data: Buffer) => ({
+        suggestedFilename: "large payload.txt",
+        blob: data.toString("base64"),
+        sizeBytes: data.length,
+        sha256: createHash("sha256").update(data).digest("hex"),
+        mimeType: "text/plain",
+      });
+      const input = [record(first), record(first), record(second)]
+        .map((value) => JSON.stringify(value))
+        .join("\n") + "\n";
+
+      const output = execFileSync(
+        process.execPath,
+        [writer, "--destination", destination, "--count", "3"],
+        { encoding: "utf8", input },
+      )
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+
+      expect(output).toEqual([
+        { ready: true, count: 3 },
+        {
+          name: "large payload.txt",
+          path: join(destination, "large payload.txt"),
+          status: "saved",
+        },
+        {
+          name: "large payload.txt",
+          path: join(destination, "large payload.txt"),
+          status: "reused",
+        },
+        {
+          name: "large payload.txt",
+          path: join(destination, "large payload (1).txt"),
+          status: "saved",
+        },
+      ]);
+      expect(readFileSync(join(destination, "large payload.txt"))).toEqual(first);
+      expect(readFileSync(join(destination, "large payload (1).txt"))).toEqual(second);
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an invalid payload without creating the requested file", () => {
+    const writer = resolve(
+      root,
+      "skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs",
+    );
+    const destination = mkdtempSync(join(tmpdir(), "sap-artifact-writer-invalid-"));
+    try {
+      const input = `${JSON.stringify({
+        suggestedFilename: "invalid.txt",
+        blob: Buffer.from("payload").toString("base64"),
+        sizeBytes: 7,
+        sha256: "0".repeat(64),
+        mimeType: "text/plain",
+      })}\n`;
+      const result = spawnSync(
+        process.execPath,
+        [writer, "--destination", destination, "--count", "1"],
+        { encoding: "utf8", input },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("payload integrity check failed");
+      expect(result.stderr).not.toContain(input);
+      expect(existsSync(join(destination, "invalid.txt"))).toBe(false);
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
   });
 });
