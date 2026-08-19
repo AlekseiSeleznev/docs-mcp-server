@@ -49,8 +49,8 @@ def validate(skill_dir: Path) -> list[str]:
         if required not in text:
             errors.append(f"missing contract text: {required}")
 
-    library_matches = set(re.findall(r'library="([a-z0-9-]+)"', text))
-    footer_matches = set(re.findall(r"\[Использованы библиотеки: ([a-z0-9-]+)\]", text))
+    library_matches = set(re.findall(r'library="([a-z0-9_-]+)"', text))
+    footer_matches = set(re.findall(r"\[Использованы библиотеки: ([a-z0-9_-]+)\]", text))
     if len(library_matches) != 1:
         errors.append("skill must declare exactly one fixed library")
     if footer_matches != library_matches:

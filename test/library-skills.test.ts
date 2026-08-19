@@ -7,6 +7,7 @@ const librarySkills = {
   "lib-nifi": "nifi",
   "lib-pm2-it": "pm2-it",
   "lib-postgresql": "postgresql",
+  "lib-sap-process-navigator": "sap_process_navigator",
   "lib-sap-sf-odata": "sap-sf-odata",
 } as const;
 
@@ -19,7 +20,7 @@ describe.each(Object.entries(librarySkills))("%s", (skill, library) => {
   const agent = skillFile(skill, "agents/openai.yaml");
 
   it("keeps one fixed library and the matching final footer", () => {
-    const libraries = [...text.matchAll(/library="([a-z0-9-]+)"/g)].map(
+    const libraries = [...text.matchAll(/library="([a-z0-9_-]+)"/g)].map(
       (match) => match[1],
     );
     expect(new Set(libraries)).toEqual(new Set([library]));
@@ -112,5 +113,40 @@ describe("lib-sap-sf-odata ambiguity gate", () => {
     expect(text).toContain("Выведи только вопрос");
     expect(text).toContain("не делай предположение о SuccessFactors");
     expect(text).toContain("Это правило имеет приоритет над поиском");
+  });
+});
+
+describe("lib-sap-process-navigator artifact workflow", () => {
+  const text = skillFile("lib-sap-process-navigator");
+
+  it("grounds Russian questions through bounded English SAP searches", () => {
+    expect(text).toContain('targetVersion="2025.x"');
+    expect(text).toContain("русск");
+    expect(text).toContain("английск");
+    expect(text).toContain("точные английские термины SAP");
+    expect(text.toLowerCase()).toContain("не добавляй перевод");
+  });
+
+  it("distinguishes matched and related artifacts including unavailable statuses", () => {
+    expect(text).toContain("Matched Artifacts");
+    expect(text).toContain("Related Artifacts");
+    expect(text).toContain("Missing");
+    expect(text).toContain("ExternalUnresolved");
+  });
+
+  it("retrieves source bytes only through an opaque artifactId", () => {
+    expect(text).toContain("list_source_artifacts");
+    expect(text).toContain("get_source_artifact");
+    expect(text).toContain("artifactId");
+    expect(text).toContain("Не принимай от пользователя путь сервера");
+    expect(text).toContain(
+      "Никогда не вызывай `fetch_url`, Chromium, browser, инструменты записи или удаления",
+    );
+    expect(text).toContain(
+      "`[Источник] {Официальная публикация}; {Process ID, Process Name или раздел}; <{публичный URL}>`",
+    );
+    expect(text).toContain(
+      "явном контексте процессов SAP",
+    );
   });
 });
