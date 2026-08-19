@@ -400,20 +400,20 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
           Destination: string;
           RW: boolean;
         }>
-      ).some(({ Destination, RW }) => Destination === "/artifacts" && !RW);
+      ).some(({ Destination, RW }) => Destination === "/data/artifacts" && !RW);
       const artifactRead = await docker([
         "exec",
         containerId,
         "node",
         "-e",
-        "process.stdout.write(require('node:fs').readFileSync('/artifacts/runtime-proof.txt','utf8'))",
+        "process.stdout.write(require('node:fs').readFileSync('/data/artifacts/runtime-proof.txt','utf8'))",
       ]);
       const artifactWrite = await docker([
         "exec",
         containerId,
         "node",
         "-e",
-        "try{require('node:fs').writeFileSync('/artifacts/write-proof.txt','blocked');process.exit(2)}catch(error){if(error.code!=='EROFS'&&error.code!=='EACCES')throw error;process.stdout.write('WRITE_DENIED')}",
+        "try{require('node:fs').writeFileSync('/data/artifacts/write-proof.txt','blocked');process.exit(2)}catch(error){if(error.code!=='EROFS'&&error.code!=='EACCES')throw error;process.stdout.write('WRITE_DENIED')}",
       ]);
       const logs = await dockerCompose(composeContext, [
         "logs",
@@ -496,16 +496,16 @@ describe("Production deployment documentation", () => {
           >;
         };
         const artifactMount = config.services["mcp-read"].volumes?.find(
-          ({ target }) => target === "/artifacts",
+          ({ target }) => target === "/data/artifacts",
         );
         expect(config.services["mcp-read"].environment?.DOCS_MCP_ARTIFACT_ROOT).toBe(
-          "/artifacts",
+          "/data/artifacts",
         );
         expect(artifactMount).toEqual(
           expect.objectContaining({
             read_only: true,
             source: "grounded-docs-data",
-            target: "/artifacts",
+            target: "/data/artifacts",
             type: "volume",
             volume: expect.objectContaining({ subpath: "artifacts" }),
           }),
@@ -516,7 +516,7 @@ describe("Production deployment documentation", () => {
           expect(service.environment).not.toHaveProperty("DOCS_MCP_ARTIFACT_ROOT");
           expect(service.volumes ?? []).not.toEqual(
             expect.arrayContaining([
-              expect.objectContaining({ target: "/artifacts" }),
+              expect.objectContaining({ target: "/data/artifacts" }),
             ]),
           );
         }

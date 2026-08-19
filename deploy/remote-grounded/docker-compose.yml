@@ -50,13 +50,13 @@ services:
     ports:
       - "127.0.0.1:16281:6280"
     environment:
-      DOCS_MCP_ARTIFACT_ROOT: /artifacts
+      DOCS_MCP_ARTIFACT_ROOT: /data/artifacts
       DOCS_MCP_TELEMETRY: "false"
     volumes:
       - grounded-docs-config:/config
       - type: volume
         source: grounded-docs-data
-        target: /artifacts
+        target: /data/artifacts
         read_only: true
         volume:
           subpath: artifacts
