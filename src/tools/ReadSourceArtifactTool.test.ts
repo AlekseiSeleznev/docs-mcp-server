@@ -17,7 +17,9 @@ describe("ReadSourceArtifactTool", () => {
         artifactId: fixture.artifactId,
       });
 
-      expect(result).toEqual({ mimeType: "application/xml", bytes });
+      expect(result).toEqual(
+        expect.objectContaining({ mimeType: "application/xml", bytes }),
+      );
     } finally {
       await fixture.cleanup();
     }

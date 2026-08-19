@@ -2,6 +2,7 @@
  * Tests for MCP server read-only mode functionality
  */
 
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -39,7 +40,13 @@ const mockReadOnlyConfig = {
 interface ArtifactFixtureOptions {
   availability?: "Downloaded" | "Missing" | "ExternalUnresolved";
   bytes?: Buffer;
+  effectiveMime?: string;
+  manifestMime?: string;
   maxSizeBytes?: number;
+  originalName?: string;
+  storageKey?: string;
+  suggestedName?: string;
+  type?: string;
 }
 
 async function createArtifactFixture(options: ArtifactFixtureOptions = {}) {
@@ -125,6 +132,359 @@ const mockTools: McpServerTools = {
 };
 
 describe("MCP Server Read-Only Mode", () => {
+  it("advertises get_source_artifact as an artifactId-only closed-world read", async () => {
+    const fixture = await createArtifactFixture();
+    try {
+      const tool = (await fixture.client.listTools()).tools.find(
+        ({ name }) => name === "get_source_artifact",
+      );
+
+      expect(tool).toEqual(
+        expect.objectContaining({
+          inputSchema: expect.objectContaining({
+            additionalProperties: false,
+            properties: { artifactId: expect.any(Object) },
+            required: ["artifactId"],
+          }),
+          annotations: expect.objectContaining({
+            readOnlyHint: true,
+            destructiveHint: false,
+            openWorldHint: false,
+          }),
+        }),
+      );
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("returns the same exact BPMN bytes, MIME, size, and SHA as resources/read", async () => {
+    const bytes = Buffer.from([0xef, 0xbb, 0xbf, 0x3c, 0x62, 0x70, 0x6d, 0x6e]);
+    const fixture = await createArtifactFixture({ bytes });
+    try {
+      const resourceResult = await fixture.client.readResource({ uri: fixture.uri });
+      const toolResult = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId },
+        },
+        CallToolResultSchema,
+      );
+      const expectedBlob = bytes.toString("base64");
+      const expectedSha256 = createHash("sha256").update(bytes).digest("hex");
+
+      expect(toolResult.isError).toBe(false);
+      expect(toolResult.content).toContainEqual({
+        type: "resource",
+        resource: {
+          uri: fixture.uri,
+          mimeType: "application/xml",
+          blob: expectedBlob,
+        },
+      });
+      expect(toolResult.structuredContent).toEqual({
+        artifactId: fixture.artifactId,
+        availability: "Downloaded",
+        library: fixture.library,
+        version: fixture.version,
+        originalName: "source.bpmn",
+        suggestedFilename: "source.bpmn",
+        mimeType: "application/xml",
+        sizeBytes: bytes.length,
+        sha256: expectedSha256,
+        resourceUri: fixture.uri,
+      });
+      expect(toolResult.content).toContainEqual({
+        type: "resource",
+        resource: resourceResult.contents[0],
+      });
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it.each([
+    {
+      format: "DOCX",
+      bytes: Buffer.from("docx-exact-bytes"),
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      originalName: "source",
+      suggestedFilename: "source.docx",
+    },
+    {
+      format: "XLSX",
+      bytes: Buffer.from("xlsx-exact-bytes"),
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      originalName: "registry",
+      suggestedFilename: "registry.xlsx",
+    },
+    {
+      format: "PDF",
+      bytes: Buffer.from("%PDF-1.7 exact bytes"),
+      mimeType: "application/pdf",
+      originalName: "guide.pdf",
+      suggestedFilename: "guide.pdf",
+    },
+    {
+      format: "TXT",
+      bytes: Buffer.from("exact text\r\nbytes", "utf8"),
+      mimeType: "text/plain",
+      originalName: "notes.txt",
+      suggestedFilename: "notes.txt",
+    },
+  ])(
+    "returns exact $format bytes with effective MIME and preserved source names",
+    async ({ bytes, format, mimeType, originalName, suggestedFilename }) => {
+      const fixture = await createArtifactFixture({
+        bytes,
+        effectiveMime: mimeType,
+        manifestMime: "application/octet-stream",
+        originalName,
+        storageKey: `source/2XU/${originalName}`,
+        suggestedName: suggestedFilename,
+        type: format,
+      });
+      try {
+        const result = await fixture.client.callTool(
+          {
+            name: "get_source_artifact",
+            arguments: { artifactId: fixture.artifactId },
+          },
+          CallToolResultSchema,
+        );
+
+        expect(result.isError).toBe(false);
+        expect(result.content).toContainEqual({
+          type: "resource",
+          resource: {
+            uri: fixture.uri,
+            mimeType,
+            blob: bytes.toString("base64"),
+          },
+        });
+        expect(result.structuredContent).toEqual(
+          expect.objectContaining({
+            originalName,
+            suggestedFilename,
+            mimeType,
+            sizeBytes: bytes.length,
+          }),
+        );
+      } finally {
+        await fixture.close();
+      }
+    },
+  );
+
+  it("returns useful non-binary metadata when the artifact exceeds the configured limit", async () => {
+    const bytes = Buffer.from("oversized-private-binary");
+    const fixture = await createArtifactFixture({ bytes, maxSizeBytes: 4 });
+    try {
+      await rm(fixture.storagePath);
+      const result = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId },
+        },
+        CallToolResultSchema,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([
+        expect.objectContaining({
+          type: "text",
+          text: "Source Artifact exceeds the configured size limit",
+        }),
+      ]);
+      expect(result.content).not.toContainEqual(
+        expect.objectContaining({ type: "resource" }),
+      );
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({
+          artifactId: fixture.artifactId,
+          mimeType: "application/xml",
+          sizeBytes: bytes.length,
+          sha256: createHash("sha256").update(bytes).digest("hex"),
+          maxSizeBytes: 4,
+        }),
+      );
+      expect(JSON.stringify(result)).not.toContain(bytes.toString("base64"));
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it.each(["Missing", "ExternalUnresolved"] as const)(
+    "fails closed for a %s artifactId without binary content",
+    async (availability) => {
+      const fixture = await createArtifactFixture({ availability });
+      try {
+        const result = await fixture.client.callTool(
+          {
+            name: "get_source_artifact",
+            arguments: { artifactId: fixture.artifactId },
+          },
+          CallToolResultSchema,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(JSON.stringify(result)).toContain("not available for reading");
+        expect(result.content).not.toContainEqual(
+          expect.objectContaining({ type: "resource" }),
+        );
+      } finally {
+        await fixture.close();
+      }
+    },
+  );
+
+  it("fails closed for an unknown opaque artifactId", async () => {
+    const fixture = await createArtifactFixture();
+    try {
+      const result = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: `art_${"0".repeat(64)}` },
+        },
+        CallToolResultSchema,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result)).toContain("Source Artifact not found");
+      expect(result.structuredContent).toBeUndefined();
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it.each(["../outside.bin", "/outside.bin", "file:///outside.bin"])(
+    "fails closed for a path-escaping catalog key %s",
+    async (storageKey) => {
+      const fixture = await createArtifactFixture();
+      try {
+        const catalog = JSON.parse(await readFile(fixture.catalogPath, "utf8"));
+        catalog.artifacts[0].blob.storageKey = storageKey;
+        await writeFile(fixture.catalogPath, JSON.stringify(catalog));
+        const result = await fixture.client.callTool(
+          {
+            name: "get_source_artifact",
+            arguments: { artifactId: fixture.artifactId },
+          },
+          CallToolResultSchema,
+        );
+
+        expect(result.isError).toBe(true);
+        expect(JSON.stringify(result)).toContain("Source Artifact could not be read");
+        expect(JSON.stringify(result)).not.toContain(fixture.artifactRoot);
+      } finally {
+        await fixture.close();
+      }
+    },
+  );
+
+  it("fails closed for corrupt bytes without leaking bytes or filesystem paths", async () => {
+    const marker = "private-binary-marker";
+    const fixture = await createArtifactFixture({ bytes: Buffer.from(marker) });
+    const errorSpy = vi.spyOn(logger, "error");
+    try {
+      await writeFile(fixture.storagePath, "tampered-binary-data!");
+      const result = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId },
+        },
+        CallToolResultSchema,
+      );
+      const publicResult = JSON.stringify(result);
+      const logs = JSON.stringify(errorSpy.mock.calls);
+
+      expect(result.isError).toBe(true);
+      expect(publicResult).toContain("Source Artifact");
+      expect(publicResult).not.toContain(marker);
+      expect(publicResult).not.toContain(fixture.artifactRoot);
+      expect(logs).not.toContain(marker);
+      expect(logs).not.toContain(fixture.artifactRoot);
+    } finally {
+      errorSpy.mockRestore();
+      await fixture.close();
+    }
+  });
+
+  it("fails closed for a corrupt catalog", async () => {
+    const fixture = await createArtifactFixture();
+    try {
+      await writeFile(fixture.catalogPath, "{not-json");
+      const result = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId },
+        },
+        CallToolResultSchema,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result)).toContain("Source Artifact could not be read");
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("fails closed when an Office suggested name does not match its verified MIME", async () => {
+    const fixture = await createArtifactFixture({
+      effectiveMime:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      originalName: "source",
+      storageKey: "source/2XU/source",
+      suggestedName: "source.xlsx",
+      type: "DOCX",
+    });
+    try {
+      const result = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId },
+        },
+        CallToolResultSchema,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result)).toContain("suggested filename is invalid");
+      expect(result.content).not.toContainEqual(
+        expect.objectContaining({ type: "resource" }),
+      );
+    } finally {
+      await fixture.close();
+    }
+  });
+
+  it("rejects path-shaped and additional tool arguments", async () => {
+    const fixture = await createArtifactFixture();
+    try {
+      const invalidId = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: "../../outside.bin" },
+        },
+        CallToolResultSchema,
+      );
+      const pathArgument = await fixture.client.callTool(
+        {
+          name: "get_source_artifact",
+          arguments: { artifactId: fixture.artifactId, path: fixture.storagePath },
+        },
+        CallToolResultSchema,
+      );
+
+      expect(invalidId.isError).toBe(true);
+      expect(pathArgument.isError).toBe(true);
+      expect(JSON.stringify([invalidId, pathArgument])).not.toContain(
+        fixture.artifactRoot,
+      );
+    } finally {
+      await fixture.close();
+    }
+  });
+
   it("advertises the Source Artifact resource capability and opaque template", async () => {
     const fixture = await createArtifactFixture();
     try {

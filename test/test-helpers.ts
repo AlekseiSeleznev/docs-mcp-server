@@ -12,6 +12,12 @@ import { createArtifactId } from "../src/contracts";
 export interface SourceArtifactReleaseFixtureOptions {
   availability?: "Downloaded" | "Missing" | "ExternalUnresolved";
   bytes?: Buffer;
+  effectiveMime?: string;
+  manifestMime?: string;
+  originalName?: string;
+  storageKey?: string;
+  suggestedName?: string;
+  type?: string;
 }
 
 /** Temporary release paths and identities used by Source Artifact tests. */
@@ -48,7 +54,7 @@ export async function createSourceArtifactReleaseFixture(
   const library = "sap_process_navigator";
   const version = "2025.1.0";
   const versionRoot = path.join(artifactRoot, library, version);
-  const storageKey = "source/2XU/source.bpmn";
+  const storageKey = options.storageKey ?? "source/2XU/source.bpmn";
   const bytes = options.bytes ?? Buffer.from("<bpmn/>");
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   const availability = options.availability ?? "Downloaded";
@@ -69,7 +75,7 @@ export async function createSourceArtifactReleaseFixture(
       lineOfBusiness: ["Sourcing and Procurement"],
     },
     canonicalRelativePath: storageKey,
-    type: "BPMN",
+    type: options.type ?? "BPMN",
     group: "Process",
     name: "Source model",
   };
@@ -79,10 +85,10 @@ export async function createSourceArtifactReleaseFixture(
           ...artifactBase,
           availability,
           blob: {
-            originalName: "source.bpmn",
-            suggestedName: "source.bpmn",
-            manifestMime: "application/xml",
-            effectiveMime: "application/xml",
+            originalName: options.originalName ?? "source.bpmn",
+            suggestedName: options.suggestedName ?? "source.bpmn",
+            manifestMime: options.manifestMime ?? "application/xml",
+            effectiveMime: options.effectiveMime ?? "application/xml",
             sizeBytes: bytes.length,
             sha256,
             storageKey,
