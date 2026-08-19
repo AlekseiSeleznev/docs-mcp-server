@@ -119,6 +119,138 @@ describe("lib-sap-sf-odata ambiguity gate", () => {
 describe("lib-sap-process-navigator artifact workflow", () => {
   const text = skillFile("lib-sap-process-navigator");
 
+  it("publishes the accepted Russian scenarios one-to-one with the English release cases", () => {
+    const matrix = JSON.parse(
+      readFileSync(
+        resolve(
+          root,
+          "test/fixtures/sap-process-navigator-russian-acceptance.json",
+        ),
+        "utf8",
+      ),
+    ) as Array<{
+      id: string;
+      englishCaseId: string;
+      promptRu: string;
+      initialQuery: string;
+      refinements: string[];
+      representationType: string;
+      expectedProcessId: string;
+      expectedArtifactName: string;
+      retrieveSource: boolean;
+    }>;
+
+    expect(matrix).toHaveLength(15);
+    expect(matrix.map(({ id }) => id)).toEqual(
+      Array.from({ length: 15 }, (_, index) =>
+        `RU-${String(index + 1).padStart(2, "0")}`,
+      ),
+    );
+    expect(matrix.map(({ englishCaseId }) => englishCaseId)).toEqual(
+      Array.from({ length: 15 }, (_, index) =>
+        `EN-${String(index + 1).padStart(2, "0")}`,
+      ),
+    );
+    expect(
+      matrix.map(
+        ({ initialQuery, representationType, expectedProcessId, expectedArtifactName }) => [
+          initialQuery,
+          representationType,
+          expectedProcessId,
+          expectedArtifactName,
+        ],
+      ),
+    ).toEqual([
+      ["responsibility teams concept", "description", "1NJ", "Description.txt"],
+      ["standardized event mechanism", "description", "1NN", "Description.txt"],
+      [
+        "comprehensive nine-step maintenance process",
+        "description",
+        "4HH",
+        "Description.txt",
+      ],
+      [
+        "assign or unassign functions to team members",
+        "bpmn",
+        "1NJ",
+        "1NJ - Responsibility Management.bpmn2",
+      ],
+      [
+        "monitor situation automation dashboard",
+        "bpmn",
+        "31N",
+        "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
+      ],
+      [
+        "execute emergency work",
+        "bpmn",
+        "4HH",
+        "4HH - Emergency Work (SAP S4HANA)",
+      ],
+      ["maintain hierarchy across teams", "docx", "1NJ", "Test script"],
+      ["create and trigger situation type", "docx", "31N", "Test script"],
+      [
+        "configure flexible workflow for maintenance orders",
+        "docx",
+        "4HH",
+        "Test script",
+      ],
+      [
+        "maintain functions and function profiles",
+        "pdf",
+        "1NJ",
+        "Set-up instructions",
+      ],
+      ["technical configuration settings", "pdf", "31N", "Set-up instructions"],
+      [
+        "activate machine learning cash application",
+        "pdf",
+        "1MV",
+        "Set-up instructions",
+      ],
+      [
+        "responsibility management cloud alm test script",
+        "xlsx",
+        "1NJ",
+        "Test script (SAP Cloud ALM)",
+      ],
+      [
+        "situation handling cloud alm test script",
+        "xlsx",
+        "31N",
+        "Test script (SAP Cloud ALM)",
+      ],
+      [
+        "reactive maintenance cloud alm test script",
+        "xlsx",
+        "4HH",
+        "Test script (SAP Cloud ALM)",
+      ],
+    ]);
+    expect(matrix.every(({ promptRu }) => /[А-Яа-яЁё]/u.test(promptRu))).toBe(
+      true,
+    );
+    expect(
+      matrix.reduce<Record<string, number>>((counts, acceptanceCase) => {
+        counts[acceptanceCase.representationType] =
+          (counts[acceptanceCase.representationType] ?? 0) + 1;
+        return counts;
+      }, {}),
+    ).toEqual({ description: 3, bpmn: 3, docx: 3, pdf: 3, xlsx: 3 });
+    expect(matrix.filter(({ retrieveSource }) => retrieveSource)).toHaveLength(5);
+    expect(
+      new Set(
+        matrix
+          .filter(({ retrieveSource }) => retrieveSource)
+          .map(({ representationType }) => representationType),
+      ),
+    ).toEqual(new Set(["description", "bpmn", "docx", "pdf", "xlsx"]));
+    expect(matrix.every(({ refinements }) => refinements.length <= 2)).toBe(true);
+    expect(matrix.every(({ initialQuery }) => !/[А-Яа-яЁё]/u.test(initialQuery))).toBe(
+      true,
+    );
+  });
+
   it("grounds Russian questions through bounded English SAP searches", () => {
     expect(text).toContain('targetVersion="2025.x"');
     expect(text).toContain("русск");
