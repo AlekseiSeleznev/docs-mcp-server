@@ -1,0 +1,204 @@
+[
+  {
+    "id": "RU-01",
+    "englishCaseId": "EN-01",
+    "promptRu": "В SAP Process Navigator объясни концепцию команд ответственности и сохрани исходное описание процесса.",
+    "initialQuery": "responsibility teams concept",
+    "refinements": [],
+    "representationType": "description",
+    "expectedProcessId": "1NJ",
+    "expectedArtifactName": "Description.txt",
+    "mustContain": "Teams concept",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "Description.txt",
+      "mediaType": "text/plain"
+    }
+  },
+  {
+    "id": "RU-02",
+    "englishCaseId": "EN-02",
+    "promptRu": "В SAP Process Navigator найди процесс со стандартизированным механизмом событий и кратко объясни его назначение.",
+    "initialQuery": "standardized event mechanism",
+    "refinements": [],
+    "representationType": "description",
+    "expectedProcessId": "1NN",
+    "expectedArtifactName": "Description.txt",
+    "mustContain": "standardized event mechanism",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-03",
+    "englishCaseId": "EN-03",
+    "promptRu": "В SAP Process Navigator найди комплексный девятиэтапный процесс технического обслуживания и изложи его назначение по-русски.",
+    "initialQuery": "comprehensive nine-step maintenance process",
+    "refinements": [],
+    "representationType": "description",
+    "expectedProcessId": "4HH",
+    "expectedArtifactName": "Description.txt",
+    "mustContain": "comprehensive nine-step process",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-04",
+    "englishCaseId": "EN-04",
+    "promptRu": "В SAP Process Navigator найди на диаграмме шаг назначения или снятия функций у участников команды и сохрани исходный BPMN.",
+    "initialQuery": "assign or unassign functions to team members",
+    "refinements": [],
+    "representationType": "bpmn",
+    "expectedProcessId": "1NJ",
+    "expectedArtifactName": "1NJ - Responsibility Management.bpmn2",
+    "mustContain": "Assign or Unassign functions to team members",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ - Responsibility Management.bpmn2",
+      "mediaType": "text/xml"
+    }
+  },
+  {
+    "id": "RU-05",
+    "englishCaseId": "EN-05",
+    "promptRu": "В SAP Process Navigator найди BPMN с задачей мониторинга панели автоматизации ситуаций и объясни, к какому процессу она относится.",
+    "initialQuery": "monitor situation automation dashboard",
+    "refinements": [],
+    "representationType": "bpmn",
+    "expectedProcessId": "31N",
+    "expectedArtifactName": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
+    "mustContain": "Monitor situation automation dashboard",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-06",
+    "englishCaseId": "EN-06",
+    "promptRu": "В SAP Process Navigator найди BPMN, где выполняются аварийные работы, и назови официальный процесс.",
+    "initialQuery": "execute emergency work",
+    "refinements": [],
+    "representationType": "bpmn",
+    "expectedProcessId": "4HH",
+    "expectedArtifactName": "4HH - Emergency Work (SAP S4HANA)",
+    "mustContain": "Execute Emergency Work",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-07",
+    "englishCaseId": "EN-07",
+    "promptRu": "В SAP Process Navigator найди тестовый шаг ведения иерархии между командами и сохрани исходный тестовый сценарий DOCX.",
+    "initialQuery": "maintain hierarchy across teams",
+    "refinements": [],
+    "representationType": "docx",
+    "expectedProcessId": "1NJ",
+    "expectedArtifactName": "Test script",
+    "mustContain": "Maintain Hierarchy Across Teams",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.docx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
+  },
+  {
+    "id": "RU-08",
+    "englishCaseId": "EN-08",
+    "promptRu": "В SAP Process Navigator найди в тестовом сценарии создание и запуск типа ситуации и укажи официальный процесс.",
+    "initialQuery": "create and trigger situation type",
+    "refinements": [],
+    "representationType": "docx",
+    "expectedProcessId": "31N",
+    "expectedArtifactName": "Test script",
+    "mustContain": "Create and Trigger Situation Type",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-09",
+    "englishCaseId": "EN-09",
+    "promptRu": "В SAP Process Navigator найди в тестовом сценарии настройку гибкого маршрута согласования заказов на техническое обслуживание.",
+    "initialQuery": "configure flexible workflow for maintenance orders",
+    "refinements": [],
+    "representationType": "docx",
+    "expectedProcessId": "4HH",
+    "expectedArtifactName": "Test script",
+    "mustContain": "Configure Flexible Workflow for Maintenance Orders",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-10",
+    "englishCaseId": "EN-10",
+    "promptRu": "В SAP Process Navigator найди инструкцию по ведению функций и профилей функций в Responsibility Management и сохрани исходный PDF.",
+    "initialQuery": "maintain functions and function profiles",
+    "refinements": [
+      "Responsibility Management maintain functions and function profiles"
+    ],
+    "representationType": "pdf",
+    "expectedProcessId": "1NJ",
+    "expectedArtifactName": "Set-up instructions",
+    "mustContain": "Maintain Functions and Function Profiles",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_Set-Up_EN_XX.pdf",
+      "mediaType": "application/pdf"
+    }
+  },
+  {
+    "id": "RU-11",
+    "englishCaseId": "EN-11",
+    "promptRu": "В SAP Process Navigator найди раздел инструкции с техническими параметрами конфигурации для Situation Handling.",
+    "initialQuery": "technical configuration settings",
+    "refinements": [],
+    "representationType": "pdf",
+    "expectedProcessId": "31N",
+    "expectedArtifactName": "Set-up instructions",
+    "mustContain": "Technical Configuration Settings",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-12",
+    "englishCaseId": "EN-12",
+    "promptRu": "В SAP Process Navigator найди инструкцию по активации машинного обучения для Cash Application и объясни результат по-русски.",
+    "initialQuery": "activate machine learning cash application",
+    "refinements": [],
+    "representationType": "pdf",
+    "expectedProcessId": "1MV",
+    "expectedArtifactName": "Set-up instructions",
+    "mustContain": "Activate Machine Learning",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-13",
+    "englishCaseId": "EN-13",
+    "promptRu": "В SAP Process Navigator найди шаблон тестового сценария SAP Cloud ALM для Responsibility Management и сохрани исходный XLSX.",
+    "initialQuery": "responsibility management cloud alm test script",
+    "refinements": [],
+    "representationType": "xlsx",
+    "expectedProcessId": "1NJ",
+    "expectedArtifactName": "Test script (SAP Cloud ALM)",
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.xlsx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+  },
+  {
+    "id": "RU-14",
+    "englishCaseId": "EN-14",
+    "promptRu": "В SAP Process Navigator найди метаданные тестового сценария SAP Cloud ALM для Situation Handling.",
+    "initialQuery": "situation handling cloud alm test script",
+    "refinements": [],
+    "representationType": "xlsx",
+    "expectedProcessId": "31N",
+    "expectedArtifactName": "Test script (SAP Cloud ALM)",
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
+    "retrieveSource": false
+  },
+  {
+    "id": "RU-15",
+    "englishCaseId": "EN-15",
+    "promptRu": "В SAP Process Navigator найди метаданные тестового сценария SAP Cloud ALM для реактивного технического обслуживания.",
+    "initialQuery": "reactive maintenance cloud alm test script",
+    "refinements": [],
+    "representationType": "xlsx",
+    "expectedProcessId": "4HH",
+    "expectedArtifactName": "Test script (SAP Cloud ALM)",
+    "mustContain": "Purpose: Test script (SAP Cloud ALM)",
+    "retrieveSource": false
+  }
+]

@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 1,
+  "runtime": {
+    "library": "sap_process_navigator",
+    "version": "2025.1.0",
+    "sourceRelease": "2025-FPS1-RU",
+    "canonicalSkillCommit": "4bc78a3d22a99bde1a4f963ec7f6effeb879e278",
+    "nodeVersion": "v22.23.2",
+    "toolSurface": [
+      "find_version",
+      "get_source_artifact",
+      "list_libraries",
+      "list_source_artifacts",
+      "search_docs"
+    ],
+    "publication": {
+      "sourceRef": "3d8bb31967abe6ca297f7bd700d09e018afb697d",
+      "canonicalSkillCommit": "4bc78a3d22a99bde1a4f963ec7f6effeb879e278",
+      "installedPath": "~/.codex/skills/lib-sap-process-navigator",
+      "files": {
+        "SKILL.md": "0c7d89207e067349311a4f44eb1d0594a3bf8d49a9ace34101bcff862c05b9ed",
+        "agents/openai.yaml": "82b7bf2a706b0ec3fcd84b97d159f2c51e855a334a2cf65b67180be77d67f165"
+      },
+      "canonicalEqualsInstalled": true,
+      "quickValidate": "PASS",
+      "librarySkillValidate": "PASS"
+    }
+  },
+  "cases": [
+    {
+      "id": "RU-01",
+      "queries": [
+        {
+          "query": "responsibility teams concept",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NJ", "16R", "1NJ", "1NJ", "31N"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_6538d065a9d75f50ec08da74a8fdcb3e7563e7756f1219e21ec58e9704f6e0e0",
+        "name": "Description.txt",
+        "mediaType": "text/plain",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 13, "truncated": false },
+      "answerRu": "Официальное описание процесса 1NJ Responsibility Management подтверждает концепцию команд ответственности.",
+      "retrieval": {
+        "suggestedFilename": "Description.txt",
+        "mediaType": "text/plain",
+        "sizeBytes": 1476,
+        "catalogSha256": "c42022bc72f4c68bb3f5f1110465a77660d866695568ffa6ace2b18f39700f16",
+        "savedSha256": "c42022bc72f4c68bb3f5f1110465a77660d866695568ffa6ace2b18f39700f16",
+        "formatCheck": "UTF-8 BOM",
+        "temporaryCopyRemoved": true
+      }
+    },
+    {
+      "id": "RU-02",
+      "queries": [
+        {
+          "query": "standardized event mechanism",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NN", "31N", "1E3", "35Q", "1E1"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_4e3b542e908bd31e76d4da96995fa64dc05113b61fbac3d63665f84eb4e1e93e",
+        "name": "Description.txt",
+        "mediaType": "text/plain",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 21, "truncated": false },
+      "answerRu": "Процесс 1NN Business Event Handling описывает стандартизированный механизм обработки бизнес-событий.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-03",
+      "queries": [
+        {
+          "query": "comprehensive nine-step maintenance process",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["4HH", "4HH", "4HH", "BH1", "BH1"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_9473b746f62c5e794fb551c9d58d243cfdd111824ed02adce8daafb46d9adf86",
+        "name": "Description.txt",
+        "mediaType": "text/plain",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 6, "truncated": false },
+      "answerRu": "Описание 4HH Reactive Maintenance подтверждает комплексный девятиэтапный процесс технического обслуживания.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-04",
+      "queries": [
+        {
+          "query": "assign or unassign functions to team members",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NJ", "1NJ", "5XU", "40Y", "55I"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_b601c47b5e0ddbbc4f34f7a0ebfe96fd8a5936fa55cddc553c4fc37f9e74e11b",
+        "name": "1NJ - Responsibility Management.bpmn2",
+        "mediaType": "text/xml",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 16, "truncated": false },
+      "answerRu": "В BPMN процесса 1NJ Responsibility Management найден шаг Assign or Unassign functions to team members.",
+      "retrieval": {
+        "suggestedFilename": "1NJ - Responsibility Management.bpmn2",
+        "mediaType": "text/xml",
+        "sizeBytes": 50572,
+        "catalogSha256": "033f21bc2e67ae5800df7044a89c46c3569c364696d4f8226caed67e0e93f932",
+        "savedSha256": "033f21bc2e67ae5800df7044a89c46c3569c364696d4f8226caed67e0e93f932",
+        "formatCheck": "BPMN definitions",
+        "temporaryCopyRemoved": true
+      }
+    },
+    {
+      "id": "RU-05",
+      "queries": [
+        {
+          "query": "monitor situation automation dashboard",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["31N", "31N", "31N", "31N", "J77"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_f806e860ae5ad6c488e27dfa929e6087c18311547d83ec5c5c3f7aa7f8e6e613",
+        "name": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
+        "mediaType": "text/xml",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 22, "truncated": false },
+      "answerRu": "Задача Monitor situation automation dashboard подтверждена BPMN процесса 31N Situation Handling.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-06",
+      "queries": [
+        {
+          "query": "execute emergency work",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["4HH", "4HH", "BH2", "4HH", "4HH"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_39b77962ce63e187b10b584c4b009122f0db6da030c5e4efd785247ae3852dde",
+        "name": "4HH - Emergency Work (SAP S4HANA)",
+        "mediaType": "text/xml",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 7, "truncated": false },
+      "answerRu": "Шаг Execute Emergency Work относится к официальному процессу 4HH Reactive Maintenance.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-07",
+      "queries": [
+        {
+          "query": "maintain hierarchy across teams",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NJ", "1NJ", "1NJ", "1NJ", "1NJ"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_cff03a61418bac186749ef12e530ff033804bb3c6c2bcc3fff9279b3fb693444",
+        "name": "Test script",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 2, "truncated": false },
+      "answerRu": "Тестовый сценарий 1NJ Responsibility Management содержит шаг Maintain Hierarchy Across Teams.",
+      "retrieval": {
+        "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "sizeBytes": 92045,
+        "catalogSha256": "514da4d3b0dab189651e9f5d505ef981324c4482f76c9108ddacdf29d40c08dd",
+        "savedSha256": "514da4d3b0dab189651e9f5d505ef981324c4482f76c9108ddacdf29d40c08dd",
+        "formatCheck": "OOXML ZIP",
+        "temporaryCopyRemoved": true
+      }
+    },
+    {
+      "id": "RU-08",
+      "queries": [
+        {
+          "query": "create and trigger situation type",
+          "limit": 5,
+          "rank": 2,
+          "topProcessIds": ["16R", "31N", "31N", "31N", "2XT"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_afa875684039d106638bc346705d813258f0f5c31823357561d9eeb894beef33",
+        "name": "Test script",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 16, "truncated": false },
+      "answerRu": "Шаг Create and Trigger Situation Type подтверждён тестовым сценарием процесса 31N Situation Handling.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-09",
+      "queries": [
+        {
+          "query": "configure flexible workflow for maintenance orders",
+          "limit": 5,
+          "rank": 4,
+          "topProcessIds": ["BDN", "BD3", "22Z", "4HH", "BDK"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_dd88f10a9b4ebf40dc6165ad6017249e45e888127ca6d5d79441955027004650",
+        "name": "Test script",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 20, "truncated": false },
+      "answerRu": "Настройка Configure Flexible Workflow for Maintenance Orders найдена в тестовом сценарии 4HH Reactive Maintenance.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-10",
+      "queries": [
+        {
+          "query": "maintain functions and function profiles",
+          "limit": 5,
+          "rank": 0,
+          "topProcessIds": ["4HI", "4HI", "4HI", "BJ2", "BJ2"]
+        },
+        {
+          "query": "Responsibility Management maintain functions and function profiles",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NJ", "1NJ", "1NJ", "16R", "2XT"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_9cfb926be51380e181e34cbad358a86635c372c9789076d8111e6d9e7e3d617c",
+        "name": "Set-up instructions",
+        "mediaType": "application/pdf",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 14, "truncated": false },
+      "answerRu": "Инструкция Maintain Functions and Function Profiles подтверждена PDF процесса 1NJ Responsibility Management после одного уточнения запроса.",
+      "retrieval": {
+        "suggestedFilename": "1NJ_S4HANA2025-FPS1_Set-Up_EN_XX.pdf",
+        "mediaType": "application/pdf",
+        "sizeBytes": 304860,
+        "catalogSha256": "3d1d629b7507dc4836cad09d3d712200a0e2e6fb8d3bd78abfad4fc6174ee7be",
+        "savedSha256": "3d1d629b7507dc4836cad09d3d712200a0e2e6fb8d3bd78abfad4fc6174ee7be",
+        "formatCheck": "PDF signature",
+        "temporaryCopyRemoved": true
+      }
+    },
+    {
+      "id": "RU-11",
+      "queries": [
+        {
+          "query": "technical configuration settings",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["31N", "31N", "2OQ", "4N6", "2XT"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_4a5ed0ebc68c9824fd954d6401ac4cd94f41b933dde2c296d5ad89f36687d57b",
+        "name": "Set-up instructions",
+        "mediaType": "application/pdf",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 21, "truncated": false },
+      "answerRu": "Раздел Technical Configuration Settings найден в инструкции процесса 31N Situation Handling.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-12",
+      "queries": [
+        {
+          "query": "activate machine learning cash application",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1MV", "1MV", "1MV", "1MV", "1MV"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_95abd6c1474f1a01156b9a32064f158ca58f2998cef4e4b77733babcbbbf2c0c",
+        "name": "Set-up instructions",
+        "mediaType": "application/pdf",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 2, "truncated": false },
+      "answerRu": "Активация машинного обучения подтверждена инструкцией процесса 1MV Cash Application Integration.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-13",
+      "queries": [
+        {
+          "query": "responsibility management cloud alm test script",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["1NJ", "1QM", "1LQ", "2G5", "2QN"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_b1839d6aabf23b677e151b80cbcea510cf694711083900429da3c479d6831e44",
+        "name": "Test script (SAP Cloud ALM)",
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 27, "truncated": false },
+      "answerRu": "Метаданные шаблона Test script (SAP Cloud ALM) найдены для процесса 1NJ Responsibility Management.",
+      "retrieval": {
+        "suggestedFilename": "1NJ_S4HANA2025-FPS1_BPD_EN_XX.xlsx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "sizeBytes": 16553,
+        "catalogSha256": "5ff2ea2b46109d42bffa2207d4b6fca25657720dbbd7c6859408839dbbb38998",
+        "savedSha256": "5ff2ea2b46109d42bffa2207d4b6fca25657720dbbd7c6859408839dbbb38998",
+        "formatCheck": "OOXML ZIP",
+        "temporaryCopyRemoved": true
+      }
+    },
+    {
+      "id": "RU-14",
+      "queries": [
+        {
+          "query": "situation handling cloud alm test script",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["31N", "1MR", "2QL", "4MM"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_9e2916692bf4dd966d248b8514a73f3b0cb2c19f6ba896326ad9420eedf539e2",
+        "name": "Test script (SAP Cloud ALM)",
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 15, "truncated": false },
+      "answerRu": "Метаданные Test script (SAP Cloud ALM) подтверждены для процесса 31N Situation Handling.",
+      "retrieval": null
+    },
+    {
+      "id": "RU-15",
+      "queries": [
+        {
+          "query": "reactive maintenance cloud alm test script",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["4HH", "BH2", "BH1", "BJ2", "4HI"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_0c79d55aeca27cb8b1bdcb717f187905169370650eb8527395c70387412cf6e2",
+        "name": "Test script (SAP Cloud ALM)",
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 20, "truncated": false },
+      "answerRu": "Метаданные Test script (SAP Cloud ALM) найдены для процесса 4HH Reactive Maintenance.",
+      "retrieval": null
+    }
+  ],
+  "unavailableEvidence": [
+    {
+      "processId": "1NN",
+      "availability": "Missing",
+      "name": "Solution Process Flow",
+      "retrievalError": "Source Artifact is not available for reading",
+      "blobReturned": false
+    },
+    {
+      "processId": "1NN",
+      "availability": "ExternalUnresolved",
+      "name": "Product assistance",
+      "retrievalError": "Source Artifact is not available for reading",
+      "blobReturned": false
+    }
+  ],
+  "negativeEvidence": {
+    "unknownArtifactId": "Source Artifact not found",
+    "integrityAndOversizeRegression": "126 targeted tests passed",
+    "rawBinaryOrBase64Recorded": false,
+    "privateUrlRecorded": false,
+    "serverPathRecorded": false
+  }
+}

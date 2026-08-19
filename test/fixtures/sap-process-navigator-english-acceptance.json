@@ -1,0 +1,130 @@
+{
+  "provenance": {
+    "repository": "AlekseiSeleznev/sap-library-mcp",
+    "commit": "5b8ce99a668f98c1eefcbb099c8d4680e2a3bb46",
+    "sourcePath": "scripts/build-searchable-index.mjs",
+    "sourceSha256": "43863f302f34bf124ee8f2d4a6ebea1a2e465dee9c96a36e719938e7b920bdd6"
+  },
+  "cases": [
+    {
+      "id": "EN-01",
+      "type": "description",
+      "query": "responsibility teams concept",
+      "expectedProcessId": "1NJ",
+      "expectedArtifactName": "Description.txt",
+      "mustContain": "Teams concept"
+    },
+    {
+      "id": "EN-02",
+      "type": "description",
+      "query": "standardized event mechanism",
+      "expectedProcessId": "1NN",
+      "expectedArtifactName": "Description.txt",
+      "mustContain": "standardized event mechanism"
+    },
+    {
+      "id": "EN-03",
+      "type": "description",
+      "query": "comprehensive nine-step maintenance process",
+      "expectedProcessId": "4HH",
+      "expectedArtifactName": "Description.txt",
+      "mustContain": "comprehensive nine-step process"
+    },
+    {
+      "id": "EN-04",
+      "type": "bpmn",
+      "query": "assign or unassign functions to team members",
+      "expectedProcessId": "1NJ",
+      "expectedArtifactName": "1NJ - Responsibility Management.bpmn2",
+      "mustContain": "Assign or Unassign functions to team members"
+    },
+    {
+      "id": "EN-05",
+      "type": "bpmn",
+      "query": "monitor situation automation dashboard",
+      "expectedProcessId": "31N",
+      "expectedArtifactName": "31N - XX - 01 - Situation Handling - Standard Framework.bpmn2",
+      "mustContain": "Monitor situation automation dashboard"
+    },
+    {
+      "id": "EN-06",
+      "type": "bpmn",
+      "query": "execute emergency work",
+      "expectedProcessId": "4HH",
+      "expectedArtifactName": "4HH - Emergency Work (SAP S4HANA)",
+      "mustContain": "Execute Emergency Work"
+    },
+    {
+      "id": "EN-07",
+      "type": "docx",
+      "query": "maintain hierarchy across teams",
+      "expectedProcessId": "1NJ",
+      "expectedArtifactName": "Test script",
+      "mustContain": "Maintain Hierarchy Across Teams"
+    },
+    {
+      "id": "EN-08",
+      "type": "docx",
+      "query": "create and trigger situation type",
+      "expectedProcessId": "31N",
+      "expectedArtifactName": "Test script",
+      "mustContain": "Create and Trigger Situation Type"
+    },
+    {
+      "id": "EN-09",
+      "type": "docx",
+      "query": "configure flexible workflow for maintenance orders",
+      "expectedProcessId": "4HH",
+      "expectedArtifactName": "Test script",
+      "mustContain": "Configure Flexible Workflow for Maintenance Orders"
+    },
+    {
+      "id": "EN-10",
+      "type": "pdf",
+      "query": "maintain functions and function profiles",
+      "expectedProcessId": "1NJ",
+      "expectedArtifactName": "Set-up instructions",
+      "mustContain": "Maintain Functions and Function Profiles"
+    },
+    {
+      "id": "EN-11",
+      "type": "pdf",
+      "query": "technical configuration settings",
+      "expectedProcessId": "31N",
+      "expectedArtifactName": "Set-up instructions",
+      "mustContain": "Technical Configuration Settings"
+    },
+    {
+      "id": "EN-12",
+      "type": "pdf",
+      "query": "activate machine learning cash application",
+      "expectedProcessId": "1MV",
+      "expectedArtifactName": "Set-up instructions",
+      "mustContain": "Activate Machine Learning"
+    },
+    {
+      "id": "EN-13",
+      "type": "xlsx",
+      "query": "responsibility management cloud alm test script",
+      "expectedProcessId": "1NJ",
+      "expectedArtifactName": "Test script (SAP Cloud ALM)",
+      "mustContain": "Purpose: Test script (SAP Cloud ALM)"
+    },
+    {
+      "id": "EN-14",
+      "type": "xlsx",
+      "query": "situation handling cloud alm test script",
+      "expectedProcessId": "31N",
+      "expectedArtifactName": "Test script (SAP Cloud ALM)",
+      "mustContain": "Purpose: Test script (SAP Cloud ALM)"
+    },
+    {
+      "id": "EN-15",
+      "type": "xlsx",
+      "query": "reactive maintenance cloud alm test script",
+      "expectedProcessId": "4HH",
+      "expectedArtifactName": "Test script (SAP Cloud ALM)",
+      "mustContain": "Purpose: Test script (SAP Cloud ALM)"
+    }
+  ]
+}
