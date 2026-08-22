@@ -25,8 +25,8 @@ function parseArguments(argv) {
   if (!destination || !isAbsolute(destination)) {
     throw new Error("--destination must be an absolute path");
   }
-  if (!Number.isSafeInteger(count) || count < 1 || count > 100) {
-    throw new Error("--count must be an integer from 1 to 100");
+  if (!Number.isSafeInteger(count) || count < 1 || count > 1000) {
+    throw new Error("--count must be an integer from 1 to 1000");
   }
   return { count, destination: resolve(destination) };
 }

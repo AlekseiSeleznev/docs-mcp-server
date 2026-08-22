@@ -1,0 +1,98 @@
+[
+  {
+    "id": "PD-01",
+    "promptRu": "В проектной документации МАНЕ кратко изложи назначение протокола настроек MSP 2.7 и сохрани исходный файл.",
+    "initialQuery": "протокол настроек MSP 2.7",
+    "refinements": [],
+    "libraries": ["project-docs-mane-04-settings"],
+    "representationType": "docx-text",
+    "expectedProcessId": "project-docs-mane-04-settings",
+    "expectedArtifactName": "MSP 2.7 Settings Protocol -  протокол настроек.docx",
+    "mustContain": "Settings Protocol",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "MSP 2.7 Settings Protocol -  протокол настроек.docx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
+  },
+  {
+    "id": "PD-02",
+    "promptRu": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов.",
+    "initialQuery": "состав работ и результатов",
+    "refinements": [],
+    "libraries": ["project-docs-luve-01-dogovor"],
+    "representationType": "docx-text",
+    "expectedProcessId": "project-docs-luve-01-dogovor",
+    "expectedArtifactName": "Annex №2 to the IA №1_Composition of works and results_19 08.docx",
+    "mustContain": "СОСТАВ УСЛУГ И РЕЗУЛЬТАТОВ",
+    "retrieveSource": false
+  },
+  {
+    "id": "PD-03",
+    "promptRu": "В проектной документации Полюса найди план перехода в ПЭО.",
+    "initialQuery": "план перехода в ПЭО",
+    "refinements": [],
+    "libraries": ["project-docs-polis-11-cutover"],
+    "representationType": "docx-text",
+    "expectedProcessId": "project-docs-polis-11-cutover",
+    "expectedArtifactName": "ERP.7.4_ АКТУАЛ КОНЦЕПЦИЯ И ДЕТАЛИЗИР ПЛАН ПЕРЕХОДА В ПЭО.docx",
+    "mustContain": "План перехода в промышленную эксплуатацию",
+    "retrieveSource": false
+  },
+  {
+    "id": "PD-04",
+    "promptRu": "Найди презентацию уроков проекта МАНЕ и сохрани исходный PPTX.",
+    "initialQuery": "уроки проекта",
+    "refinements": [],
+    "libraries": ["project-docs-mane-13-lessons"],
+    "representationType": "pptx-text",
+    "expectedProcessId": "project-docs-mane-13-lessons",
+    "expectedArtifactName": "MANE  уроки проекта.pptx",
+    "mustContain": "Уроки проекта",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "MANE  уроки проекта.pptx",
+      "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    }
+  },
+  {
+    "id": "PD-05",
+    "promptRu": "В подходах Полюса найди план Microsoft Project по НСИ и миграции и сохрани исходный MPP.",
+    "initialQuery": "Microsoft Project план нси миграция",
+    "refinements": [],
+    "libraries": ["project-docs-polis-14-approaches"],
+    "representationType": "unsupported-metadata",
+    "expectedProcessId": "project-docs-polis-14-approaches",
+    "expectedArtifactName": "Детальный план НСИ и Миграция 20190314 v1-RUNB0140_JulyDa.mpp",
+    "mustContain": "not a searchable document type",
+    "retrieveSource": true,
+    "expectedSource": {
+      "suggestedFilename": "Детальный план НСИ и Миграция 20190314 v1-RUNB0140_JulyDa.mpp",
+      "mediaType": "application/vnd.ms-project"
+    }
+  },
+  {
+    "id": "PD-06",
+    "promptRu": "По планам проекта МАНЕ что видно в индексе по файлу плана проекта.",
+    "initialQuery": "план проекта",
+    "refinements": [],
+    "libraries": ["project-docs-mane-02-plans"],
+    "representationType": "xlsx-metadata",
+    "expectedProcessId": "project-docs-mane-02-plans",
+    "expectedArtifactName": "План  проект МАНЕ  10.11.2025 -10.12.2025.xlsx",
+    "mustContain": "План проекта",
+    "retrieveSource": false
+  },
+  {
+    "id": "PD-07",
+    "promptRu": "Сравни cut-over МАНЕ и Полюс по плану перехода в промышленную эксплуатацию.",
+    "initialQuery": "cut over план",
+    "refinements": ["план перехода в ПЭО"],
+    "libraries": ["project-docs-mane-11-cutover", "project-docs-polis-11-cutover"],
+    "representationType": "docx-text",
+    "expectedProcessId": "project-docs-mane-11-cutover",
+    "expectedArtifactName": "MSP  3.15 Cut over План.docx",
+    "mustContain": "Cut-over план",
+    "retrieveSource": false
+  }
+]

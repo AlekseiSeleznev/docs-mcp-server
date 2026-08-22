@@ -1,0 +1,13 @@
+interface:
+  display_name: "Проектная документация"
+  short_description: "Поиск и получение проектных документов трёх клиентов"
+  default_prompt: "Используй $lib-project-docs, чтобы найти проектный документ и при необходимости получить исходный файл."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Удалённая read-only библиотека документации"
+
+policy:
+  allow_implicit_invocation: false

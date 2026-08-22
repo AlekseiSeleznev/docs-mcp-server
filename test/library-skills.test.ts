@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -632,5 +632,576 @@ describe("lib-sap-process-navigator artifact workflow", () => {
     } finally {
       rmSync(destination, { recursive: true, force: true });
     }
+  });
+
+  it("saves PPTX, legacy Word, and Microsoft Project payloads", () => {
+    const writer = resolve(
+      root,
+      "skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs",
+    );
+    const destination = mkdtempSync(join(tmpdir(), "sap-artifact-writer-office-"));
+    const pptx = Buffer.concat([
+      Buffer.from("PK"),
+      Buffer.from("ppt/slides/slide1.xml"),
+    ]);
+    const doc = Buffer.concat([
+      Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+      Buffer.from("WordDocument"),
+    ]);
+    const mpp = Buffer.concat([
+      Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+      Buffer.from("Microsoft Project"),
+    ]);
+    const record = (
+      name: string,
+      data: Buffer,
+      mimeType: string,
+    ) => ({
+      suggestedFilename: name,
+      blob: data.toString("base64"),
+      sizeBytes: data.length,
+      sha256: createHash("sha256").update(data).digest("hex"),
+      mimeType,
+    });
+    try {
+      const input = [
+        record(
+          "deck.pptx",
+          pptx,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ),
+        record("legacy.doc", doc, "application/msword"),
+        record("plan.mpp", mpp, "application/vnd.ms-project"),
+      ]
+        .map((value) => JSON.stringify(value))
+        .join("\n") + "\n";
+      const output = execFileSync(
+        process.execPath,
+        [writer, "--destination", destination, "--count", "3"],
+        { encoding: "utf8", input },
+      )
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+
+      expect(output).toEqual([
+        { ready: true, count: 3 },
+        { name: "deck.pptx", path: join(destination, "deck.pptx"), status: "saved" },
+        { name: "legacy.doc", path: join(destination, "legacy.doc"), status: "saved" },
+        { name: "plan.mpp", path: join(destination, "plan.mpp"), status: "saved" },
+      ]);
+      expect(readFileSync(join(destination, "deck.pptx"))).toEqual(pptx);
+      expect(readFileSync(join(destination, "legacy.doc"))).toEqual(doc);
+      expect(readFileSync(join(destination, "plan.mpp"))).toEqual(mpp);
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects PPTX, DOC, and MPP payloads that do not match their media type", () => {
+    const writer = resolve(
+      root,
+      "skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs",
+    );
+    const destination = mkdtempSync(join(tmpdir(), "sap-artifact-writer-bad-office-"));
+    const cases = [
+      {
+        name: "fake.pptx",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        data: Buffer.from("PK word/document.xml"),
+        error: "invalid PPTX",
+      },
+      {
+        name: "fake.doc",
+        mimeType: "application/msword",
+        data: Buffer.concat([
+          Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
+          Buffer.from("Microsoft Project"),
+        ]),
+        error: "invalid DOC",
+      },
+      {
+        name: "fake.mpp",
+        mimeType: "application/vnd.ms-project",
+        data: Buffer.from("not ole"),
+        error: "invalid MPP",
+      },
+    ];
+    try {
+      for (const testCase of cases) {
+        const input = `${JSON.stringify({
+          suggestedFilename: testCase.name,
+          blob: testCase.data.toString("base64"),
+          sizeBytes: testCase.data.length,
+          sha256: createHash("sha256").update(testCase.data).digest("hex"),
+          mimeType: testCase.mimeType,
+        })}\n`;
+        const result = spawnSync(
+          process.execPath,
+          [writer, "--destination", destination, "--count", "1"],
+          { encoding: "utf8", input },
+        );
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain(testCase.error);
+        expect(existsSync(join(destination, testCase.name))).toBe(false);
+      }
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("lib-project-docs combining skill", () => {
+  const text = skillFile("lib-project-docs");
+  const agent = skillFile("lib-project-docs", "agents/openai.yaml");
+  const map = skillFile("lib-project-docs", "references/library-map.md");
+  const skillDir = resolve(root, "skills/lib-project-docs");
+  const requiredLibraries = [
+    ...new Set(map.match(/project-docs-(?:luve|mane|polis)-\d{2}-[a-z-]+/g) ?? []),
+  ];
+  type ProjectCase = {
+    id: string;
+    promptRu: string;
+    initialQuery: string;
+    refinements: string[];
+    libraries: string[];
+    representationType: string;
+    expectedProcessId: string;
+    expectedArtifactName: string;
+    mustContain: string;
+    retrieveSource: boolean;
+    expectedSource?: { suggestedFilename: string; mediaType: string };
+  };
+  type QueryObservation = {
+    library: string;
+    query: string;
+    limit: number;
+    rank: number;
+    topProcessIds: string[];
+  };
+  type ResultCase = {
+    id: string;
+    queries: QueryObservation[];
+    matchedArtifact: {
+      artifactId: string;
+      name: string;
+      mediaType: string;
+      availability: string;
+    };
+    relatedArtifacts: { returned: number; truncated: boolean };
+    answerRu: string;
+    retrieval: {
+      suggestedFilename: string;
+      mediaType: string;
+      sizeBytes: number;
+      catalogSha256: string;
+      savedSha256: string;
+      formatCheck: string;
+      temporaryCopyRemoved: boolean;
+    } | null;
+  };
+  const matrix = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/project-docs-russian-acceptance.json"),
+      "utf8",
+    ),
+  ) as ProjectCase[];
+  const observations = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/project-docs-russian-results.json"),
+      "utf8",
+    ),
+  ) as {
+    runtime: {
+      family: string;
+      version: string;
+      sourceRelease: string;
+      toolSurface: string[];
+      publication: {
+        installedPath: string;
+        canonicalEqualsInstalled: boolean;
+        combiningValidate: string;
+        oneLibraryValidate: string;
+      };
+    };
+    cases: ResultCase[];
+    unavailableEvidence: Array<{ availability: string; blobReturned: boolean }>;
+    negativeEvidence: {
+      rawBinaryOrBase64Recorded: boolean;
+      privateUrlRecorded: boolean;
+      serverPathRecorded: boolean;
+    };
+  };
+  const traces = JSON.parse(
+    readFileSync(
+      resolve(root, "test/fixtures/project-docs-russian-traces.json"),
+      "utf8",
+    ),
+  ) as {
+    scenarioTraces: Array<{
+      id: string;
+      events: Array<{
+        sequence: number;
+        tool: string;
+        arguments: Record<string, string | number>;
+      }>;
+    }>;
+    relatedEvidence: Array<{
+      id: string;
+      processId: string;
+      artifactId: string;
+      availability: string;
+      retrieved: boolean;
+    }>;
+    supplementalBlindContext: { answerRu: string; toolCalls: unknown[] };
+    sdkProtocolChecks: { countedAsAgentRuns: boolean };
+  };
+
+  it("is excluded from the one-library skill set", () => {
+    expect(Object.keys(librarySkills)).not.toContain("lib-project-docs");
+  });
+
+  it("uses deterministic routing and search budgets", () => {
+    expect(text).toContain("остановись без вызова инструментов и footer");
+    expect(text).toContain("начальный `search_docs` выполни с `limit=5`");
+    expect(text).toContain("остаток бюджета `6 - |L|`");
+    expect(text).toContain("не больше трёх поисков");
+    expect(text).toContain("только `limit=5` или `limit=10`");
+    expect(text).toContain("больше трёх библиотек");
+    expect(text).toContain("Изоляция клиентов");
+  });
+
+  it("uses the shared grounded answer format", () => {
+    expect(text).toContain("## По документации");
+    expect(text).toContain("`### 1.`, `### 2.`");
+    expect(text).toContain("литерал `[Источник]` используй ровно один раз");
+    expect(text).toContain("Никогда не повторяй `[Источник]` после `|`");
+    expect(text).toContain("через ` | `");
+    expect(text).toContain("каждый фрагмент по обе стороны разделителя");
+    expect(text).toContain("Не ставь после `|` отдельный URL или раздел");
+    expect(text).toContain("## Выводы и рекомендации");
+    expect(text).toContain("не показывай `file://`");
+    expect(text).toContain("Snapshot date");
+    expect(text).toContain("undefined");
+    expect(text).toContain("Даже при недоступности MCP");
+    expect(text).toContain("помести состояние в `### 1.`");
+    expect(text).toContain("без поясняющей фразы");
+    expect(text).toContain("[Использованы библиотеки: нет]");
+    expect(text.toLowerCase()).toContain("последней строкой без текста после неё");
+  });
+
+  it("contains routing keywords but no concrete example questions", () => {
+    expect(text).not.toContain("?");
+    expect(text).not.toMatch(/пример(?:ы)? вопрос/iu);
+    expect(text).not.toMatch(/пользователь спрашивает/iu);
+    expect(text).not.toContain('library="');
+  });
+
+  it("is user-invoked and declares the lib-docs MCP dependency", () => {
+    expect(text).not.toContain("disable-model-invocation");
+    expect(agent).toContain('value: "lib-docs"');
+    expect(agent).toContain("allow_implicit_invocation: false");
+  });
+
+  it("routes by project and folder through the disclosed library map", () => {
+    expect(text).toContain("references/library-map.md");
+    expect(text).toContain("## Выбрать библиотеки");
+    expect(text).toContain("Работай только после ручного вызова `$lib-project-docs`");
+    expect(text).toContain("sap_process_navigator");
+    expect(text).toContain("onec_erp");
+    expect(map).toContain("Раздел 07 у Полюса отсутствует");
+    expect(requiredLibraries).toHaveLength(22);
+    for (const library of requiredLibraries) {
+      expect(map.match(new RegExp(library, "g"))).toHaveLength(1);
+    }
+  });
+
+  it("searches the Russian index instead of translating to English", () => {
+    expect(text).toContain("русск");
+    expect(text).toContain("Не переводи запрос в английский");
+    expect(text).toContain('targetVersion="1.0.0"');
+  });
+
+  it("distinguishes matched artifacts and representation limits", () => {
+    expect(text).toContain("Matched Artifacts");
+    expect(text).toContain("Related Artifacts");
+    expect(text).toContain("Missing");
+    expect(text).toContain("ExternalUnresolved");
+    expect(text).toContain("xlsx-metadata");
+    expect(text).toContain("unsupported-metadata");
+  });
+
+  it("retrieves source bytes only through an opaque artifactId", () => {
+    expect(text).toContain("list_source_artifacts");
+    expect(text).toContain("get_source_artifact");
+    expect(text).toContain("artifactId");
+    expect(text).toContain("Не принимай от пользователя путь сервера");
+    expect(text).toContain("Получай байты только через `get_source_artifact`");
+  });
+
+  it("groups a concise final artifact list by catalog type", () => {
+    expect(text).toContain("## Артефакты");
+    expect(text).toContain("Документы");
+    expect(text).toContain("Таблицы");
+    expect(text).toContain("Презентации");
+    expect(text).toContain("Планы проекта");
+    expect(text).toContain("Оставь названия групп и разделителей обычным текстом");
+    expect(text).toContain("для `Downloaded` только `suggestedFilename`");
+    expect(text).toContain("для недоступной записи — её `name`");
+    expect(text).toContain("Не выводи пустые группы");
+    expect(text).toContain("не показывай `artifactId`");
+    expect(text).toContain("`list_source_artifacts` один раз для каждого подтверждённого раздела");
+    expect(text).toContain("полный массив `structuredContent.artifacts`");
+    expect(text).toContain("инвентарём выбранного раздела");
+    expect(text).toContain("<Клиент> — <Раздел>");
+    expect(text).toContain("При нескольких разделах внутри каждой группы");
+  });
+
+  it("uses a deterministic destination policy for requested downloads", () => {
+    expect(text).toContain("`artifacts/project-docs/<проект>/<nn-slug>/`");
+    expect(text).toContain("Если проектная папка не найдена");
+    expect(text).toContain("предложи рабочий стол как вариант по умолчанию");
+    expect(text).toContain("разреши относительный путь от текущей рабочей папки");
+    expect(text).toContain("`.git`, `package.json`, `pyproject.toml`");
+    expect(text).toContain("Сначала определи папку назначения");
+    expect(text).toContain("остановись до ответа");
+    expect(text).toContain("Bundled writer сам");
+    expect(text).toContain("сохраняет через `create-new`");
+    expect(text).toContain("без временных файлов и удаления");
+    expect(text).toContain("**Скачано**");
+    expect(text).toContain("по одной строке `имя файла → полный путь`");
+  });
+
+  it("uses one bundled fast-path writer after parallel artifact retrieval", () => {
+    expect(text).toContain("`scripts/save-source-artifacts.mjs`");
+    expect(text).toContain("параллельно одним batch");
+    expect(text).toContain("После завершения всех retrieval-вызовов");
+    expect(text).toContain("запусти writer один раз");
+    expect(text).toContain("Не генерируй inline Python");
+    expect(text).toContain("не запускай диагностические sleep/probe-команды");
+    expect(text).toContain("В Codex сразу используй интерактивный режим");
+    expect(text).toContain('JSON `{"ready":true}`');
+    expect(text).toContain("Сохраняю {количество} файлов в {папка}");
+    expect(text).toContain("`- [имя файла](<абсолютный путь>)`");
+  });
+
+  it("passes the applicable combining validator", () => {
+    const combining = spawnSync(
+      "python3",
+      [resolve(skillDir, "scripts/validate_project_docs_skill.py"), skillDir],
+      { encoding: "utf8" },
+    );
+    expect(combining.status).toBe(0);
+    expect(combining.stdout).toContain("PASS");
+  });
+
+  it("uses its project writer with PPTX, DOC, and MPP checks", () => {
+    const projectWriter = resolve(skillDir, "scripts/save-source-artifacts.mjs");
+    const destination = mkdtempSync(join(tmpdir(), "project-docs-writer-"));
+    const pptx = Buffer.concat([
+      Buffer.from("PK"),
+      Buffer.from("ppt/slides/slide1.xml"),
+    ]);
+    try {
+      const input = `${JSON.stringify({
+        suggestedFilename: "deck.pptx",
+        blob: pptx.toString("base64"),
+        sizeBytes: pptx.length,
+        sha256: createHash("sha256").update(pptx).digest("hex"),
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      })}\n`;
+      const output = execFileSync(
+        process.execPath,
+        [projectWriter, "--destination", destination, "--count", "1"],
+        { encoding: "utf8", input },
+      )
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      expect(output).toEqual([
+        { ready: true, count: 1 },
+        {
+          name: "deck.pptx",
+          path: join(destination, "deck.pptx"),
+          status: "saved",
+        },
+      ]);
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
+    }
+  });
+
+  it("maps seven live Russian scenarios onto published project-docs libraries", () => {
+    expect(matrix.map(({ id }) => id)).toEqual(
+      Array.from({ length: 7 }, (_, index) => `PD-0${index + 1}`),
+    );
+    expect(matrix.every(({ promptRu }) => /[А-Яа-яЁё]/u.test(promptRu))).toBe(true);
+    expect(matrix.every(({ mustContain }) => mustContain.length > 0)).toBe(true);
+    expect(matrix.every(({ refinements }) => refinements.length <= 2)).toBe(true);
+    expect(matrix.every(({ libraries }) => libraries.length >= 1 && libraries.length <= 3)).toBe(
+      true,
+    );
+  });
+
+  it("records a grounded Russian verdict for all seven scenarios", () => {
+    const matrixById = new Map(matrix.map((acceptanceCase) => [acceptanceCase.id, acceptanceCase]));
+    expect(observations.cases).toHaveLength(7);
+    expect(observations.cases.map(({ id }) => id)).toEqual(
+      Array.from({ length: 7 }, (_, index) => `PD-0${index + 1}`),
+    );
+    for (const observation of observations.cases) {
+      const acceptanceCase = matrixById.get(observation.id);
+      const finalQuery = observation.queries.at(-1);
+      expect(acceptanceCase).toBeDefined();
+      expect(observation.queries.map(({ query }) => query)).toEqual([
+        acceptanceCase?.initialQuery,
+        ...(acceptanceCase?.refinements ?? []),
+      ]);
+      expect(
+        observation.queries.every(
+          ({ library, limit }) =>
+            (acceptanceCase?.libraries.includes(library) ?? false) &&
+            (limit === 5 || limit === 10),
+        ),
+      ).toBe(true);
+      expect(finalQuery?.rank).toBeGreaterThanOrEqual(1);
+      expect(finalQuery?.rank).toBeLessThanOrEqual(5);
+      expect(
+        observation.queries.some(({ topProcessIds }) =>
+          topProcessIds.includes(acceptanceCase?.expectedProcessId ?? ""),
+        ),
+      ).toBe(true);
+      expect(observation.matchedArtifact.name).toBe(acceptanceCase?.expectedArtifactName);
+      expect(observation.matchedArtifact.availability).toBe("Downloaded");
+      expect(observation.answerRu).toMatch(/[А-Яа-яЁё]/u);
+    }
+  });
+
+  it("keeps four factual scenarios free of source retrieval", () => {
+    const factualIds = matrix
+      .filter(({ retrieveSource }) => !retrieveSource)
+      .map(({ id }) => id);
+    expect(factualIds).toHaveLength(4);
+    expect(
+      observations.cases
+        .filter(({ id }) => factualIds.includes(id))
+        .every(({ retrieval }) => retrieval === null),
+    ).toBe(true);
+  });
+
+  it("records one saved and hash-verified source for docx, pptx, and mpp", () => {
+    const sourceCases = matrix.filter(({ retrieveSource }) => retrieveSource);
+    const resultById = new Map(observations.cases.map((result) => [result.id, result]));
+    expect(sourceCases.map(({ representationType }) => representationType).sort()).toEqual(
+      ["docx-text", "pptx-text", "unsupported-metadata"],
+    );
+    for (const acceptanceCase of sourceCases) {
+      const retrieval = resultById.get(acceptanceCase.id)?.retrieval;
+      expect(retrieval).toMatchObject(acceptanceCase.expectedSource ?? {});
+      expect(retrieval?.sizeBytes).toBeGreaterThan(0);
+      expect(retrieval?.savedSha256).toBe(retrieval?.catalogSha256);
+      expect(retrieval?.temporaryCopyRemoved).toBe(false);
+    }
+  });
+
+  it("records Matched and Related Artifact observations separately", () => {
+    const resultsById = new Map(observations.cases.map((result) => [result.id, result]));
+    expect(traces.relatedEvidence.length).toBeGreaterThan(0);
+    for (const related of traces.relatedEvidence) {
+      expect(related.artifactId).not.toBe(resultsById.get(related.id)?.matchedArtifact.artifactId);
+      expect(["Downloaded", "Missing", "ExternalUnresolved"]).toContain(related.availability);
+      expect(related.retrieved).toBe(false);
+    }
+  });
+
+  it("records ordered version-first bounded searches including a two-library cut-over", () => {
+    expect(traces.scenarioTraces).toHaveLength(7);
+    for (const trace of traces.scenarioTraces) {
+      expect(trace.events.map(({ sequence }) => sequence)).toEqual(
+        Array.from({ length: trace.events.length }, (_, index) => index + 1),
+      );
+      expect(trace.events[0]).toMatchObject({ tool: "find_version" });
+      expect(
+        trace.events
+          .filter(({ tool }) => tool === "search_docs")
+          .every(
+            ({ arguments: toolArguments }) =>
+              String(toolArguments.library).startsWith("project-docs-") &&
+              toolArguments.version === "1.0.0" &&
+              (toolArguments.limit === 5 || toolArguments.limit === 10),
+          ),
+      ).toBe(true);
+      expect(trace.events.every(({ arguments: toolArguments }) => {
+        const library = toolArguments.library;
+        return typeof library !== "string" || !library.includes("sap_process_navigator");
+      })).toBe(true);
+    }
+    const combining = traces.scenarioTraces.find(({ id }) => id === "PD-07");
+    expect(
+      combining?.events.filter(({ tool }) => tool === "search_docs").map(
+        ({ arguments: toolArguments }) => toolArguments.library,
+      ),
+    ).toEqual(["project-docs-mane-11-cutover", "project-docs-polis-11-cutover"]);
+  });
+
+  it("records a fresh ambiguity clarification with zero MCP calls", () => {
+    expect(traces.supplementalBlindContext.answerRu).toContain("ЛЮВЕ");
+    expect(traces.supplementalBlindContext.toolCalls).toEqual([]);
+  });
+
+  it("records honest unavailable statuses without blobs", () => {
+    expect(
+      new Set(observations.unavailableEvidence.map(({ availability }) => availability)),
+    ).toEqual(new Set(["Missing", "ExternalUnresolved"]));
+    expect(
+      observations.unavailableEvidence.every(({ blobReturned }) => !blobReturned),
+    ).toBe(true);
+  });
+
+  it("records the exact closed read-only MCP surface", () => {
+    expect(observations.runtime).toMatchObject({
+      family: "project-docs",
+      version: "1.0.0",
+      sourceRelease: "2026.8.21",
+      toolSurface: [
+        "find_version",
+        "get_source_artifact",
+        "list_libraries",
+        "list_source_artifacts",
+        "search_docs",
+      ],
+    });
+  });
+
+  it("records no sensitive payloads in sanitized evidence", () => {
+    expect(observations.negativeEvidence).toMatchObject({
+      rawBinaryOrBase64Recorded: false,
+      privateUrlRecorded: false,
+      serverPathRecorded: false,
+    });
+  });
+
+  it("installs the canonical skill into the global Codex skills directory", () => {
+    const installed = resolve(homedir(), ".codex/skills/lib-project-docs");
+    const files = [
+      "SKILL.md",
+      "agents/openai.yaml",
+      "references/library-map.md",
+      "scripts/save-source-artifacts.mjs",
+      "scripts/validate_project_docs_skill.py",
+    ];
+    for (const file of files) {
+      expect(readFileSync(join(installed, file))).toEqual(
+        readFileSync(join(skillDir, file)),
+      );
+    }
+    expect(observations.runtime.publication).toMatchObject({
+      installedPath: "~/.codex/skills/lib-project-docs",
+      canonicalEqualsInstalled: true,
+      combiningValidate: "PASS",
+      oneLibraryValidate: "N/A",
+    });
   });
 });

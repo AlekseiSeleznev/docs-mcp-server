@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "executionBoundary": {
+    "liveMcpRuns": "Real lib-docs calls against published project-docs libraries",
+    "sdkProtocolChecks": "Catalog hash and writer format checks; not counted as agent runs"
+  },
+  "scenarioTraces": [
+    {
+      "id": "PD-01",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-mane-04-settings", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-mane-04-settings", "version": "1.0.0", "query": "протокол настроек MSP 2.7", "limit": 5 } },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_7b128aad44905443ee0b7cd8e7f693eeadf2c833cc14768ceb798203e4d64020" } }
+      ]
+    },
+    {
+      "id": "PD-02",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-luve-01-dogovor", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-luve-01-dogovor", "version": "1.0.0", "query": "состав работ и результатов", "limit": 5 } }
+      ]
+    },
+    {
+      "id": "PD-03",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-polis-11-cutover", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-polis-11-cutover", "version": "1.0.0", "query": "план перехода в ПЭО", "limit": 5 } }
+      ]
+    },
+    {
+      "id": "PD-04",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-mane-13-lessons", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-mane-13-lessons", "version": "1.0.0", "query": "уроки проекта", "limit": 5 } },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_5049a0b1e086385c2065a920c7f44095f409b7725aacc88143ae16b97eddbeb7" } }
+      ]
+    },
+    {
+      "id": "PD-05",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-polis-14-approaches", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-polis-14-approaches", "version": "1.0.0", "query": "Microsoft Project план нси миграция", "limit": 5 } },
+        { "sequence": 3, "tool": "get_source_artifact", "arguments": { "artifactId": "art_73b4a203348031741b5a66452cd3d3af8402f3d2cc236496a316d6f0e50b46f4" } }
+      ]
+    },
+    {
+      "id": "PD-06",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-mane-02-plans", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "search_docs", "arguments": { "library": "project-docs-mane-02-plans", "version": "1.0.0", "query": "план проекта", "limit": 5 } }
+      ]
+    },
+    {
+      "id": "PD-07",
+      "events": [
+        { "sequence": 1, "tool": "find_version", "arguments": { "library": "project-docs-mane-11-cutover", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 2, "tool": "find_version", "arguments": { "library": "project-docs-polis-11-cutover", "targetVersion": "1.0.0" }, "result": { "version": "1.0.0" } },
+        { "sequence": 3, "tool": "search_docs", "arguments": { "library": "project-docs-mane-11-cutover", "version": "1.0.0", "query": "cut over план", "limit": 5 } },
+        { "sequence": 4, "tool": "search_docs", "arguments": { "library": "project-docs-polis-11-cutover", "version": "1.0.0", "query": "план перехода в ПЭО", "limit": 5 } }
+      ]
+    }
+  ],
+  "relatedEvidence": [
+    {
+      "id": "PD-02",
+      "processId": "project-docs-luve-01-dogovor",
+      "artifactId": "art_75fcce5817c3c5ab7d4bf8b4eaaa4c33de9a39d2fd718415e8b44acdee8d6e55",
+      "availability": "Downloaded",
+      "retrieved": false
+    },
+    {
+      "id": "PD-04",
+      "processId": "project-docs-mane-13-lessons",
+      "artifactId": "art_a9324ac706da5b5dedec2120f5cc4303fb40e701e18b5717586a60e41177a512",
+      "availability": "Downloaded",
+      "retrieved": false
+    },
+    {
+      "id": "PD-05",
+      "processId": "project-docs-polis-14-approaches",
+      "artifactId": "art_6b922dd55e4c81c106f089fc5a5ee14c111865ee89b3ba63cd6e2d54e983380e",
+      "availability": "Downloaded",
+      "retrieved": false
+    },
+    {
+      "id": "PD-06",
+      "processId": "project-docs-mane-02-plans",
+      "artifactId": "art_85f9c438d9412ed5b2c864a83c501fcabe249a99643ede2e0a47c3f5d2771959",
+      "availability": "Downloaded",
+      "retrieved": false
+    },
+    {
+      "id": "PD-07",
+      "processId": "project-docs-mane-11-cutover",
+      "artifactId": "art_87c21d78a6716c2d63348ea08aa640eee7b1a1b262c9243236e0fb3a9973ac86",
+      "availability": "Downloaded",
+      "retrieved": false
+    }
+  ],
+  "supplementalBlindContext": {
+    "answerRu": "Речь о проектной документации ЛЮВЕ, МАНЕ или Полюс",
+    "toolCalls": []
+  },
+  "sdkProtocolChecks": { "countedAsAgentRuns": false }
+}

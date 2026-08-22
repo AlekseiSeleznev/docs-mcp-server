@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "runtime": {
+    "family": "project-docs",
+    "version": "1.0.0",
+    "sourceRelease": "2026.8.21",
+    "toolSurface": [
+      "find_version",
+      "get_source_artifact",
+      "list_libraries",
+      "list_source_artifacts",
+      "search_docs"
+    ],
+    "publication": {
+      "installedPath": "~/.codex/skills/lib-project-docs",
+      "canonicalEqualsInstalled": true,
+      "combiningValidate": "PASS",
+      "oneLibraryValidate": "N/A"
+    }
+  },
+  "cases": [
+    {
+      "id": "PD-01",
+      "queries": [
+        {
+          "library": "project-docs-mane-04-settings",
+          "query": "протокол настроек MSP 2.7",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-mane-04-settings"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_7b128aad44905443ee0b7cd8e7f693eeadf2c833cc14768ceb798203e4d64020",
+        "name": "MSP 2.7 Settings Protocol -  протокол настроек.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 0, "truncated": false },
+      "answerRu": "Протокол настроек MSP 2.7 фиксирует перечень выполненных настроек 1С:ERP для проекта МАНЕ VOSTOK.",
+      "retrieval": {
+        "suggestedFilename": "MSP 2.7 Settings Protocol -  протокол настроек.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "sizeBytes": 117145,
+        "catalogSha256": "79e8a9f33733063a08cc0ac6a0f5c26213e5b48102afc1a5d502fb707a1dc202",
+        "savedSha256": "79e8a9f33733063a08cc0ac6a0f5c26213e5b48102afc1a5d502fb707a1dc202",
+        "formatCheck": "PK ZIP",
+        "temporaryCopyRemoved": false
+      }
+    },
+    {
+      "id": "PD-02",
+      "queries": [
+        {
+          "library": "project-docs-luve-01-dogovor",
+          "query": "состав работ и результатов",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": [
+            "project-docs-luve-01-dogovor",
+            "project-docs-luve-01-dogovor",
+            "project-docs-luve-01-dogovor"
+          ]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_34b54b373cc97a9708bb044489ce101a698fef0500759749bc18482c1fc49912",
+        "name": "Annex №2 to the IA №1_Composition of works and results_19 08.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 7, "truncated": false },
+      "answerRu": "Приложение №2 к индивидуальному договору ЛЮВЕ описывает состав услуг и результатов по этапам проекта.",
+      "retrieval": null
+    },
+    {
+      "id": "PD-03",
+      "queries": [
+        {
+          "library": "project-docs-polis-11-cutover",
+          "query": "план перехода в ПЭО",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-polis-11-cutover"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_66fe47029e81d00c6802a4938b10d99c7c0aa76dce8e8bb3d92df23d60020874",
+        "name": "ERP.7.4_ АКТУАЛ КОНЦЕПЦИЯ И ДЕТАЛИЗИР ПЛАН ПЕРЕХОДА В ПЭО.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 0, "truncated": false },
+      "answerRu": "Документ ERP.7.4 Полюса содержит актуализированную концепцию и детализированный план перехода в промышленную эксплуатацию.",
+      "retrieval": null
+    },
+    {
+      "id": "PD-04",
+      "queries": [
+        {
+          "library": "project-docs-mane-13-lessons",
+          "query": "уроки проекта",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-mane-13-lessons"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_5049a0b1e086385c2065a920c7f44095f409b7725aacc88143ae16b97eddbeb7",
+        "name": "MANE  уроки проекта.pptx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 1, "truncated": false },
+      "answerRu": "Презентация уроков проекта МАНЕ фиксирует вовлечённость ключевых пользователей и качество данных миграции.",
+      "retrieval": {
+        "suggestedFilename": "MANE  уроки проекта.pptx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "sizeBytes": 10894636,
+        "catalogSha256": "3c6fbdd5dae55f6861164c88ddb255c256e33257d0a8f657426df268950c3952",
+        "savedSha256": "3c6fbdd5dae55f6861164c88ddb255c256e33257d0a8f657426df268950c3952",
+        "formatCheck": "PK ZIP",
+        "temporaryCopyRemoved": false
+      }
+    },
+    {
+      "id": "PD-05",
+      "queries": [
+        {
+          "library": "project-docs-polis-14-approaches",
+          "query": "Microsoft Project план нси миграция",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-polis-14-approaches"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_73b4a203348031741b5a66452cd3d3af8402f3d2cc236496a316d6f0e50b46f4",
+        "name": "Детальный план НСИ и Миграция 20190314 v1-RUNB0140_JulyDa.mpp",
+        "mediaType": "application/vnd.ms-project",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 12, "truncated": false },
+      "answerRu": "План Microsoft Project по НСИ и миграции Полюса есть в инвентаре, но поисковый текст содержимого плана в индексе отсутствует.",
+      "retrieval": {
+        "suggestedFilename": "Детальный план НСИ и Миграция 20190314 v1-RUNB0140_JulyDa.mpp",
+        "mediaType": "application/vnd.ms-project",
+        "sizeBytes": 427520,
+        "catalogSha256": "c25bbadd4d1f10a483a0fd3caae3eeef9e74d55aaf04a7c1051244602d9fea3d",
+        "savedSha256": "c25bbadd4d1f10a483a0fd3caae3eeef9e74d55aaf04a7c1051244602d9fea3d",
+        "formatCheck": "OLE CFBF",
+        "temporaryCopyRemoved": false
+      }
+    },
+    {
+      "id": "PD-06",
+      "queries": [
+        {
+          "library": "project-docs-mane-02-plans",
+          "query": "план проекта",
+          "limit": 5,
+          "rank": 2,
+          "topProcessIds": [
+            "project-docs-mane-02-plans",
+            "project-docs-mane-02-plans",
+            "project-docs-mane-02-plans"
+          ]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_ad3765995307f858d5a679e320dc4abf5605247d94131bafa6ba1dfe5718e80e",
+        "name": "План  проект МАНЕ  10.11.2025 -10.12.2025.xlsx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "availability": "Downloaded"
+      },
+      "relatedArtifacts": { "returned": 4, "truncated": false },
+      "answerRu": "В индексе по плану проекта МАНЕ видны имена листов, включая «План проекта», без полной таблицы ячеек.",
+      "retrieval": null
+    },
+    {
+      "id": "PD-07",
+      "queries": [
+        {
+          "library": "project-docs-mane-11-cutover",
+          "query": "cut over план",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-mane-11-cutover"]
+        },
+        {
+          "library": "project-docs-polis-11-cutover",
+          "query": "план перехода в ПЭО",
+          "limit": 5,
+          "rank": 1,
+          "topProcessIds": ["project-docs-polis-11-cutover"]
+        }
+      ],
+      "matchedArtifact": {
+        "artifactId": "art_1bf4696507265cb460aac532101898306eb47aa779efa8a641bfdd856f7f5e2f",
+        "name": "MSP  3.15 Cut over План.docx",
+        "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "availability": "Downloaded"
+      },
+      "matchedByLibrary": {
+        "project-docs-mane-11-cutover": {
+          "artifactId": "art_1bf4696507265cb460aac532101898306eb47aa779efa8a641bfdd856f7f5e2f",
+          "name": "MSP  3.15 Cut over План.docx"
+        },
+        "project-docs-polis-11-cutover": {
+          "artifactId": "art_66fe47029e81d00c6802a4938b10d99c7c0aa76dce8e8bb3d92df23d60020874",
+          "name": "ERP.7.4_ АКТУАЛ КОНЦЕПЦИЯ И ДЕТАЛИЗИР ПЛАН ПЕРЕХОДА В ПЭО.docx"
+        }
+      },
+      "relatedArtifacts": { "returned": 4, "truncated": false },
+      "answerRu": "Cut-over МАНЕ задан документом MSP 3.15, cut-over Полюса — концепцией и планом перехода ERP.7.4. Это разные проекты, их планы не подменяют друг друга.",
+      "retrieval": null
+    }
+  ],
+  "unavailableEvidence": [
+    { "availability": "Missing", "blobReturned": false },
+    { "availability": "ExternalUnresolved", "blobReturned": false }
+  ],
+  "negativeEvidence": {
+    "rawBinaryOrBase64Recorded": false,
+    "privateUrlRecorded": false,
+    "serverPathRecorded": false
+  }
+}
