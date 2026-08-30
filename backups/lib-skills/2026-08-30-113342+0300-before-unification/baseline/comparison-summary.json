@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T10:03:37.777Z",
+  "performance": [
+    {
+      "id": "sap-dev-abap",
+      "skill": "lib-sap-dev",
+      "before": {
+        "runs": 3,
+        "medianMs": 57305,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 52272,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -5033,
+      "pass": true
+    },
+    {
+      "id": "sap-cons-finance",
+      "skill": "lib-sap-cons",
+      "before": {
+        "runs": 3,
+        "medianMs": 103804,
+        "medianMcpCalls": 7,
+        "medianSearches": 5,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 73340,
+        "medianMcpCalls": 5,
+        "medianSearches": 3,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -30464,
+      "pass": true
+    },
+    {
+      "id": "onec-dev-platform",
+      "skill": "lib-1c-dev",
+      "before": {
+        "runs": 3,
+        "medianMs": 58716,
+        "medianMcpCalls": 3,
+        "medianSearches": 3,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 45501,
+        "medianMcpCalls": 2,
+        "medianSearches": 2,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -13215,
+      "pass": true
+    },
+    {
+      "id": "onec-cons-erp",
+      "skill": "lib-1c-cons",
+      "before": {
+        "runs": 3,
+        "medianMs": 79248,
+        "medianMcpCalls": 3,
+        "medianSearches": 3,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 60815,
+        "medianMcpCalls": 2,
+        "medianSearches": 2,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -18433,
+      "pass": true
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "before": {
+        "runs": 3,
+        "medianMs": 43903,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 41008,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -2895,
+      "pass": true
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "before": {
+        "runs": 6,
+        "medianMs": 42302,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 6,
+        "medianMs": 40421,
+        "medianMcpCalls": 2,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -1881,
+      "pass": true
+    },
+    {
+      "id": "sap-process-info",
+      "skill": "lib-sap-process-navigator",
+      "before": {
+        "runs": 3,
+        "medianMs": 46331,
+        "medianMcpCalls": 3,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 42781,
+        "medianMcpCalls": 3,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -3550,
+      "pass": true
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "before": {
+        "runs": 3,
+        "medianMs": 45030,
+        "medianMcpCalls": 3,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "after": {
+        "runs": 3,
+        "medianMs": 42588,
+        "medianMcpCalls": 3,
+        "medianSearches": 1,
+        "exitsOk": true,
+        "leaks": false
+      },
+      "deltaMs": -2442,
+      "pass": true
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "sap-process-download",
+      "sameArtifactId": true,
+      "oldArtifactId": "art_4e3b542e908bd31e76d4da96995fa64dc05113b61fbac3d63665f84eb4e1e93e",
+      "newArtifactId": "art_4e3b542e908bd31e76d4da96995fa64dc05113b61fbac3d63665f84eb4e1e93e"
+    },
+    {
+      "id": "project-docs-download",
+      "sameArtifactId": true,
+      "oldArtifactId": "art_7b128aad44905443ee0b7cd8e7f693eeadf2c833cc14768ceb798203e4d64020",
+      "newArtifactId": "art_7b128aad44905443ee0b7cd8e7f693eeadf2c833cc14768ceb798203e4d64020"
+    }
+  ],
+  "ambiguity": {
+    "mcpCalls": 0,
+    "hasFooter": false,
+    "answer": "Для какого продукта или методики нужен ответ: «1С:ERP», «1С:Управление холдингом», «1С:Документооборот» или методика проектного внедрения 1С?"
+  },
+  "pass": true
+}

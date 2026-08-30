@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:19:06.318Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 1
+  },
+  "results": [
+    {
+      "id": "sap-cons-finance",
+      "skill": "lib-sap-cons",
+      "attempt": 1,
+      "prompt": "Как в SAP S/4HANA устроено автоматическое определение счетов для проводок материалов?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 79860,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana"
+          },
+          "durationMs": 300
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов проводки материалов automatic account determination material postings valuation class transaction key account modifier valuation grouping code OBYC BSX WRX GBB PRD SAP S/4HANA"
+          },
+          "durationMs": 1235
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "OBYC configure automatic postings valuation grouping code chart of accounts transaction key valuation class account modifier BSX WRX GBB PRD inventory management movement type SAP S/4HANA"
+          },
+          "durationMs": 1588
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_finance_erp"
+          },
+          "durationMs": 404
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_finance_erp",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов проводки материалов automatic account determination OBYC transaction key valuation class valuation grouping code account modifier BSX WRX GBB PRD chart of accounts"
+          },
+          "durationMs": 1520
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В SAP S/4HANA счёт для материальной проводки выбирается не напрямую из movement type. Movement type определяет вид операции и transaction key, после чего система находит G/L account по комбинации chart of accounts, valuation grouping code/valuation area, account modifier и valuation class в настройке OBYC.\n\n## По документации\n\n### 1. Логика определения\n\nУпрощённая цепочка выглядит так:\n\n`material movement → movement type → transaction key + account modifier → valuation class + valuation area → G/L account`\n\nMovement type управляет видом и обновлением материальной операции. Для разных счетов допускается создавать собственные movement types копированием стандартных.\n\n[Источник] Inventory Management with SAP S/4HANA; 3.1 Implementation Guide Configuration\n\n### 2. Valuation class материала\n\nValuation class хранится в accounting-данных material master и группирует материалы, которые должны проводиться на одинаковые счета. Допустимые valuation classes ограничиваются через account category reference, присвоенный material type.\n\nНапример, сырьё и готовая продукция могут использовать разные valuation classes и, следовательно, разные stock accounts.\n\n[Источник] 100 Things You Should Know About Controlling with SAP; Movement Type Account Determination\n\n### 3. Ключи операции\n\nTransaction key обозначает бухгалтерскую сторону материальной операции. Типичные примеры:\n\n- `BSX` — проводка стоимости запасов;\n- `WRX` — GR/IR clearing account;\n- `GBB` — offsetting entry for inventory posting;\n- `GBB-VBR` — потребление материалов;\n- `GBB-VNG` — списание запасов.\n\nСуффиксы `VBR`, `VNG` и подобные — это account modifiers, позволяющие разделить счета внутри одного transaction key.\n\n[Источник] SAP ERP Financials Configuration and Design; 9.1 Automatic Account Determination\n\n### 4. Матрица OBYC\n\nНастройка выполняется в `OBYC` — IMG → Materials Management → Valuation and Account Assignment → Account Determination → Configure Automatic Postings.\n\nДля каждого transaction key задаются применимые правила и G/L accounts. Полная комбинация может включать:\n\n- chart of accounts;\n- valuation grouping code, объединяющий несколько valuation areas;\n- transaction key;\n- account modifier;\n- valuation class;\n- debit/credit indicator — если он предусмотрен правилом.\n\nТехнически стандартные назначения хранятся преимущественно в таблице `T030`.\n\n[Источник] Maximizing SAP General Ledger; 5.5 General Ledger Integration with Order-to-Cash and Procure-to-Pay Scenarios\n\n### 5. Влияние account assignment\n\nДля закупки account assignment category определяет, поступает ли материал в valuated stock или сразу относится на consumption account, а также какие account assignment objects требуются. Поэтому одинаковый movement type в разных сценариях может приводить к разным бухгалтерским проводкам.\n\n[Источник] Inventory Management with SAP S/4HANA; 3.1 Implementation Guide Configuration — Account Assignment Categories\n\nИтого: при ошибочном счёте проверяют последовательно `movement type → transaction key/account modifier → valuation class материала → valuation grouping code → запись OBYC`.\n\n[Использованы библиотеки: sap_books_logistics_s4hana, sap_books_finance_erp]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 3,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:17:48.237088Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:19:05.194855Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

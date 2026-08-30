@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T10:02:22.818Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 1
+  },
+  "results": [
+    {
+      "id": "ambiguous-project",
+      "skill": "lib-1c-cons",
+      "attempt": 1,
+      "prompt": "Как правильно организовать управление проектом внедрения?",
+      "profile": "catalog-router",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 11160,
+      "tools": [],
+      "commands": [],
+      "answer": "Для какого продукта или методики нужен ответ: «1С:ERP», «1С:Управление холдингом», «1С:Документооборот» или методика проектного внедрения 1С?",
+      "checks": {
+        "usedExpectedTool": false,
+        "searchCount": 0,
+        "hasFooter": false,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T10:02:13.474359Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T10:02:21.682762Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

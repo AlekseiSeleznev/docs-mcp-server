@@ -1,0 +1,115 @@
+[
+  {
+    "id": "sap-dev-abap",
+    "skill": "lib-sap-dev",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?"
+  },
+  {
+    "id": "sap-cons-finance",
+    "skill": "lib-sap-cons",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "Как в SAP S/4HANA устроено автоматическое определение счетов для проводок материалов?"
+  },
+  {
+    "id": "onec-dev-platform",
+    "skill": "lib-1c-dev",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "Как программно создать элемент справочника в 1С?"
+  },
+  {
+    "id": "onec-cons-erp",
+    "skill": "lib-1c-cons",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?"
+  },
+  {
+    "id": "onec-buh",
+    "skill": "lib-1c-buh",
+    "profile": "single-library",
+    "prompt": "В 1С:Бухгалтерии как закрыть месяц?"
+  },
+  {
+    "id": "onec-erp",
+    "skill": "lib-1c-erp",
+    "profile": "catalog-router",
+    "prompt": "Какие этапы обследования предусмотрены в проекте внедрения ERP?"
+  },
+  {
+    "id": "onec-docflow",
+    "skill": "lib-1c-docflow",
+    "profile": "catalog-router",
+    "prompt": "Как в 1С:Документообороте настроить маршрут согласования?"
+  },
+  {
+    "id": "onec-toir",
+    "skill": "lib-1c-toir",
+    "profile": "single-library",
+    "prompt": "Какие документы используются для заявки на ремонт в 1С:ТОИР?"
+  },
+  {
+    "id": "nifi",
+    "skill": "lib-nifi",
+    "profile": "single-library",
+    "performance": true,
+    "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?"
+  },
+  {
+    "id": "pm2",
+    "skill": "lib-pm2-it",
+    "profile": "single-library",
+    "prompt": "Какие роли участвуют в подготовке и утверждении Project Charter по PM²?"
+  },
+  {
+    "id": "postgresql",
+    "skill": "lib-postgresql",
+    "profile": "single-library",
+    "performance": true,
+    "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?"
+  },
+  {
+    "id": "successfactors",
+    "skill": "lib-sap-sf-odata",
+    "profile": "single-library",
+    "prompt": "Как через SAP SuccessFactors OData V2 получить EmpJob и перейти к связанному пользователю?"
+  },
+  {
+    "id": "sap-process-info",
+    "skill": "lib-sap-process-navigator",
+    "profile": "artifact-retrieval",
+    "performance": true,
+    "prompt": "В SAP Process Navigator найди комплексный девятиэтапный процесс технического обслуживания и кратко изложи его назначение без скачивания файлов."
+  },
+  {
+    "id": "project-docs-info",
+    "skill": "lib-project-docs",
+    "profile": "artifact-retrieval",
+    "performance": true,
+    "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай."
+  },
+  {
+    "id": "sap-process-download",
+    "skill": "lib-sap-process-navigator",
+    "profile": "artifact-retrieval",
+    "expectedTool": "get_source_artifact",
+    "prompt": "В SAP Process Navigator найди процесс со стандартизированным механизмом событий и сохрани доступное исходное описание в /tmp/lib-skill-comparison-downloads/sap-process."
+  },
+  {
+    "id": "project-docs-download",
+    "skill": "lib-project-docs",
+    "profile": "artifact-retrieval",
+    "expectedTool": "get_source_artifact",
+    "prompt": "В проектной документации МАНЕ изложи назначение протокола настроек MSP 2.7 и сохрани исходный файл в /tmp/lib-skill-comparison-downloads/project-docs."
+  },
+  {
+    "id": "ambiguous-project",
+    "skill": "lib-1c-cons",
+    "profile": "catalog-router",
+    "expectedTool": "none",
+    "prompt": "Как правильно организовать управление проектом внедрения?"
+  }
+]

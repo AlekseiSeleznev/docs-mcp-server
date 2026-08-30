@@ -1,0 +1,13 @@
+interface:
+  display_name: "1С документация (консультант)"
+  short_description: "Ответы по прикладной документации 1С"
+  default_prompt: "Используй $lib-1c-cons, чтобы ответить пользователю по прикладной документации 1С и подтвердить ответ первоисточниками."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Удалённая библиотека документации"
+
+policy:
+  allow_implicit_invocation: true

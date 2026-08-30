@@ -1,0 +1,104 @@
+language_policy:
+  expected_user_language: ru
+  primary_content_language: en
+  search_order:
+  - mixed_ru_en
+  - en
+  - ru
+  russian_exceptions:
+  - sap_books_abap
+  - sap_books_data_platform
+  - sap_books_integration
+libraries:
+- name: sap_abap_keyword_doc
+  canonical_name: ABAP Keyword Documentation 7.56
+  versions:
+  - 7.56.0
+  version_kind: semantic
+  audiences:
+  - developer
+  description: официальный справочник синтаксиса и семантики ABAP 7.56
+  aliases:
+  - ABAP Keyword Documentation
+  - ABAP Docu
+  - ABAP 7.56
+  keywords:
+  - ABAP syntax
+  - ABAP statement
+  - keyword
+  - system field
+  - internal table
+- name: sap_books_abap
+  canonical_name: Книги по ABAP
+  versions:
+  - 2026.8.29
+  version_kind: snapshot
+  audiences:
+  - developer
+  description: разработка, объекты, производительность, тестирование и сертификация ABAP
+  aliases:
+  - ABAP books
+  - книги ABAP
+  keywords:
+  - ABAP Objects
+  - Open SQL
+  - CDS
+  - AMDP
+  - performance
+  - testing
+- name: sap_books_ui5_fiori
+  canonical_name: Книги по SAPUI5 и SAP Fiori
+  versions:
+  - 2026.8.29
+  version_kind: snapshot
+  audiences:
+  - developer
+  description: SAPUI5, Fiori, launchpad, элементы управления и разработка интерфейсов
+  aliases:
+  - SAPUI5
+  - SAP Fiori
+  - Fiori Launchpad
+  keywords:
+  - data binding
+  - OData model
+  - controller
+  - view
+  - launchpad
+  - Fiori app
+- name: sap_books_integration
+  canonical_name: Книги по интеграции SAP
+  versions:
+  - 2026.8.29
+  version_kind: snapshot
+  audiences:
+  - developer
+  description: OData, IDoc, EDI, SAP Gateway, Integration Suite и интеграционные интерфейсы
+  aliases:
+  - SAP integration
+  - SAP Gateway
+  - Integration Suite
+  keywords:
+  - OData
+  - IDoc
+  - EDI
+  - API
+  - middleware
+  - Cloud Integration
+- name: sap_books_data_platform
+  canonical_name: Книги по платформе данных SAP
+  versions:
+  - 2026.8.29
+  version_kind: snapshot
+  audiences:
+  - developer
+  description: SAP HANA, моделирование данных, SQLScript, BW и платформенная архитектура
+  aliases:
+  - SAP HANA
+  - SAP BW
+  - data platform
+  keywords:
+  - calculation view
+  - SQLScript
+  - HANA modeling
+  - database
+  - BW/4HANA

@@ -1,0 +1,114 @@
+language_policy:
+  expected_user_language: ru
+  primary_content_language: en
+  search_order: [mixed_ru_en, en, ru]
+  russian_exceptions:
+    - sap_books_abap
+    - sap_books_data_platform
+    - sap_books_integration
+
+libraries:
+  - name: sap_abap_keyword_doc
+    canonical_name: ABAP Keyword Documentation 7.56
+    versions: [7.56.0]
+    version_kind: semantic
+    audiences: [developer]
+    description: официальный справочник синтаксиса и семантики ABAP 7.56
+    aliases: [ABAP Keyword Documentation, ABAP Docu, ABAP 7.56]
+    keywords: [ABAP syntax, ABAP statement, keyword, system field, internal table]
+  - name: sap_books_abap
+    canonical_name: Книги по ABAP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [developer]
+    description: разработка, объекты, производительность, тестирование и сертификация ABAP
+    aliases: [ABAP books, книги ABAP]
+    keywords: [ABAP Objects, Open SQL, CDS, AMDP, performance, testing]
+  - name: sap_books_ui5_fiori
+    canonical_name: Книги по SAPUI5 и SAP Fiori
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [developer]
+    description: SAPUI5, Fiori, launchpad, элементы управления и разработка интерфейсов
+    aliases: [SAPUI5, SAP Fiori, Fiori Launchpad]
+    keywords: [data binding, OData model, controller, view, launchpad, Fiori app]
+  - name: sap_books_integration
+    canonical_name: Книги по интеграции SAP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [developer]
+    description: OData, IDoc, EDI, SAP Gateway, Integration Suite и интеграционные интерфейсы
+    aliases: [SAP integration, SAP Gateway, Integration Suite]
+    keywords: [OData, IDoc, EDI, API, middleware, Cloud Integration]
+  - name: sap_books_data_platform
+    canonical_name: Книги по платформе данных SAP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [developer]
+    description: SAP HANA, моделирование данных, SQLScript, BW и платформенная архитектура
+    aliases: [SAP HANA, SAP BW, data platform]
+    keywords: [calculation view, SQLScript, HANA modeling, database, BW/4HANA]
+  - name: sap_books_finance_s4hana
+    canonical_name: Книги по финансам SAP S/4HANA
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: Universal Journal, финансовые процессы и настройка SAP S/4HANA Finance
+    aliases: [SAP S/4HANA Finance, S4 Finance]
+    keywords: [Universal Journal, asset accounting, controlling, closing, finance migration]
+  - name: sap_books_finance_erp
+    canonical_name: Книги по финансам SAP ERP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: FI/CO, account determination, налоги, расчёты и финансовая отчётность SAP ERP
+    aliases: [SAP FI, SAP CO, SAP ERP Finance]
+    keywords: [account determination, general ledger, accounts payable, accounts receivable, controlling]
+  - name: sap_books_logistics_s4hana
+    canonical_name: Книги по логистике SAP S/4HANA
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: закупки, запасы, производство и цепочки поставок в SAP S/4HANA
+    aliases: [SAP S/4HANA Logistics, S4 logistics]
+    keywords: [materials management, inventory, procurement, production planning, supply chain]
+  - name: sap_books_logistics_erp
+    canonical_name: Книги по логистике SAP ERP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: MM, SD, WM, закупки, продажи, склад и производство SAP ERP
+    aliases: [SAP MM, SAP SD, SAP WM, SAP ERP Logistics]
+    keywords: [material management, sales, warehouse, purchasing, inventory management]
+  - name: sap_books_hcm_erp
+    canonical_name: Книги по SAP HCM
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: персонал, организационная структура, время и расчёт зарплаты SAP HCM
+    aliases: [SAP HCM, SAP HR, SAP Payroll]
+    keywords: [personnel administration, payroll, time management, organizational management]
+  - name: sap_books_analytics_user
+    canonical_name: Книги по аналитике SAP для пользователей
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: SAP Analytics Cloud, Analysis for Office, отчётность и планирование
+    aliases: [SAP Analytics Cloud, SAC, Analysis for Office]
+    keywords: [planning, dashboard, story, reporting, analysis]
+  - name: sap_books_security_governance
+    canonical_name: Книги по безопасности и управлению SAP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: роли, полномочия, GRC, аудит, риски и безопасность SAP
+    aliases: [SAP Security, SAP GRC, SAP Authorizations]
+    keywords: [authorization role, access control, audit, risk management, segregation of duties]
+  - name: sap_books_implementation
+    canonical_name: Книги по внедрению SAP
+    versions: [2026.8.29]
+    version_kind: snapshot
+    audiences: [consultant]
+    description: архитектура, миграция, BPM, управление проектом и эксплуатация SAP
+    aliases: [SAP implementation, SAP migration, SAP project]
+    keywords: [implementation methodology, migration, project management, architecture, BPM]

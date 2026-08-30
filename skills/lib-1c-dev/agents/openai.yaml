@@ -1,0 +1,13 @@
+interface:
+  display_name: "1С документация (разработчик)"
+  short_description: "Ответы по документации разработчика 1С"
+  default_prompt: "Используй $lib-1c-dev, чтобы ответить пользователю по документации разработчика 1С и подтвердить технические факты первоисточниками."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Read-only документация разработчика 1С"
+
+policy:
+  allow_implicit_invocation: true

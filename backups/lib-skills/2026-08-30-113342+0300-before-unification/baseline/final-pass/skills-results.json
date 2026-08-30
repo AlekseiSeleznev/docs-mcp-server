@@ -1,0 +1,1770 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:53:05.935Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 3
+  },
+  "results": [
+    {
+      "id": "ambiguous-project",
+      "skill": "lib-1c-cons",
+      "attempt": 1,
+      "prompt": "Как правильно организовать управление проектом внедрения?",
+      "profile": "catalog-router",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 32134,
+      "tools": [],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc \"sed -n '241,480p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc 'wc -l skills/lib-1c-cons/references/libraries.yaml'",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc \"sed -n '481,760p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Уточните, пожалуйста: речь о внедрении **1С:ERP** или о конкретной методике — **ТКВ**, **ТКВ Лайт**, **стандартное внедрение** либо **технология быстрого результата**?\n\n## По документации\n\n### 1. Выбор источника\n\nДо уточнения продукта или методики подтверждённый ответ дать нельзя. Подтверждение не найдено.\n\n[Использованы библиотеки: нет]",
+      "checks": {
+        "usedExpectedTool": false,
+        "searchCount": 0,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:51:41.795264Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:52:10.579465Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 1,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 42688,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 408
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure object threshold data size threshold connection queue FlowFile upstream processor scheduling default thresholds"
+          },
+          "durationMs": 1845
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure ограничивает очередь `Connection`: когда число FlowFiles **или** их суммарный размер достигает настроенного порога, NiFi перестаёт планировать на выполнение компонент-источник этой связи. По умолчанию пороги — **10 000 FlowFiles** и **1 GB**.\n\n## По документации\n\n### 1. Как срабатывает back pressure\n\nКаждая связь представляет очередь. NiFi контролирует её по двум независимым ограничениям:\n\n- `Back pressure object threshold` — количество FlowFiles;\n- `Back pressure data size threshold` — суммарный размер данных.\n\nДостижение любого из порогов останавливает дальнейшее планирование компонента-источника. Уже находящиеся в очереди FlowFiles не удаляются и продолжают обрабатываться downstream-компонентами.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Пороги по умолчанию\n\nДля новой связи используются:\n\n- **10 000 объектов**;\n- **1 GB данных**.\n\nЗначения задаются отдельно для каждой `Connection`. Начальные значения можно изменить через настройки `Process Group` либо соответствующие свойства `nifi.properties`; изменение defaults не затрагивает уже существующие связи.\n\n[Источник] Apache NiFi User Guide; Back Pressure и Default Settings for Connections; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Индикация заполнения\n\nЦвет полосы на связи показывает степень приближения к порогу:\n\n- зелёный — 0–60%;\n- жёлтый — 61–85%;\n- красный — 86–100%.\n\nЭто только визуальная индикация: back pressure включается при достижении настроенного лимита, а не при переходе полосы в красную зону.\n\n[Источник] Apache NiFi User Guide; Back Pressure Indicator Bars; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n## Выводы и рекомендации\n\n1. Оба ограничения действуют одновременно по принципу «достигнут любой порог».\n2. Подбирайте object threshold по ожидаемому количеству FlowFiles, а data-size threshold — по доступной памяти и диску репозитория очередей.\n3. Особенно внимательно настраивайте связи перед `Output Port` при `Batch Output`: слишком низкий порог способен создать взаимную блокировку потока.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:48:39.900652Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:15.568311Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 2,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 41008,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 403
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure Connection Object Threshold Data Size Threshold queued FlowFiles source component stops scheduling threshold reached"
+          },
+          "durationMs": 1371
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure применяется к очереди конкретного `Connection`. Когда достигнут хотя бы один настроенный предел — количество FlowFiles или их общий размер — NiFi перестаёт планировать компонент-источник, пока очередь не разгрузится ниже порогов.\n\n## По документации\n\n### 1. Порог количества\n\n`Back Pressure Object Threshold` ограничивает число FlowFiles в очереди. По умолчанию для нового соединения — **10 000 FlowFiles**.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Порог объёма\n\n`Back Pressure Data Size Threshold` ограничивает суммарный размер данных в очереди. По умолчанию — **1 GB**. Допустимы единицы `B`, `KB`, `MB`, `GB` и `TB`.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Условие срабатывания\n\nДостаточно достижения **любого** из двух порогов. Например, back pressure включится при 10 000 небольших FlowFiles, даже если очередь занимает меньше 1 GB; аналогично — при достижении 1 GB до накопления 10 000 объектов.\n\nИсточник upstream-компонента больше не запускается, но downstream-компонент продолжает забирать данные. После разгрузки очереди upstream снова может выполняться.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 4. Индикация не является дополнительным порогом\n\nЦвет полосы показывает заполнение очереди: зелёный — `0–60%`, жёлтый — `61–85%`, красный — `86–100%`. Красный цвет при 86% сам по себе не включает back pressure: рабочий предел достигается при 100% настроенного порога.\n\n[Источник] Apache NiFi User Guide; Back Pressure Indicators; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n## Выводы и рекомендации\n\n1. Настраивайте оба порога на каждом `Connection`, исходя из допустимого потребления памяти и диска.\n2. Учитывайте оба измерения: множество маленьких FlowFiles упрётся в Object Threshold, а несколько крупных — в Data Size Threshold.\n3. Значение `0` используется для отключения соответствующего ограничения; это особенно важно проверять в схемах с `Batch Output`, где неподходящий порог способен вызвать взаимную блокировку потока.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:48:41.169588Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:18.836790Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 3,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 38762,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 318
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure connection object threshold data size threshold FlowFile queue destination processor scheduled threshold reached equal exceeds AND OR swap default 10000 1 GB"
+          },
+          "durationMs": 1477
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure ограничивает очередь Connection: когда достигается хотя бы один настроенный порог, NiFi перестаёт планировать компонент-источник, пока получатель не разгрузит очередь. По умолчанию лимиты — **10 000 FlowFiles** или **1 GB** данных.\n\n## По документации\n\n### 1. Механизм работы\n\nBack pressure настраивается для каждой Connection. При заполнении очереди NiFi приостанавливает запуск компонента-источника; компонент-получатель продолжает обрабатывать накопленные FlowFiles.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Порог количества объектов\n\n`Back pressure object threshold` задаёт максимальное количество FlowFiles в очереди. Значение по умолчанию — **10 000**.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Порог объёма данных\n\n`Back pressure data size threshold` задаёт максимальный суммарный размер содержимого очереди. Значение по умолчанию — **1 GB**; поддерживаются единицы `B`, `KB`, `MB`, `GB` и `TB`.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 4. Глобальные значения для новых Connection\n\nНачальные пороги для создаваемых Connection задаются в `nifi.properties`:\n\n- `nifi.queue.backpressure.count=10000`\n- `nifi.queue.backpressure.size=1 GB`\n\nИндивидуальные значения Connection можно изменить в её настройках.\n\n[Источник] Apache NiFi Administration Guide; Core Properties; <https://nifi.apache.org/nifi-docs/administration-guide.html>\n\n## Выводы и рекомендации\n\n1. Back pressure включается при достижении лимита **по количеству либо по размеру** — ждать одновременного достижения обоих не требуется.\n2. Для крупных FlowFiles первым обычно срабатывает размер; для множества мелких — количество.\n3. Пороги следует подбирать так, чтобы очередь сглаживала разницу скоростей компонентов, но не разрасталась бесконтрольно.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:19.078066Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:54.276505Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-buh",
+      "skill": "lib-1c-buh",
+      "attempt": 1,
+      "prompt": "В 1С:Бухгалтерии как закрыть месяц?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 39126,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_buh",
+            "query": "закрытие месяца помощник Закрытие месяца регламентные операции последовательность выполнения перепроведение документов закрытие счетов расчет себестоимости",
+            "limit": 5
+          },
+          "durationMs": 1185
+        }
+      ],
+      "commands": [],
+      "answer": "Закрытие выполняется через «Помощник закрытия месяца»: выберите организацию и период, затем запустите выполнение. Состав операций программа определяет автоматически по учетной политике, налогообложению и данным учета.\n\n## По документации\n\n### 1. Запустите помощник\n\nОткройте:\n\n- простой интерфейс: **Бухгалтерия → Закрытие месяца → Выполнить закрытие месяца**;\n- полный интерфейс: **Операции → Закрытие месяца → Выполнить закрытие месяца**.\n\nВыберите закрываемый период и нажмите **Выполнить закрытие месяца**.\n\n[Источник] 1С:Бухгалтерия 8. Руководство по ведению учета; 10.9. Закрытие месяца; <https://its.1c.ru/db/content/bp8doc/src/10.9.%20закрытие%20месяца.htm>\n\n### 2. Восстановите последовательность документов\n\nПеред регламентными операциями программа проверяет хронологическую последовательность проведения документов. Если требуется, согласитесь на их перепроведение.\n\nПропускать операцию **Перепроведение документов за месяц** следует только тогда, когда внесенные изменения не влияют на учетные данные.\n\n[Источник] 1С:Бухгалтерия 8. Руководство по ведению учета; 10.9. Закрытие месяца; <https://its.1c.ru/db/content/bp8doc/src/10.9.%20закрытие%20месяца.htm>\n\n### 3. Проверьте результаты\n\nНажмите **Отчет о выполнении операций**. Для проверки отдельных расчетов используйте справки-расчеты, доступные из формы помощника: например, по амортизации, себестоимости, косвенным расходам или налогам.\n\nУчтите: закрытие месяца само по себе не запрещает исправлять документы. После проверки отчетов запрет изменения данных устанавливается отдельно в настройках пользователей.\n\n[Источник] 1С:Бухгалтерия 8. Руководство по ведению учета; 10.9. Закрытие месяца; <https://its.1c.ru/db/content/bp8doc/src/10.9.%20закрытие%20месяца.htm> | 1С:Бухгалтерия 8. Руководство по ведению учета; 10.9. Закрытие месяца; <https://its.1c.ru/db/content/bp8doc/src/10.9.%20закрытие%20месяца.htm>\n\n[Использованы библиотеки: onec_buh]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:47:55.383508Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:48:28.872757Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-cons-erp",
+      "skill": "lib-1c-cons",
+      "attempt": 1,
+      "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 55895,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp",
+            "query": "1С:ERP не формируется заказ на производство что проверить создание заказа по потребности обеспечение производство",
+            "limit": 5
+          },
+          "durationMs": 1930
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-1c-cons/SKILL.md && sed -n '1,260p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Сначала проверьте, появляется ли потребность в помощнике формирования заказов, затем — отборы и способ обеспечения. Если документ уже создан, но не участвует в производстве, проверьте его проведение и статус.\n\n## По документации\n\n### 1. Проверьте отбор потребностей\n\nНа первом шаге помощника очистите лишние отборы и проверьте склад, назначение, категорию продукции, подразделение, тип и источник обеспечения. Неверный отбор может исключить нужную продукцию.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов на производство по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 2. Отметьте способ обеспечения\n\nНа втором шаге нужный способ обеспечения должен быть отмечен флажком. Проверьте его параметры, прежде всего тип и источник обеспечения.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов на производство по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 3. Проверьте условие включения продукции\n\nПри варианте «Достигшие точки заказа» система включает только продукцию, которую уже необходимо заказать с учётом срока исполнения. Для проверки выберите «Все, плановое формирование заказа» и заполните дату следующей поставки.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов на производство по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 4. Найдите уже созданный документ\n\nПроверьте список «Производство → Межцеховое управление → Заказы на производство». Созданный заказ может находиться в статусе «Формируется»: это черновик, который не подлежит обеспечению и планированию. Для работы заказ переводят в статус «К производству».\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; 9.4. Заказы на производство; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 5. Не путайте заказ и этапы производства\n\nЕсли заказ создан, но не формируются этапы, проверьте наличие выбранных спецификаций продукции и полуфабрикатов. Без спецификации автоматическое создание соответствующих этапов не выполняется.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Управление очередью заказов на производство; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n[Использованы библиотеки: onec_erp]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:47:04.362240Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:47:56.921063Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-cons-erp",
+      "skill": "lib-1c-cons",
+      "attempt": 2,
+      "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 70410,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp",
+            "query": "1С:ERP заказ на производство не формируется создание по потребности планирование производства обеспечение материалами статус этапы производства",
+            "limit": 5
+          },
+          "durationMs": 2219
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp",
+            "query": "1С:ERP потребность не попадает в формирование заказов на производство проверить способ обеспечения источник собственное производство схема обеспечения статус заказа клиента",
+            "limit": 5
+          },
+          "durationMs": 1145
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-1c-cons/SKILL.md && sed -n '1,260p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Сначала определите, где пропадает цепочка: потребность не попадает в помощник, количество «К заказу» равно нулю либо заказ создан, но не формируются этапы. Проверяйте по порядку ниже.\n\n## По документации\n\n### 1. Проверьте режим обеспечения и рабочее место\n\nДля формирования заказов по потребностям используется расширенное обеспечение. Заказ на производство создаётся через **Производство → Межцеховое управление → Заказы на производство → Создать → По потребностям**.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; 5.3. Формирование заказов по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D0%BF%D0%BE%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8F%D0%BC.htm>\n\n### 2. Проверьте отборы помощника\n\nНа первом шаге проверьте склад, тип обеспечения **Собственное производство**, способ и источник обеспечения, подразделение, назначение и пользовательские отборы. Избыточный отбор может исключить нужную потребность.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Отбор потребностей и уточнение параметров поддержания запасов; <https://its.1c.ru/db/content/erp25doc/src/%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D0%BF%D0%BE%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8F%D0%BC.htm>\n\n### 3. Отметьте способ обеспечения\n\nНа втором шаге нужный способ обеспечения должен быть отмечен флажком. Для диагностики выберите **Все, плановое формирование заказа** и заполните **Дату следующей поставки**: вариант **Достигшие точки заказа** показывает только позиции, уже достигшие точки заказа.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов на производство по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 4. Проверьте рассчитанное количество «К заказу»\n\nСистема учитывает свободные остатки и ранее созданные заказы на поступление. Если потребность уже обеспечена ими, количество **К заказу** может быть нулевым и новый заказ не сформируется.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D0%BF%D0%BE%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8F%D0%BC.htm>\n\n### 5. Убедитесь, что зарегистрирована исходная потребность\n\nПотребность может возникать из плана производства, заказа клиента или заказа на внутреннее потребление. Проверьте, что исходный документ действительно фиксирует потребность в изделии.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование потребности в производстве; <https://its.1c.ru/db/content/erp25doc/src/%D0%BF%D1%80%D0%B8%D0%BD%D1%8F%D1%82%D0%B8%D0%B5%20%D1%80%D0%B5%D1%88%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BE%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%B5.htm>\n\n### 6. Если заказ есть, но не формируются этапы\n\nЗаказ должен иметь статус **К производству**. Для продукции и полуфабрикатов должны быть выбраны спецификации: по позициям без спецификации этапы не создаются. Индикатор **Проверить этапы** означает ошибки заполнения.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Управление очередью заказов на производство; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n[Использованы библиотеки: onec_erp]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:47:24.942377Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:48:32.626119Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-cons-erp",
+      "skill": "lib-1c-cons",
+      "attempt": 3,
+      "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 60815,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp",
+            "query": "1С:ERP не формируется заказ на производство что проверить формирование заказов по потребностям этапы производства обеспечение материалы",
+            "limit": 5
+          },
+          "durationMs": 949
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp",
+            "query": "1С:ERP Формирование заказов по потребностям заказ на производство не создается способ обеспечения собственное производство источник обеспечения потребность дата",
+            "limit": 5
+          },
+          "durationMs": 1317
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-1c-cons/SKILL.md && sed -n '1,260p' skills/lib-1c-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Сначала проверьте наличие необеспеченной потребности, настройки способа обеспечения и отборы помощника. Чаще всего заказ не предлагается из-за типа обеспечения, недостигнутой точки заказа или невыбранного способа обеспечения.\n\n## По документации\n\n### 1. Проверьте режим обеспечения и рабочее место\n\nДля формирования заказов по потребностям используется расширенное обеспечение потребностей. Заказы на производство создаются через **Производство → Межцеховое управление → Заказы на производство → Создать → По потребностям**. Основной профиль пользователя — **Главный диспетчер**.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; 5.3. Формирование заказов по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D0%BF%D0%BE%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8F%D0%BC.htm>\n\n### 2. Проверьте способ обеспечения продукции\n\nУ продукции должен применяться способ обеспечения с типом **Собственное производство** — именно он позволяет создавать заказ на производство. Проверьте срок производства и источник обеспечения; источником может быть подразделение-диспетчер, которое подставляется в заказ.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Способы обеспечения потребностей → Собственное производство; <https://its.1c.ru/db/content/erp25doc/src/%D1%80%D0%B0%D1%81%D1%88%D0%B8%D1%80%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9%20%D0%B2%D0%B0%D1%80%D0%B8%D0%B0%D0%BD%D1%82%20%D0%BE%D0%B1%D0%B5%D1%81%D0%BF%D0%B5%D1%87%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D0%B5%D0%B9.htm>\n\n### 3. Снимите лишние отборы\n\nНа первом шаге проверьте отборы по складу, назначению, подразделению, типу, способу и источнику обеспечения. Неверный отбор может исключить нужную потребность из расчёта.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Отбор потребностей и уточнение параметров поддержания запасов; <https://its.1c.ru/db/content/erp25doc/src/%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D0%BF%D0%BE%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8F%D0%BC.htm>\n\n### 4. Выберите способ обеспечения в помощнике\n\nНа втором шаге нужный способ обеспечения необходимо отметить флажком. В режиме **Достигшие точки заказа** выводятся только позиции, которые уже пора заказать с учётом срока производства. Для просмотра всех позиций выберите **Все, плановое формирование заказа** и заполните дату следующей поставки.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Формирование заказов на производство по потребностям; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n### 5. Если заказ создан, но не формируются этапы\n\nЗаказ должен находиться в статусе **К производству**. Этапы создаются по выбранным спецификациям продукции и полуфабрикатов; если спецификация отсутствует, этапы не создаются — нужно выбрать спецификацию либо оформить этап вручную.\n\n[Источник] 1С:ERP Управление предприятием 2, редакция 2.5; Управление очередью заказов на производство; <https://its.1c.ru/db/content/erp25doc/src/%D0%B7%D0%B0%D0%BA%D0%B0%D0%B7%D1%8B%20%D0%BD%D0%B0%20%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE.htm>\n\n[Использованы библиотеки: onec_erp]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:47:35.576448Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:48:33.333114Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-dev-platform",
+      "skill": "lib-1c-dev",
+      "attempt": 1,
+      "prompt": "Как программно создать элемент справочника в 1С?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 43409,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "limit": 5,
+            "query": "СправочникМенеджер СоздатьЭлемент СправочникОбъект Записать программное создание нового элемента справочника заполнение реквизитов"
+          },
+          "durationMs": 1099
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "limit": 5,
+            "query": "\"СоздатьЭлемент\" \"Записать\" Справочники.Номенклатура программный пример"
+          },
+          "durationMs": 2200
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-1c-dev/SKILL.md && sed -n '1,260p' skills/lib-1c-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Создайте объект через менеджер нужного справочника, заполните реквизиты и вызовите `Записать()`.\n\n## По документации\n\n### 1. Создание и запись элемента\n\n```bsl\nНовыйЭлемент = Справочники.Номенклатура.СоздатьЭлемент();\nНовыйЭлемент.Наименование = \"Новый товар\";\nНовыйЭлемент.Артикул = \"12345\";\nНовыйЭлемент.Записать();\n```\n\n`Номенклатура` и `Артикул` — примеры; проверьте технические имена справочника и реквизитов в метаданных своей конфигурации.\n\n[Источник] Документация платформы 1С:Предприятие; Руководство администратора → Приложение 6 → Вспомогательные интернет-сервисы администрирования; <https://its.1c.ru/db/v8327doc/content/src/руководство%20администратора/приложение%206.%20вспомогательные%20интернет-сервисы%20администрирования.htm>\n\n[Использованы библиотеки: onec_dev_platform]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:46:15.108410Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:46:55.218053Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-dev-platform",
+      "skill": "lib-1c-dev",
+      "attempt": 2,
+      "prompt": "Как программно создать элемент справочника в 1С?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 45501,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_platform",
+            "query": "программное создание нового элемента справочника Справочники.<Имя>.СоздатьЭлемент() запись объекта справочника Записать() установка реквизитов Код Наименование",
+            "limit": 5
+          },
+          "durationMs": 415
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_libraries",
+          "arguments": {},
+          "durationMs": 147
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "query": "программное создание нового элемента справочника Справочники.<Имя>.СоздатьЭлемент() объект справочника заполнить реквизиты Наименование Код Записать()",
+            "limit": 5
+          },
+          "durationMs": 914
+        }
+      ],
+      "commands": [],
+      "answer": "Создайте объект через `СоздатьЭлемент()`, заполните его реквизиты и вызовите `Записать()`. Имя справочника и реквизитов замените на существующие в вашей конфигурации.\n\n## По документации\n\n### 1. Создание и запись элемента\n\n```bsl\nНовыйЭлемент = Справочники.Контрагенты.СоздатьЭлемент();\nНовыйЭлемент.Наименование = \"ООО Ромашка\";\nНовыйЭлемент.ИНН = \"7701234567\";\nНовыйЭлемент.Записать();\n```\n\n`Контрагенты` и `ИНН` — примеры; проверьте их технические имена в метаданных конфигурации. `Код` можно заполнить явно, если это требуется настройками справочника.\n\n[Источник] 1С:Предприятие 8.3.27. Руководство администратора; Приложение 6. Вспомогательные интернет-сервисы администрирования; <https://its.1c.ru/db/content/v8327doc/src/>\n\n[Использованы библиотеки: onec_dev_platform]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:46:19.354198Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:47:01.236960Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-dev-platform",
+      "skill": "lib-1c-dev",
+      "attempt": 3,
+      "prompt": "Как программно создать элемент справочника в 1С?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 54766,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "limit": 5,
+            "query": "программное создание нового элемента справочника: Справочники.<Имя>.СоздатьЭлемент(), заполнение свойств объекта, Записать()"
+          },
+          "durationMs": 1324
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "limit": 5,
+            "query": "\"СоздатьЭлемент\" \"СправочникМенеджер\" \"Записать\" новый элемент справочника пример встроенный язык"
+          },
+          "durationMs": 1128
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' /tmp/lib-bench-onec-dev-platform-3-NF2emM/codex/skills/lib-1c-dev/SKILL.md && sed -n '1,260p' /tmp/lib-bench-onec-dev-platform-3-NF2emM/codex/skills/lib-1c-dev/references/libraries.yaml\"",
+          "durationMs": 1,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Создайте объект через менеджер нужного справочника, заполните его реквизиты и вызовите `Записать()`. Имя справочника и реквизитов замените на существующие в вашей конфигурации.\n\n## По документации\n\n### 1. Создание и запись элемента\n\n```bsl\nНовыйЭлемент = Справочники.Номенклатура.СоздатьЭлемент();\nНовыйЭлемент.Наименование = \"Новый товар\";\nНовыйЭлемент.Артикул = \"12345\";\nНовыйЭлемент.Записать();\n```\n\nПосле записи получить ссылку можно так:\n\n```bsl\nСсылкаНаЭлемент = НовыйЭлемент.Ссылка;\n```\n\nПроверьте в метаданных, что справочник `Номенклатура` и реквизит `Артикул` действительно существуют.\n\n[Источник] Документация платформы 1С:Предприятие; Руководство разработчика → Глава 5 → Справочники; <https://its.1c.ru/db/v8327doc/content/src/руководство%20разработчика/глава%205.%20объекты%20конфигурации.htm>\n\n[Использованы библиотеки: onec_dev_platform]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:46:58.564485Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:47:50.043630Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-docflow",
+      "skill": "lib-1c-docflow",
+      "attempt": 1,
+      "prompt": "Как в 1С:Документообороте настроить маршрут согласования?",
+      "profile": "catalog-router",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 56982,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_docflow",
+            "query": "настроить маршрут согласования документа процесс Согласование шаблон процесса условие маршрутизации согласующие порядок действий",
+            "limit": 5
+          },
+          "durationMs": 1757
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_docflow",
+            "query": "процесс Согласование вариант Смешанно колонка Порядок После предыдущего Вместе с предыдущим настройка согласующих",
+            "limit": 5
+          },
+          "durationMs": 1577
+        }
+      ],
+      "commands": [],
+      "answer": "Для типового согласования создайте шаблон процесса «Согласование», укажите согласующих и выберите параллельный, последовательный или смешанный маршрут. Если согласование является частью цепочки действий, используйте комплексный процесс.\n\n## По документации\n\n### 1. Создайте шаблон процесса\n\nОткройте **НСИ → Шаблоны процессов** и выполните команду **Создать**. Шаблоны создаёт ответственный за НСИ; в них сохраняются исполнители, сроки, условия маршрутизации и другие параметры процесса.\n\n[Источник] 1С:Документооборот КОРП. Редакция 3.0; 12.3. Шаблоны процессов; <https://its.1c.ru/db/content/doc30/src/12.3.%20шаблоны%20процессов.htm>\n\n### 2. Настройте согласующих и порядок маршрута\n\nВ шаблоне процесса «Согласование»:\n\n- добавьте согласующих — конкретных сотрудников или роли;\n- задайте сроки согласования;\n- выберите вариант маршрутизации:\n  - **Всем сразу** — параллельное согласование;\n  - **По очереди** — последовательное;\n  - **Смешанно** — параллельно-последовательное.\n\n[Источник] 1С:Документооборот КОРП. Редакция 3.0; 12.1. Виды процессов; <https://its.1c.ru/db/content/doc30/src/12.1.%20виды%20процессов.htm>\n\n### 3. Добавьте автоматический подбор согласующих\n\nЕсли исполнители зависят от документа или его автора, используйте автоподстановки, например **Непосредственный руководитель автора процесса**. При необходимости задайте условия маршрутизации: в процессах согласования они определяют состав исполнителей.\n\n[Источник] 1С:Документооборот КОРП. Редакция 3.0; 12.3. Шаблоны процессов; <https://its.1c.ru/db/content/doc30/src/12.3.%20шаблоны%20процессов.htm>\n\n### 4. Запустите согласование\n\nПроцесс можно создать непосредственно из карточки документа через подменю **Отправить**, выбрав подготовленный шаблон согласования.\n\n[Источник] 1С:Документооборот КОРП. Редакция 3.0; 12.1. Виды процессов; <https://its.1c.ru/db/content/doc30/src/12.1.%20виды%20процессов.htm>\n\n### 5. Используйте комплексный процесс для многоэтапного маршрута\n\nЕсли требуются этапы наподобие **согласование → утверждение/подписание → регистрация**, создайте шаблон комплексного процесса. Его маршрут настраивается графической схемой либо списком действий; способ выбирается при создании шаблона.\n\n[Источник] 1С:Документооборот КОРП. Редакция 3.0; 12.2. Комплексные процессы; <https://its.1c.ru/db/content/doc30/src/12.2.%20комплексные%20процессы.htm>\n\n## Выводы и рекомендации\n\n### 1. Начните с обычного шаблона согласования\n\nДля маршрута, отличающегося только составом и очередностью согласующих, достаточно шаблона процесса «Согласование» — это следует из пунктов 1–4.\n\n### 2. Переходите к комплексному процессу только для цепочки этапов\n\nКомплексный процесс нужен, когда после согласования автоматически выполняются другие действия или используются ветвления и условия между этапами, как описано в пункте 5.\n\n[Использованы библиотеки: onec_docflow]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:48:32.229682Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:26.102378Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-erp",
+      "skill": "lib-1c-erp",
+      "attempt": 1,
+      "prompt": "Какие этапы обследования предусмотрены в проекте внедрения ERP?",
+      "profile": "catalog-router",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 40826,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp_implementation",
+            "query": "этапы обследования проекта внедрения ERP обследование предприятия функциональная модель требования архитектурная концепция",
+            "limit": 5
+          },
+          "durationMs": 875
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_erp_implementation",
+            "query": "\"этапы обследования\" экспресс-анализ полноценный анализ обследование проект внедрения ERP",
+            "limit": 5
+          },
+          "durationMs": 882
+        }
+      ],
+      "commands": [],
+      "answer": "В проекте внедрения ERP обследование проходит на двух уровнях: предварительное экспресс-обследование и полноценный анализ с концептуальным проектированием. Второй уровень может объединяться с проектированием архитектуры, если детальные требования уже подготовлены.\n\n## По документации\n\n### 1. Экспресс-обследование на фазе инициации\n\nНа предпроектной фазе исполнитель проводит экспресс-анализ собранных требований и бизнес-задач. Основные результаты:\n\n- определённые границы и рамки проекта;\n- спецификация требований и опросники;\n- отчёт об экспресс-обследовании;\n- предварительные план-график и бюджет;\n- решение о заключении договора — на весь проект либо только на детальный анализ и концептуальное проектирование.\n\n[Источник] Введение в управление проектами внедрения ERP-систем; 5.3.1.Инициация проекта; <https://its.1c.ru/db/content/pub1cerpvvedenuprpr/src/text/37.html>\n\n### 2. Полноценный анализ и концептуальное проектирование\n\nПосле экспресс-обследования проводится детальный анализ:\n\n- требований;\n- документооборота и отчётности;\n- бизнес-процессов;\n- регламентов;\n- должностных инструкций.\n\nПо результатам формируются формальное описание бизнес-процессов и концепция их автоматизации. Анализ также может включать проверку покрытия требований конкретной ERP-системой или отраслевым решением.\n\n[Источник] Введение в управление проектами внедрения ERP-систем; 5.3.2.Анализ и концептуальное проектирование; <https://its.1c.ru/db/content/pub1cerpvvedenuprpr/src/text/38.html>\n\n### 3. Результаты детального обследования\n\nКлючевыми результатами фазы являются:\n\n- актуализированная спецификация требований;\n- прототип 1С:ERP;\n- концептуальный проект — отчёт об обследовании;\n- презентации концепций;\n- уточнённые устав и план-график проекта;\n- уточнённые сроки, бюджет и договорные условия следующего этапа.\n\nФаза может выполняться как отдельный мини-проект. Если заказчик уже подготовил детальные требования и целевую модель, её допускается не выделять отдельно, объединив с дизайном архитектуры системы.\n\n[Источник] Введение в управление проектами внедрения ERP-систем; 5.3.2.Анализ и концептуальное проектирование; <https://its.1c.ru/db/content/pub1cerpvvedenuprpr/src/text/38.html>\n\n[Использованы библиотеки: onec_erp_implementation]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:48:00.249096Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:48:37.950395Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "onec-toir",
+      "skill": "lib-1c-toir",
+      "attempt": 1,
+      "prompt": "Какие документы используются для заявки на ремонт в 1С:ТОИР?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 51276,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_toir",
+            "query": "заявка на ремонт документы Заявка на ремонт Наряд на выполнение работ Акт выполненных работ Дефектная ведомость какие документы используются",
+            "limit": 5
+          },
+          "durationMs": 954
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_toir",
+            "query": "\"Смета ремонта (Заявка на ремонт)\" \"Документы-основания\" \"Наряд на выполнение этапа работ\" \"Акт о выполнении этапа работ\"",
+            "limit": 5
+          },
+          "durationMs": 1858
+        }
+      ],
+      "commands": [],
+      "answer": "Основной документ — **«Смета ремонта (Заявка на ремонт)»**. С ним связаны документы-основания, документы исполнения и закрытия ремонта, а при планировании материалов — заказ на внутреннее потребление.\n\n## По документации\n\n### 1. Смета ремонта (Заявка на ремонт)\n\nДокумент регистрирует планируемый ремонт и содержит:\n\n- объект и вид ремонтных работ;\n- плановые даты;\n- ремонтные и технологические операции;\n- материалы, инструменты и запчасти;\n- исполнителей;\n- меры безопасности;\n- документы-основания;\n- сведения о согласовании и утверждении.\n\n[Источник] 1С:Предприятие 8. Конфигурация \"ТОИР Управление ремонтами и обслуживанием оборудования КОРП\". Редакция 3.0. Руководство пользователя; Ввод или корректировка сметы на ремонт (заявки на ремонт); <https://its.1c.ru/db/content/toir30corp/src/3.2.11.%20смета%20ремонта%20(заявка%20на%20ремонт).htm>\n\n### 2. Документы-основания\n\nВ заявке предусмотрена закладка **«Документы-основания»**. В ней хранятся документы, по которым сформирована заявка, а также внешние основания для работ. Внешними основаниями могут выступать предписания, акты технического расследования, сезонного осмотра или диагностических испытаний и аналогичные документы.\n\n[Источник] 1С:Предприятие 8. Конфигурация \"ТОИР Управление ремонтами и обслуживанием оборудования КОРП\". Редакция 3.0. Руководство пользователя; Ввод или корректировка сметы на ремонт (заявки на ремонт); <https://its.1c.ru/db/content/toir30corp/src/3.2.11.%20смета%20ремонта%20(заявка%20на%20ремонт).htm> | 1С:Предприятие 8. Конфигурация \"ТОИР Управление ремонтами и обслуживанием оборудования КОРП\". Редакция 3.0. Руководство пользователя; Ввод или корректировка внешнего основания для работ; <https://its.1c.ru/db/content/toir30corp/src/3.2.4.%20внешнее%20основание%20для%20работ.htm>\n\n### 3. Документы исполнения и закрытия\n\nПосле регистрации заявки используются:\n\n- **«Наряд на выполнение ремонтных работ»** — переводит ремонт в работу;\n- **«Акт о выполнении этапа работ»** — фиксирует выполнение ремонта;\n- **«Закрытие заявок и ремонтов»** — применяется при отклонении или изменении состояния ремонта;\n- **«Заказ на внутреннее потребление»** — оформляется для обеспечения ремонта необходимыми материалами.\n\n[Источник] 1С:Предприятие 8. Конфигурация \"ТОИР Управление ремонтами и обслуживанием оборудования КОРП\". Редакция 3.0. Руководство пользователя; Ввод или корректировка сметы на ремонт (заявки на ремонт); <https://its.1c.ru/db/content/toir30corp/src/3.2.11.%20смета%20ремонта%20(заявка%20на%20ремонт).htm>\n\n## Выводы и рекомендации\n\n### 1. Типовая цепочка документов\n\nПрактически цепочка выглядит так: **документ-основание → Смета ремонта (Заявка на ремонт) → Наряд на выполнение ремонтных работ → Акт о выполнении этапа работ**. При необходимости отдельно формируется **Заказ на внутреннее потребление** материалов.\n\n[Использованы библиотеки: onec_toir]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:48:35.966489Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:23.212194Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "pm2",
+      "skill": "lib-pm2-it",
+      "attempt": 1,
+      "prompt": "Какие роли участвуют в подготовке и утверждении Project Charter по PM²?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 32083,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "pm2-it",
+            "targetVersion": "3.1.0"
+          },
+          "durationMs": 285
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "pm2-it",
+            "version": "3.1.0",
+            "limit": 5,
+            "query": "Project Charter preparation approval roles Project Owner Project Manager Solution Provider Business Manager Project Steering Committee Initiating Phase"
+          },
+          "durationMs": 1149
+        }
+      ],
+      "commands": [],
+      "answer": "В подготовке Project Charter ведущая роль принадлежит Project Manager (PM), которому помогают Business Manager (BM) и Solution Provider (SP). Утверждение проходит через Project Owner (PO) и Project Steering Committee (PSC), а при необходимости — через Appropriate Governance Body (AGB).\n\n## По документации\n\n### 1. Подготовка Project Charter\n\n- **Project Manager (PM)** разрабатывает, завершает и представляет Project Charter на утверждение.\n- **Business Manager (BM)** может инициировать документ, консультирует ключевых заинтересованных лиц и участвует в его составлении.\n- **Solution Provider (SP)** помогает Project Manager.\n- Основные заинтересованные стороны предоставляют исходные сведения и рассматривают проект документа.\n\n[Источник] PM² Project Management Methodology Guide v3.1; 5.4 Project Charter\n\n### 2. Рассмотрение и утверждение\n\n- **Project Owner (PO)** рассматривает и утверждает Project Charter.\n- **Project Steering Committee (PSC)** рассматривает и принимает его; это входит в контрольную точку **Ready for Planning (RfP)**.\n- **Project Owner (PO)** направляет Project Charter вместе с Business Case в соответствующий орган управления, если требуется дополнительное корпоративное утверждение.\n- **Appropriate Governance Body (AGB)** в таком случае оценивает документ и принимает либо отклоняет его.\n\n[Источник] PM² Project Management Methodology Guide v3.1; 5.4 Project Charter\n\n[Использованы библиотеки: pm2-it]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:22.404397Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:49:50.981100Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 1,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 41179,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 314
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX CONCURRENTLY versus CREATE INDEX locks writes reads transaction block multiple scans wait transactions invalid index uniqueness deadlocks limitations partitioned table"
+          },
+          "durationMs": 2148
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` строится быстрее, но блокирует `INSERT`, `UPDATE` и `DELETE` до завершения. `CREATE INDEX CONCURRENTLY` сохраняет возможность записи, поэтому подходит для рабочих систем, но выполняет больше работы, обычно длится значительно дольше и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычный `CREATE INDEX` выполняет одно сканирование таблицы и блокирует изменения строк. Чтение остаётся доступным, но операции записи ожидают окончания построения.\n\n`CREATE INDEX CONCURRENTLY` не блокирует обычные операции записи, хотя дополнительная нагрузка CPU и I/O может замедлить их.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html>\n\n### 2. Скорость и механизм построения\n\nКонкурентное построение выполняет два сканирования таблицы и ожидает завершения транзакций, которые могут изменять таблицу или использовать старые снимки данных. Поэтому оно требует больше работы и занимает значительно больше времени.\n\nИндекс сначала регистрируется как недействительный, а действительным становится только после завершения всех стадий.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html>\n\n### 3. Ошибки и недействительный индекс\n\nПри дедлоке, нарушении уникальности или другой ошибке `CREATE INDEX CONCURRENTLY` может оставить индекс со статусом `INVALID`. Он не используется запросами, но продолжает создавать накладные расходы при изменении таблицы.\n\nДокументация рекомендует удалить такой индекс и повторить команду либо выполнить `REINDEX INDEX CONCURRENTLY`.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html>\n\n### 4. Ограничения\n\n`CREATE INDEX CONCURRENTLY`:\n\n- нельзя выполнять внутри блока транзакции;\n- допускает только одно конкурентное построение индекса на одной таблице одновременно;\n- не поддерживается непосредственно для секционированной таблицы;\n- не разрешает изменение схемы таблицы во время построения.\n\nДля секционированной таблицы индексы можно конкурентно создать отдельно на каждой секции, а затем присоединить их к родительскому индексу.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html> | PostgreSQL 18 Documentation; Declarative Partitioning; <https://www.postgresql.org/docs/18/ddl-partitioning.html>\n\n## Выводы и рекомендации\n\n1. На рабочей таблице с постоянной записью обычно выбирайте `CREATE INDEX CONCURRENTLY`.\n2. При допустимом окне обслуживания обычный `CREATE INDEX` быстрее и проще.\n3. Не оборачивайте `CREATE INDEX CONCURRENTLY` в `BEGIN`/`COMMIT`.\n4. После ошибки проверьте, не остался ли индекс `INVALID`, например через `\\d`.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:26.750253Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:04.575223Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 2,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 40039,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 50
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX versus CREATE INDEX CONCURRENTLY locking writes table scans transaction block invalid index failure unique index concurrent build limitations PostgreSQL 18"
+          },
+          "durationMs": 1295
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` быстрее, но до завершения блокирует `INSERT`, `UPDATE` и `DELETE`. `CREATE INDEX CONCURRENTLY` оставляет запись доступной, поэтому подходит для рабочих систем, но выполняется дольше и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычное построение индекса блокирует запись в таблицу, но не чтение. `CONCURRENTLY` разрешает параллельные `INSERT`, `UPDATE` и `DELETE`; изменения схемы при обоих вариантах всё равно запрещены.\n\n[Источник] PostgreSQL 18; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 2. Скорость и нагрузка\n\nОбычный вариант сканирует таблицу один раз. Конкурентный вариант делает два сканирования и ожидает завершения определённых транзакций, поэтому обычно работает заметно дольше и создаёт дополнительную нагрузку CPU и I/O.\n\n[Источник] PostgreSQL 18; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 3. Транзакции и параллельные построения\n\nОбычный `CREATE INDEX` можно выполнять внутри блока транзакции. `CREATE INDEX CONCURRENTLY` — нельзя. Одновременно для одной таблицы допускается только одно конкурентное построение индекса.\n\n[Источник] PostgreSQL 18; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 4. Ошибки построения\n\nПри сбое конкурентного построения может остаться индекс со статусом `INVALID`. Он не используется запросами, но продолжает создавать накладные расходы при изменении таблицы. Обычно его удаляют и повторяют команду либо используют `REINDEX INDEX CONCURRENTLY`.\n\n[Источник] PostgreSQL 18; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 5. Партиционированные таблицы\n\nНепосредственно создать конкурентный индекс на всей партиционированной таблице нельзя. Индексы можно построить конкурентно на каждой партиции, а затем присоединить их к родительскому индексу.\n\n[Источник] PostgreSQL 18; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n## Выводы и рекомендации\n\n1. На небольшой таблице или во время технического окна используйте обычный `CREATE INDEX`: он проще и быстрее.\n2. На активно изменяемой production-таблице используйте `CREATE INDEX CONCURRENTLY`, учитывая более длительное выполнение.\n3. После ошибки проверяйте индекс через `\\d` или `pg_index.indisvalid`, чтобы не оставить `INVALID`-индекс.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:29.766687Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:06.218461Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 3,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 45380,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 49
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX CONCURRENTLY versus CREATE INDEX locking writes transaction restrictions multiple scans invalid index uniqueness caveats"
+          },
+          "durationMs": 3274
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` быстрее, но до завершения блокирует `INSERT`, `UPDATE` и `DELETE`. `CREATE INDEX CONCURRENTLY` сохраняет запись в таблицу доступной, поэтому подходит для production, но выполняется дольше и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычное построение индекса блокирует изменения таблицы, хотя чтение остаётся доступным. Вариант `CONCURRENTLY` не блокирует конкурентные вставки, обновления и удаления.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 2. Скорость и нагрузка\n\nОбычный вариант сканирует таблицу один раз. Конкурентный выполняет два сканирования и ожидает завершения конфликтующих транзакций и старых снимков MVCC. Поэтому он обычно заметно дольше и создаёт дополнительную нагрузку CPU и I/O.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 3. Транзакции и параллельные построения\n\nОбычный `CREATE INDEX` разрешён внутри блока `BEGIN`/`COMMIT`, а `CREATE INDEX CONCURRENTLY` — нет. На одной таблице одновременно может выполняться только одно конкурентное построение индекса.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 4. Ошибки и ограничения\n\nПри сбое конкурентного построения может остаться индекс со статусом `INVALID`: запросы его игнорируют, но изменения таблицы всё ещё могут нести расходы на его обслуживание. Такой индекс следует удалить и повторить операцию либо восстановить через `REINDEX INDEX CONCURRENTLY`.\n\n`CREATE INDEX CONCURRENTLY` не поддерживается непосредственно для секционированной таблицы. Индексы можно конкурентно создать на отдельных секциях, после чего обычной командой создать родительский секционированный индекс — это будет преимущественно операция с метаданными.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n## Выводы и рекомендации\n\n1. Для новой или обслуживаемой таблицы используйте обычный `CREATE INDEX`: он быстрее.\n2. Для активно изменяемой production-таблицы используйте `CREATE INDEX CONCURRENTLY`, запуская команду вне транзакционного блока.\n3. После ошибки проверьте индекс через `\\d` или `pg_index.indisvalid` и удалите оставшийся `INVALID`-индекс.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:54.484304Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:36.376604Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-download",
+      "skill": "lib-project-docs",
+      "attempt": 1,
+      "prompt": "В проектной документации МАНЕ изложи назначение протокола настроек MSP 2.7 и сохрани исходный файл в /tmp/lib-skill-comparison-downloads/project-docs.",
+      "profile": "artifact-retrieval",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 92239,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-mane-04-settings",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 301
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-mane-04-settings",
+            "version": "1.0.0",
+            "limit": 5,
+            "query": "MSP 2.7 назначение протокола настроек"
+          },
+          "durationMs": 1316
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-mane-04-settings",
+            "version": "1.0.0",
+            "processId": "project-docs-mane-04-settings"
+          },
+          "durationMs": 416
+        },
+        {
+          "server": "lib-docs",
+          "tool": "get_source_artifact",
+          "arguments": {
+            "artifactId": "art_7b128aad44905443ee0b7cd8e7f693eeadf2c833cc14768ceb798203e4d64020"
+          },
+          "durationMs": 458
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,260p' skills/lib-project-docs/SKILL.md && sed -n '1,260p' skills/lib-project-docs/references/library-map.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc 'node --version'",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc 'test -s /home/as/.nvm/nvm.sh && echo available || echo unavailable'",
+          "durationMs": 0,
+          "exitCode": 0
+        },
+        {
+          "command": "/bin/bash -lc 'source /home/as/.nvm/nvm.sh && nvm use 22 >/dev/null && node /home/as/ai-projects/docs-mcp-server/skills/lib-project-docs/scripts/save-source-artifacts.mjs --destination /tmp/lib-skill-comparison-downloads/project-docs --count 1'",
+          "durationMs": 193,
+          "exitCode": 1
+        },
+        {
+          "command": "/bin/bash -lc 'source /home/as/.nvm/nvm.sh && nvm use 22 >/dev/null && node /home/as/ai-projects/docs-mcp-server/skills/lib-project-docs/scripts/save-source-artifacts.mjs --destination /tmp/lib-skill-comparison-downloads/project-docs --count 1'",
+          "durationMs": 219,
+          "exitCode": 1
+        }
+      ],
+      "answer": "MSP 2.7 фиксирует выполненные настройки 1С:ERP 2.5 и служит отчётным документом этапа 2 «Настройка». Исходник найден, но сохранить его не удалось: отсутствует родительская папка `/tmp/lib-skill-comparison-downloads`, а текущий режим не позволяет её создать.\n\n## По документации\n\n### 1. Назначение MSP 2.7\n\nПротокол регистрирует перечень настроек, выполненных для приведения 1С:ERP в соответствие с бизнес-требованиями МАНЕ.\n\n[Источник] Проектная документация МАНЕ; MSP 2.7 Settings Protocol -  протокол настроек.docx\n\n### 2. Блокер сохранения\n\nСоздайте папку `/tmp/lib-skill-comparison-downloads` и повторите запрос.\n\n## Артефакты\n\nДокументы\n\n- MSP 2.7 Settings Protocol -  протокол настроек.docx\n\n[Использованы библиотеки: project-docs-mane-04-settings]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:51:35.610154Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:53:04.656889Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 1,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 60844,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 271
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 22
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_libraries",
+          "arguments": {},
+          "durationMs": 420
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 703
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 50
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,260p' skills/lib-project-docs/SKILL.md && sed -n '1,240p' skills/lib-project-docs/references/library-map.md\"",
+          "durationMs": 1,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено Приложение № 2 «Состав услуг и результатов». Файл не скачивался.\n\n## По документации\n\n### 1.\n\nЭто приложение к Индивидуальному договору № 1 и Общему договору на оказание IT-услуг № MSP.04-2026. Оно содержит состав услуг и результатов проекта по этапам, формальные результаты и зоны ответственности сторон.\n\nИмя файла: `Annex №2 to the IA №1_Composition of works and results_19 08.docx`.\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\nЛЮВЕ — договор\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:48.989129Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:51:46.960032Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 2,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 44769,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 317
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 449
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 46
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,260p' skills/lib-project-docs/SKILL.md && sed -n '1,240p' skills/lib-project-docs/references/library-map.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено Приложение № 2 к Индивидуальному договору № 1 — файл `Annex №2 to the IA №1_Composition of works and results_19 08.docx`. Файл не скачивался.\n\n## По документации\n\n### 1.\n\nДокумент называется «Состав услуг и результатов». Он содержит состав услуг и результатов проекта по этапам, формальные результаты и зоны ответственности Исполнителя и Заказчика.\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:50.914280Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:51:32.102150Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 3,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 42940,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 301
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 445
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 47
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-project-docs/references/library-map.md && sed -n '1,220p' README.md && sed -n '1,240p' ARCHITECTURE.md\"",
+          "durationMs": 1,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено **Приложение № 2 к Индивидуальному договору № 1** — `Annex №2 to the IA №1_Composition of works and results_19 08.docx`. Оно содержит состав услуг и результатов по этапам проекта, формальные результаты и распределение ответственности между Исполнителем и Заказчиком. Файл не скачивался.\n\n## По документации\n\n### 1. Приложение о составе работ и результатов\n\nДокумент называется **«СОСТАВ УСЛУГ И РЕЗУЛЬТАТОВ»** и относится к Индивидуальному договору № 1 и Общему договору на оказание IT-услуг № MSP.04-2026.\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\nЛЮВЕ — договор\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:58.777018Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:51:38.190272Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-cons-finance",
+      "skill": "lib-sap-cons",
+      "attempt": 1,
+      "prompt": "Как в SAP S/4HANA устроено автоматическое определение счетов для проводок материалов?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 57326,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 282
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "query": "автоматическое определение счетов material postings automatic account determination OBYC valuation class transaction key valuation grouping code account modifier BSX WRX GBB PRD",
+            "limit": 5
+          },
+          "durationMs": 2711
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "query": "\"Configure Automatic Postings\" OBYC \"automatic account determination\" \"transaction key\" \"valuation class\" \"valuation grouping code\" BSX WRX GBB PRD",
+            "limit": 5
+          },
+          "durationMs": 2487
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В SAP S/4HANA проводка движения материала автоматически создаёт material document и, если движение релевантно оценке, accounting document. Выбор G/L account зависит от параметров материала и организационной структуры; ключевым атрибутом материала выступает valuation class.\n\n## По документации\n\n### 1. Как запускается определение счетов\n\nGoods movement задаётся movement type. Например, при goods issue в production order используется movement type `261`: система уменьшает запас и формирует проводки по material stock account и consumption account.\n\n[Источник] SAP S/4HANA Production Planning and Manufacturing Certification Guide; GI posting with inventory management\n\n### 2. Какие данные материала участвуют\n\nВ Accounting view материала хранится valuation class. Для material type задаётся account category reference, которая вместе с company code, chart of accounts и business process участвует в автоматическом выборе счетов.\n\nValuation area обычно соответствует plant, поэтому один материал может иметь различную оценку в разных plants.\n\n[Источник] Configuring Plant Maintenance in SAP S/4HANA; Material Types  \n[Источник] Production Planning with SAP S/4HANA; Organizational Structure in SAP\n\n### 3. Детальная логика настройки\n\nОбычно настройка описывается комбинацией transaction/event key, valuation grouping code, valuation class и при необходимости account modifier в `Configure Automatic Postings` (`OBYC`). Однако найденные фрагменты не подтвердили эту детальную схему и назначения ключей `BSX`, `WRX`, `GBB`, `PRD`.\n\nПодтверждение не найдено.\n\n[Использованы библиотеки: sap_books_logistics_s4hana]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:45:23.408793Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:46:15.445014Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-cons-finance",
+      "skill": "lib-sap-cons",
+      "attempt": 2,
+      "prompt": "Как в SAP S/4HANA устроено автоматическое определение счетов для проводок материалов?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 73340,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 278
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов automatic account determination material postings valuation class transaction key valuation grouping code OBYC BSX WRX GBB PRD SAP S/4HANA Materials Management"
+          },
+          "durationMs": 1250
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "MM automatic account determination configuration OBYC transaction keys BSX WRX GBB PRD valuation grouping code valuation class movement type account modifier general ledger account SAP S/4HANA"
+          },
+          "durationMs": 1337
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_finance_s4hana",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 255
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_finance_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов automatic account determination material postings MM OBYC transaction keys BSX WRX GBB PRD valuation class valuation grouping code movement type SAP S/4HANA Finance"
+          },
+          "durationMs": 1028
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_finance_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "WRX GR IR clearing account BSX inventory GBB offsetting entry PRD price differences account determination movement type general modification valuation class OBYC material posting"
+          },
+          "durationMs": 1342
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-cons/references/libraries.yaml\"",
+          "durationMs": 1,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В SAP S/4HANA счет для материальной проводки выбирается по комбинации вида операции, transaction key, при необходимости General modification, Valuation modification и Valuation class материала. Итоговое соответствие этой комбинации счету G/L настраивается в `OBYC`.\n\n## По документации\n\n### 1. Общая схема определения\n\nПри движении материала система формирует material document и, если движение релевантно оценке, accounting document. Тип операции определяет сценарий проводки, а таблица automatic account determination содержит соответствующие трехсимвольные transaction keys.\n\nНастройка доступна по пути:\n\n`Materials Management → Valuation and Account Assignment → Account Determination → Account Determination without Wizard → Configure Automatic Postings`\n\nили через transaction `OBYC`.\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 5.4 Account Determination\n\n### 2. Из каких признаков складывается ключ счета\n\nВ типичной записи `OBYC` используются:\n\n- `Transaction key` — экономический смысл строки проводки.\n- `Valuation modification` — разделение счетов по valuation area или группе областей оценки.\n- `Valuation class` — группировка материалов с одинаковыми требованиями к счетам; хранится в Accounting view материала.\n- `General modification` — дополнительное разделение внутри transaction key, например `VAX`, `VAY`, `AUI`.\n- Отдельные debit/credit accounts — когда для операции нужны разные счета по знаку проводки.\n\nНапример, счет COGS определяется через `GBB` + `VAX`/`VAY` + Valuation class. Для stock-in-transit приведена комбинация `BSX` + Valuation modification `0001` + Valuation class `Z920`.\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 10.6.1 COGS Account Split by Cost Components; 10.7.4 Analyzing Stock-in-Transit Postings\n\n### 3. Основные transaction keys\n\n- `BSX` — inventory account.\n- `WRX` — GR/IR clearing account.\n- `PRD` — purchase price differences.\n- `GBB` — offsetting entries для различных goods issues и других движений; конкретное назначение уточняет General modification.\n- `UMB` — revaluation differences.\n- `PRY` — Material Ledger variances.\n\nПример goods receipt при standard price: `WRX` отражает стоимость по закупочной цене, `BSX` — стоимость запасов по standard cost, а разница проводится через `PRD`.\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 5.4 Account Determination; 5.4.1 Cost/Price Differences for the Material Ledger\n\n### 4. Роль movement type\n\nMovement type управляет обработкой material posting и связанными финансовыми обновлениями. Пользовательские movement types обычно создают копированием стандартных, в частности когда требуется иное определение счетов. Таким образом, movement type задает контекст операции, после чего счет выбирается через правила automatic account determination.\n\n[Источник] Inventory Management with SAP S/4HANA; 3.1 Implementation Guide Configuration — Movement Types\n\n### 5. Особенность SAP S/4HANA\n\nВ SAP S/4HANA Material Ledger обязателен. Стоимостные результаты движений отражаются через Material Ledger и извлекаются из `ACDOCA`; при этом для Inventory Management, Invoice Verification и Material Ledger используется одна таблица account determination.\n\n[Источник] Logistics with SAP S/4HANA: An Introduction; 9.6 Inventory Valuation; Material Ledger in SAP S/4HANA: Functionality and Configuration; 5.4 Account Determination\n\n[Использованы библиотеки: sap_books_logistics_s4hana, sap_books_finance_s4hana]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 4,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:46:11.558834Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:47:22.213735Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-cons-finance",
+      "skill": "lib-sap-cons",
+      "attempt": 3,
+      "prompt": "Как в SAP S/4HANA устроено автоматическое определение счетов для проводок материалов?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 81573,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana"
+          },
+          "durationMs": 1265
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов проводки материалов automatic account determination material postings valuation class valuation grouping code transaction key account modifier OBYC BSX WRX GBB PRD S/4HANA"
+          },
+          "durationMs": 1071
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_logistics_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "OBYC Configure Automatic Postings MM account determination chart of accounts valuation grouping code valuation class transaction/event key account modifier BSX WRX GBB PRD material movement type S/4HANA"
+          },
+          "durationMs": 1511
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_finance_s4hana"
+          },
+          "durationMs": 293
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_finance_s4hana",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "автоматическое определение счетов проводки материалов automatic account determination material movements OBYC BSX WRX GBB PRD valuation class valuation grouping code transaction key account modifier chart of accounts SAP S/4HANA"
+          },
+          "durationMs": 2888
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-cons/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В SAP S/4HANA счёт не хранится непосредственно в движении материала. Система определяет его по комбинации бизнес-операции и movement type, transaction key/account modifier, области оценки и valuation class материала; итоговое соответствие G/L account настраивается в `OBYC` (`Configure Automatic Postings`).\n\n## По документации\n\n### 1. Общая цепочка определения\n\n1. `Movement Type` определяет характер движения и необходимость создания accounting document.\n2. Из операции выводится `Transaction Key`: например, `BSX`, `WRX`, `GBB` или `PRD`.\n3. Для некоторых операций добавляется `General Modification`/account modifier, например `VAX`, `VAY` или `AUI`.\n4. Из material master берётся `Valuation Class`. Допустимые классы связаны с material type через `Account Category Reference`.\n5. В таблице `OBYC` система ищет G/L account по применимым измерениям: transaction key, valuation modifier, general modification и valuation class.\n\n[Источник] Inventory Management with SAP S/4HANA; 3 Configuring Inventory Management\n\n[Источник] Configuring Plant Maintenance in SAP S/4HANA; 4.7 Material Master Configuration\n\n### 2. Настройка `OBYC`\n\nПуть Customizing:\n\n`Materials Management → Valuation and Account Assignment → Account Determination → Account Determination without Wizard → Configure Automatic Postings`\n\nТранзакция: `OBYC`.\n\nВ ней для каждого transaction key задаются счета и правила детализации. Например, для `GBB` могут использоваться одновременно `General Modification` и `Valuation Class`; поэтому один вид выбытия запасов можно направлять на разные счета расходов.\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 5.4 Account Determination\n\n### 3. Типичные transaction keys\n\n- `BSX` — счёт запасов.\n- `WRX` — GR/IR clearing account.\n- `GBB` — offsetting entry for inventory posting: потребление, списание, COGS и другие выбытия; конкретное назначение уточняется account modifier.\n- `PRD` — price differences.\n- `UMB` — revaluation differences.\n- `PRY`, `PRL`, `WPM` — специальные проводки Material Ledger/Actual Costing.\n\nНапример, при goods receipt закупленного материала со Standard Price документ может содержать `BSX` по стандартной стоимости, `WRX` по закупочной стоимости и `PRD` на разницу. При PGI запас кредитуется через `BSX`, а COGS определяется через `GBB` с модификацией `VAX` или `VAY` и valuation class.\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 5.4.1 Cost/Price Differences for the Material Ledger\n\n[Источник] Material Ledger in SAP S/4HANA: Functionality and Configuration; 10.6.1 COGS Account Split by Cost Components\n\n### 4. Особенность S/4HANA\n\nКоличество движения записывается в material document (`MATDOC`), а финансовая оценка — в accounting document. Между строкой `MATDOC` и соответствующей строкой финансовой оценки существует прямая связь через `KALNR`.\n\n[Источник] Inventory Management with SAP S/4HANA; 1.2 A New Data Model\n\n[Использованы библиотеки: sap_books_logistics_s4hana, sap_books_finance_s4hana]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 3,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:46:14.000047Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:47:32.581695Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-abap",
+      "skill": "lib-sap-dev",
+      "attempt": 1,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 53545,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc"
+          },
+          "durationMs": 314
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "limit": 5,
+            "query": "внутренние таблицы ABAP internal tables STANDARD SORTED HASHED primary key access index key when use"
+          },
+          "durationMs": 1194
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/SKILL.md && sed -n '1,240p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP есть три категории внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбирайте их по основному способу доступа: по индексу — `STANDARD`, по индексу и ключу — `SORTED`, только по уникальному ключу — `HASHED`.\n\n## По документации\n\n### 1. `STANDARD TABLE`\n\n- Имеет индекс, доступна через `itab[ index ]`.\n- Первичный ключ всегда `NON-UNIQUE`, дубликаты допустимы.\n- Поиск по первичному ключу линейный — O(n).\n- Минимальные накладные расходы.\n- Подходит для последовательной обработки, частого `APPEND` и доступа по индексу.\n- Неудачный выбор для частого поиска по ключу в больших таблицах.\n\n```abap\nDATA items TYPE STANDARD TABLE OF ty_item\n           WITH EMPTY KEY.\n```\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 2. `SORTED TABLE`\n\n- Имеет индекс и всегда автоматически отсортирована по первичному ключу.\n- Ключ может быть `UNIQUE` или `NON-UNIQUE`.\n- Поиск по ключу выполняется бинарно — O(log n).\n- Доступ по индексу также возможен.\n- Подходит, когда нужны одновременно быстрый поиск, сортировка, диапазонная обработка или `LOOP ... WHERE` по начальной части ключа.\n\n```abap\nDATA items TYPE SORTED TABLE OF ty_item\n           WITH NON-UNIQUE KEY category id.\n```\n\nПорядок компонентов ключа важен: ключ `( category, id )` хорошо поддерживает поиск по `category`, но не оптимизирует поиск только по `id`.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Selection of the Table Category\n\n### 3. `HASHED TABLE`\n\n- Не имеет первичного табличного индекса.\n- Первичный ключ обязательно `UNIQUE`.\n- Доступ по полному ключу имеет постоянную сложность — O(1), независимо от числа строк.\n- Требует больше памяти и имеет наиболее высокие административные расходы.\n- Подходит для больших lookup-таблиц, где строки читаются главным образом по уникальному ключу.\n- Не подходит, если нужны дубликаты, индексный или диапазонный доступ.\n\n```abap\nDATA items TYPE HASHED TABLE OF ty_item\n           WITH UNIQUE KEY id.\n\nDATA(item) = items[ id = requested_id ].\n```\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Table Type\n\n### 4. Практическое правило выбора\n\n| Основной сценарий | Категория |\n|---|---|\n| Последовательная обработка, `APPEND`, доступ по позиции | `STANDARD` |\n| Поиск и диапазоны по ключу, но нужен индекс или дубликаты | `SORTED` |\n| Большая таблица, поиск только по полному уникальному ключу | `HASHED` |\n\nЕсли таблицу читают несколькими способами, можно добавить именованный secondary `SORTED KEY` или `HASHED KEY`. Ключи рекомендуется задавать явно; для `STANDARD TABLE`, где ключ не используется, обычно уместен `WITH EMPTY KEY`.\n\n[Источник] ABAP Keyword Documentation 7.56; Key attributes / Primary and secondary table keys\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:45:22.586385Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:46:10.966498Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-abap",
+      "skill": "lib-sap-dev",
+      "attempt": 2,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 50043,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc"
+          },
+          "durationMs": 280
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "query": "внутренние таблицы internal tables STANDARD SORTED HASHED primary key access index key uniqueness when use performance",
+            "limit": 5
+          },
+          "durationMs": 1494
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/SKILL.md && sed -n '1,260p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP есть три конкретные категории внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбирайте по основному способу доступа: по индексу — `STANDARD`, по индексу и ключу — `SORTED`, только по уникальному ключу — `HASHED`.\n\n## По документации\n\n### 1. `STANDARD TABLE`\n\n- Имеет индекс; доступна по индексу и ключу.\n- Первичный ключ всегда `NON-UNIQUE`.\n- Поиск по первичному ключу линейный — O(n).\n- Минимальные расходы на администрирование.\n- Подходит для последовательной обработки, `APPEND` и доступа по индексу.\n- Для больших таблиц с частым поиском по ключу обычно не подходит.\n\n```abap\nTYPES ty_items TYPE STANDARD TABLE OF ty_item\n  WITH EMPTY KEY.\n```\n\n`WITH EMPTY KEY` уместен, если ключ действительно не используется. Ключи рекомендуется объявлять явно.\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 2. `SORTED TABLE`\n\n- Всегда автоматически отсортирована по первичному ключу.\n- Имеет индекс; доступна как по индексу, так и по ключу.\n- Ключ может быть `UNIQUE` или `NON-UNIQUE`.\n- Поиск по ключу выполняется бинарным поиском — O(log n).\n- Подходит для диапазонов, частичных ключей и последовательной обработки в порядке ключа.\n- Вставка и удаление дороже, поскольку индекс требуется поддерживать отсортированным.\n\n```abap\nTYPES ty_items TYPE SORTED TABLE OF ty_item\n  WITH NON-UNIQUE KEY category created_at.\n```\n\nЭто хороший выбор по умолчанию, когда нужен быстрый поиск, но допустимы дубликаты или требуется упорядоченный обход.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Table Type\n\n### 3. `HASHED TABLE`\n\n- Индекса нет; доступ по позиции невозможен.\n- Первичный ключ обязательно `UNIQUE`.\n- Поиск по полному первичному ключу имеет постоянное время — O(1).\n- Требует больше памяти и расходов на обслуживание.\n- Подходит для больших lookup-таблиц с частым точечным поиском по уникальному ключу.\n\n```abap\nTYPES ty_items TYPE HASHED TABLE OF ty_item\n  WITH UNIQUE KEY id.\n```\n\nВажно использовать полный ключ. Поиск `HASHED TABLE` по полям, не соответствующим ключу, может превратиться в линейный.\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 4. Краткое правило выбора\n\n| Основной сценарий | Категория |\n|---|---|\n| Последовательный обход, `APPEND`, доступ по позиции | `STANDARD TABLE` |\n| Поиск по ключу, диапазоны, сортированный обход, возможны дубликаты | `SORTED TABLE` |\n| Большая таблица, точечный поиск по полному уникальному ключу | `HASHED TABLE` |\n\nДля нескольких разных способов поиска можно определить secondary sorted/hash keys. Они выгодны преимущественно для больших таблиц, которые заполняются один раз, редко изменяются и часто читаются. Для маленьких или часто изменяемых таблиц стоимость их обслуживания обычно выше выигрыша.\n\n[Источник] ABAP Keyword Documentation 7.56; When to actually use secondary keys?\n\n### 5. `ANY TABLE` и `INDEX TABLE`\n\nЭто не дополнительные конкретные категории, а generic types для параметров методов и field symbols:\n\n- `ANY TABLE` принимает любую категорию.\n- `INDEX TABLE` принимает только `STANDARD` и `SORTED`, поскольку у них есть индекс.\n\n[Источник] ABAP Keyword Documentation 7.56; TYPES, tabkind\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:45:21.850859Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:46:08.294923Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-abap",
+      "skill": "lib-sap-dev",
+      "attempt": 3,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 52272,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc"
+          },
+          "durationMs": 296
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "query": "внутренние таблицы ABAP internal tables STANDARD SORTED HASHED primary key secondary table keys access performance index hash when use",
+            "limit": 5
+          },
+          "durationMs": 1349
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/SKILL.md && sed -n '1,260p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP три категории внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбор определяется основным способом доступа: по индексу — `STANDARD`, по ключу с сохранением сортировки — `SORTED`, частые точечные обращения по уникальному ключу — `HASHED`.\n\n## По документации\n\n### 1. Отличия типов\n\n| Тип | Порядок | Доступ по индексу | Доступ по primary key | Уникальность primary key |\n|---|---|---:|---:|---|\n| `STANDARD TABLE` | Порядок вставки; можно сортировать | Да, быстрый | O(n) | Только non-unique |\n| `SORTED TABLE` | Всегда отсортирована по primary key | Да | O(log n), binary search автоматически | Unique или non-unique |\n| `HASHED TABLE` | Порядок не определён | Нет | O(1) | Только unique |\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Table Type\n\n### 2. Когда какую использовать\n\n- `STANDARD TABLE` — последовательная обработка, `APPEND`, доступ по `INDEX`, небольшие таблицы. Если нужны частые поиски по ключу, этот тип без дополнительного ключа обычно не подходит.\n- `SORTED TABLE` — данные должны всегда оставаться отсортированными; нужны поиски по ключу, диапазоны или `LOOP ... WHERE` по начальным компонентам ключа.\n- `HASHED TABLE` — таблица используется как словарь: частые точечные обращения по уникальному ключу, а индекс и сортированный обход не нужны.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Selection of the Table Category\n\n### 3. Пример объявления\n\n```abap\nTYPES:\n  ty_standard TYPE STANDARD TABLE OF spfli\n    WITH NON-UNIQUE KEY carrid,\n\n  ty_sorted TYPE SORTED TABLE OF spfli\n    WITH NON-UNIQUE KEY carrid connid,\n\n  ty_hashed TYPE HASHED TABLE OF spfli\n    WITH UNIQUE KEY carrid connid.\n```\n\nПрактическое правило: начинайте с `STANDARD TABLE`, только если таблица небольшая либо обрабатывается последовательно. Если поиск по ключу является важной операцией, сразу выразите это типом `SORTED` или `HASHED`, а не повторяйте линейные поиски.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Table Type; itab - Accessing Internal Tables\n\n### 4. Secondary keys\n\nSecondary sorted/hash keys позволяют оптимизировать дополнительные способы поиска без смены основной категории. Они особенно полезны для больших таблиц, которые один раз заполняются и затем часто читаются; для таблиц меньше примерно 50 строк или при частых изменениях расходы на поддержку ключей обычно превышают выигрыш.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Using Secondary Keys\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:45:22.427700Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:46:10.576660Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-process-download",
+      "skill": "lib-sap-process-navigator",
+      "attempt": 1,
+      "prompt": "В SAP Process Navigator найди процесс со стандартизированным механизмом событий и сохрани доступное исходное описание в /tmp/lib-skill-comparison-downloads/sap-process.",
+      "profile": "artifact-retrieval",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 79201,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "targetVersion": "2025.x"
+          },
+          "durationMs": 269
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "limit": 5,
+            "query": "standardized event mechanism"
+          },
+          "durationMs": 2165
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "processId": "1NN"
+          },
+          "durationMs": 321
+        },
+        {
+          "server": "lib-docs",
+          "tool": "get_source_artifact",
+          "arguments": {
+            "artifactId": "art_4e3b542e908bd31e76d4da96995fa64dc05113b61fbac3d63665f84eb4e1e93e"
+          },
+          "durationMs": 370
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc 'node /home/as/ai-projects/docs-mcp-server/skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs --destination /tmp/lib-skill-comparison-downloads/sap-process --count 1'",
+          "durationMs": 0,
+          "exitCode": 1
+        },
+        {
+          "command": "/bin/bash -lc 'node /home/as/ai-projects/docs-mcp-server/skills/lib-sap-process-navigator/scripts/save-source-artifacts.mjs --destination /tmp/lib-skill-comparison-downloads/sap-process --count 1'",
+          "durationMs": 0,
+          "exitCode": 1
+        }
+      ],
+      "answer": "Найден процесс **1NN — Business Event Handling**. Сохранение заблокировано: текущая среда не разрешила создать каталог `/tmp/lib-skill-comparison-downloads/sap-process`.\n\n## По документации\n\n### 1. Business Event Handling использует стандартизированный механизм событий для бизнес-объектов SAP S/4HANA Cloud Private Edition.\n\n[Источник] SAP Best Practices for SAP S/4HANA Cloud Private Edition; 1NN — Business Event Handling\n\n### 2. Доступное исходное описание — `Description.txt`. Для продолжения нужно создать доступный для записи каталог назначения и повторить запрос.\n\n## Артефакты\n\nДиаграммы процессов\n\n- Solution Process Flow — недоступен\n\nОписания процессов\n\n- Description.txt\n\nАкселераторы\n\n- Product assistance — недоступен\n\n[Использованы библиотеки: sap_process_navigator]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:51:15.738565Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:52:31.662739Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-process-info",
+      "skill": "lib-sap-process-navigator",
+      "attempt": 1,
+      "prompt": "В SAP Process Navigator найди комплексный девятиэтапный процесс технического обслуживания и кратко изложи его назначение без скачивания файлов.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 42781,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "targetVersion": "2025.x"
+          },
+          "durationMs": 344
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "limit": 5,
+            "query": "Asset Management complex nine-phase maintenance process end-to-end purpose nine process steps maintenance"
+          },
+          "durationMs": 1519
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "processId": "4HH"
+          },
+          "durationMs": 78
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,260p' skills/lib-sap-process-navigator/SKILL.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найден процесс **4HH — Reactive Maintenance**. Он охватывает полный цикл устранения неисправности оборудования: от регистрации потребности до технического завершения заказа, помогая сокращать простой активов и затраты на обслуживание.\n\n## По документации\n\n### 1. 4HH — Reactive Maintenance\n\nПроцесс состоит из девяти этапов: Initiation, Screening, Planning, Approval, Preparation, Scheduling, Execution, Post Execution и Completion. Для аварийных и небольших работ предусмотрены сокращённые варианты.\n\n[Источник] SAP Best Practices for SAP S/4HANA Cloud Private Edition; 4HH — Reactive Maintenance\n\n## Артефакты\n\nДиаграммы процессов\n\n- 4HH - Reactive Maintenance.bpmn2\n- 4HH - Minor Work (SAP S4HANA).bpmn2\n- 4HH - Emergency Work (SAP S4HANA).bpmn2\n\nОписания процессов\n\n- Description.txt\n\nАкселераторы\n\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.docx\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.xlsx\n\nФайлы не скачивались.\n\n[Использованы библиотеки: sap_process_navigator]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:07.999732Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:47.189853Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-process-info",
+      "skill": "lib-sap-process-navigator",
+      "attempt": 2,
+      "prompt": "В SAP Process Navigator найди комплексный девятиэтапный процесс технического обслуживания и кратко изложи его назначение без скачивания файлов.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 49345,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "targetVersion": "2025.x"
+          },
+          "durationMs": 263
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "limit": 5,
+            "query": "Asset Management comprehensive nine-step maintenance process process flow purpose"
+          },
+          "durationMs": 1253
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "processId": "4HH"
+          },
+          "durationMs": 304
+        }
+      ],
+      "commands": [],
+      "answer": "Найден процесс **4HH — Reactive Maintenance**. Он охватывает полный цикл устранения неисправности — от регистрации запроса до технического завершения заказа — чтобы сократить простой оборудования, повысить производительность и снизить затраты на обслуживание. Исходные файлы не скачивались.\n\n## По документации\n\n### 1. Назначение процесса\n\nДевять этапов: **Initiation → Screening → Planning → Approval → Preparation → Scheduling → Execution → Post Execution → Completion**. Процесс координирует прием запроса, планирование ресурсов, подготовку материалов и мощностей, выполнение ремонта, регистрацию отказа и закрытие работ. Для minor work и emergency work допускается сокращенный маршрут.\n\n[Источник] SAP Best Practices for SAP S/4HANA Cloud Private Edition; 4HH — Reactive Maintenance\n\n## Артефакты\n\nДиаграммы процессов\n\n- 4HH - Reactive Maintenance.bpmn2\n- 4HH - Minor Work (SAP S4HANA).bpmn2\n- 4HH - Emergency Work (SAP S4HANA).bpmn2\n\nОписания процессов\n\n- Description.txt\n\nАкселераторы\n\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.docx\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.xlsx\n\n[Использованы библиотеки: sap_process_navigator]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:09.693596Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:55.490694Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-process-info",
+      "skill": "lib-sap-process-navigator",
+      "attempt": 3,
+      "prompt": "В SAP Process Navigator найди комплексный девятиэтапный процесс технического обслуживания и кратко изложи его назначение без скачивания файлов.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 35813,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "targetVersion": "2025.x"
+          },
+          "durationMs": 63
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "limit": 5,
+            "query": "complex nine-stage maintenance process nine stages end-to-end maintenance management"
+          },
+          "durationMs": 2710
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "sap_process_navigator",
+            "version": "2025.1.0",
+            "processId": "4HH"
+          },
+          "durationMs": 74
+        }
+      ],
+      "commands": [],
+      "answer": "Найден процесс **4HH — Reactive Maintenance**. Он поддерживает сквозное реактивное техническое обслуживание: от регистрации неисправности до технического завершения заказа, помогая сокращать простой оборудования и затраты на обслуживание.\n\n## По документации\n\n### 1. Reactive Maintenance\n\nПроцесс включает девять этапов: **Initiation → Screening → Planning → Approval → Preparation → Scheduling → Execution → Post Execution → Completion**. Для мелких и аварийных работ предусмотрены сокращённые варианты без обязательного прохождения всех этапов.\n\n[Источник] SAP Best Practices for SAP S/4HANA Cloud Private Edition; 4HH — Reactive Maintenance\n\n## Артефакты\n\nДиаграммы процессов\n\n- 4HH - Reactive Maintenance.bpmn2\n- 4HH - Minor Work (SAP S4HANA).bpmn2\n- 4HH - Emergency Work (SAP S4HANA).bpmn2\n\nОписания процессов\n\n- Description.txt\n\nАкселераторы\n\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.docx\n- 4HH_S4HANA2025-FPS1_BPD_EN_RU.xlsx\n\nФайлы не скачивались.\n\n[Использованы библиотеки: sap_process_navigator]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:50:39.441184Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:51:12.289640Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "successfactors",
+      "skill": "lib-sap-sf-odata",
+      "attempt": 1,
+      "prompt": "Как через SAP SuccessFactors OData V2 получить EmpJob и перейти к связанному пользователю?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 51178,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap-sf-odata",
+            "query": "EmpJob userNav User navigation property related User entity $expand $select userId effective-dated query example permissions",
+            "limit": 5
+          },
+          "durationMs": 1457
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap-sf-odata",
+            "query": "\"EmpJob\" \"userNav\" \"User\" navigation property",
+            "limit": 5
+          },
+          "durationMs": 437
+        }
+      ],
+      "commands": [],
+      "answer": "Да: обычно `EmpJob` связывается с `User` через `userNav`, который раскрывается параметром `$expand`. Поскольку набор navigation properties зависит от метаданных инстанса, сначала убедитесь, что `userNav` присутствует у `EmpJob` в `$metadata`.\n\n## По документации\n\n### 1. Получение `EmpJob`\n\n`EmpJob` поддерживает операцию Query через `GET`. Полный список его свойств и navigation properties SAP рекомендует проверять через OData API Data Dictionary или:\n\n```http\nGET /odata/v2/$metadata\n```\n\n[Источник] SAP SuccessFactors API Reference Guide for OData V2; EmpJob; <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/empjob?version=2605&locale=en-US>\n\n### 2. Раскрытие связанной сущности\n\nСвязанные сущности загружаются через `$expand`; нужные поля можно ограничить через `$select`. Доступ к данным связанной сущности определяется role-based permissions этой сущности и её полей.\n\n[Источник] SAP SuccessFactors API Reference Guide for OData V2; Navigation from Effective-Dated Entities; <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/navigation-from-effective-dated-entities?version=2605&locale=en-US> | SAP SuccessFactors API Reference Guide for OData V2; Permissions for Navigation Properties ($expand); <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/permission-settings?version=2605&locale=en-US>\n\n### 3. Navigation property `userNav`\n\nВ найденном разделе `EmpJob` наличие `userNav` явно не перечислено: раздел документирует только свойства со специальной бизнес-логикой. Поэтому точное наличие и имя связи необходимо подтвердить в `$metadata` вашего инстанса.\n\n## Выводы и рекомендации\n\n1. Если у `EmpJob` есть `userNav`, используйте один запрос:\n\n```http\nGET /odata/v2/EmpJob\n  ?$filter=userId eq 'cgrant'\n  &$select=userId,startDate,seqNumber,userNav/userId,userNav/username,userNav/email\n  &$expand=userNav\n  &$format=json\n```\n\n2. Для состояния `EmpJob` на конкретную дату добавьте:\n\n```http\n&asOfDate=2026-08-30\n```\n\n3. Если `userNav` отсутствует, выполните два запроса по общему ключу:\n\n```http\nGET /odata/v2/EmpJob?$filter=userId eq 'cgrant'&$format=json\nGET /odata/v2/User('cgrant')?$select=userId,username,email&$format=json\n```\n\n[Использованы библиотеки: sap-sf-odata]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:49:57.693262Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:50:45.399621Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

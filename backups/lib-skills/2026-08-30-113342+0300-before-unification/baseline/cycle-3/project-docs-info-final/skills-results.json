@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:43:21.550Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 3
+  },
+  "results": [
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 1,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 45368,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 260
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 539
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 311
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-project-docs/SKILL.md && sed -n '1,240p' skills/lib-project-docs/references/library-map.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено: **Приложение №2 к Индивидуальному договору №1** — `Annex №2 to the IA №1_Composition of works and results_19 08.docx`. Оно содержит состав услуг, результаты проекта по этапам и зоны ответственности сторон. Файл не скачивался.\n\n## По документации\n\n### 1. Состав работ и результатов закреплён в Приложении №2 к Индивидуальному договору №1. В документе раздел называется «Состав услуг и результатов».\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:42:37.515178Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:43:18.638660Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 2,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 45690,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 48
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 345
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 447
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-project-docs/SKILL.md && sed -n '1,240p' skills/lib-project-docs/references/library-map.md && sed -n '1,180p' README.md && sed -n '1,180p' ARCHITECTURE.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено приложение № 2 к Индивидуальному договору № 1 — «Состав услуг и результатов». Файл не скачивался.\n\n## По документации\n\n### 1. Найденный документ\n\n`Annex №2 to the IA №1_Composition of works and results_19 08.docx`. Он содержит состав услуг и результатов проекта по этапам, формальные результаты и зоны ответственности сторон.\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:42:37.286170Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:43:19.123604Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "project-docs-info",
+      "skill": "lib-project-docs",
+      "attempt": 3,
+      "prompt": "По договорным документам ЛЮВЕ найди приложение про состав работ и результатов. Файлы не скачивай.",
+      "profile": "artifact-retrieval",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 46366,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "targetVersion": "1.0.0"
+          },
+          "durationMs": 291
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "query": "приложение состав работ и результатов",
+            "limit": 5
+          },
+          "durationMs": 587
+        },
+        {
+          "server": "lib-docs",
+          "tool": "list_source_artifacts",
+          "arguments": {
+            "library": "project-docs-luve-01-dogovor",
+            "version": "1.0.0",
+            "processId": "project-docs-luve-01-dogovor"
+          },
+          "durationMs": 53
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-project-docs/references/library-map.md && printf '\\\\n---README---\\\\n' && sed -n '1,220p' README.md && printf '\\\\n---ARCH---\\\\n' && sed -n '1,240p' ARCHITECTURE.md\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Найдено приложение: `Annex №2 to the IA №1_Composition of works and results_19 08.docx`. Это Приложение № 2 к Индивидуальному договору № 1; оно содержит состав услуг и результатов проекта по этапам, формальные результаты и зоны ответственности сторон. Файл не скачивался.\n\n## По документации\n\n### 1. Состав работ и результатов\n\nДокумент озаглавлен «СОСТАВ УСЛУГ И РЕЗУЛЬТАТОВ». Искомый состав приведён по этапам и контрольным точкам с указанием результата услуг, признака формального результата и ответственности Исполнителя и Заказчика.\n\n[Источник] Проектная документация ЛЮВЕ; Annex №2 to the IA №1_Composition of works and results_19 08.docx\n\n## Артефакты\n\nДокументы\n\n- Annex №1 to the IA №1_Scope of the project_19 08.docx\n- Annex №2 to the IA №1_Composition of works and results_19 08.docx\n- Annex №3 to the IA №1_Terms, cost of stages_19 08.docx\n- Annex №4 to the IA №1_Assumptions and limitations_19 08.docx\n- IA №1_Sest Luve_MSP_03 08 2026_19 08.docx\n- MA №MSP.04-2026_Sest Luve_MSP_03 08 2026_19 08.docx\n- Приложение B  Приложению №1 _ Маппинг не стандартных транзакций SAP S4  1C ERP_19 08.docx\n- Приложение А  Приложению №1 _ Маппинг стандартных транзакций SAP S4  1C ERP_19 08.docx\n\n[Использованы библиотеки: project-docs-luve-01-dogovor]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:42:37.446094Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:43:19.980233Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

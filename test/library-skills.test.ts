@@ -4,106 +4,115 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 
 const root = resolve(import.meta.dirname, "..");
-const librarySkills = {
-  "lib-nifi": "nifi",
-  "lib-pm2-it": "pm2-it",
-  "lib-postgresql": "postgresql",
-  "lib-sap-process-navigator": "sap_process_navigator",
-  "lib-sap-sf-odata": "sap-sf-odata",
-} as const;
+const appliedSkills = [
+  "lib-1c-buh",
+  "lib-1c-cons",
+  "lib-1c-dev",
+  "lib-1c-docflow",
+  "lib-1c-erp",
+  "lib-1c-toir",
+  "lib-nifi",
+  "lib-pm2-it",
+  "lib-postgresql",
+  "lib-project-docs",
+  "lib-sap-cons",
+  "lib-sap-dev",
+  "lib-sap-process-navigator",
+  "lib-sap-sf-odata",
+] as const;
+
+const artifactSkills = new Set([
+  "lib-project-docs",
+  "lib-sap-process-navigator",
+]);
 
 function skillFile(name: string, file = "SKILL.md") {
   return readFileSync(resolve(root, "skills", name, file), "utf8");
 }
 
-describe.each(Object.entries(librarySkills))("%s", (skill, library) => {
+describe.each(appliedSkills)("%s", (skill) => {
   const text = skillFile(skill);
   const agent = skillFile(skill, "agents/openai.yaml");
 
-  it("keeps one fixed library and the matching final footer", () => {
-    const libraries = [...text.matchAll(/library="([a-z0-9_-]+)"/g)].map(
-      (match) => match[1],
-    );
-    expect(new Set(libraries)).toEqual(new Set([library]));
-    expect(text).toContain(`[Использованы библиотеки: ${library}]`);
-    expect(text.toLowerCase()).toContain("последней строкой без текста после неё");
-  });
-
-  it("uses the shared ambiguity and search budget contract", () => {
-    expect(text).toContain("До ответа не вызывай инструменты");
-    expect(text).toContain("начальный `search_docs` выполни с `limit=5`");
-    expect(text).toContain("не более двух раз");
-    expect(text).toContain("Абсолютный предел");
-    expect(text).toContain("После третьего поиска остановись");
-    expect(text).toContain("только `limit=5` или `limit=10`");
-    expect(text).toContain("Никогда не вызывай");
-  });
-
-  it("uses the shared grounded answer format", () => {
+  it("declares the shared MCP dependency and grounded output", () => {
+    expect(text).toMatch(/^name: lib-/m);
+    expect(text).toContain("lib-docs");
     expect(text).toContain("## По документации");
-    expect(text).toContain("`### 1.`, `### 2.`");
-    expect(text).toContain("литерал `[Источник]` используй ровно один раз");
-    expect(text).toContain("Никогда не повторяй `[Источник]` после `|`");
-    expect(text).toContain("через ` | `");
-    expect(text).toContain("каждый фрагмент по обе стороны разделителя");
-    expect(text).toContain("Не ставь после `|` отдельный URL или раздел");
-    expect(text).toContain("## Выводы и рекомендации");
-    expect(text).toContain("не показывай `file://`");
-    expect(text).toContain("Snapshot date");
-    expect(text).toContain("undefined");
-    expect(text).toContain("Даже при недоступности MCP");
-    expect(text).toContain("помести состояние в `### 1.`");
-    expect(text).toContain("без поясняющей фразы");
-    expect(text).toContain("[Использованы библиотеки: нет]");
-  });
-
-  it("contains routing keywords but no concrete example questions", () => {
-    expect(text).not.toContain("?");
-    expect(text).not.toMatch(/пример(?:ы)? вопрос/iu);
-    expect(text).not.toMatch(/пользователь спрашивает/iu);
-  });
-
-  it("declares the lib-docs MCP dependency", () => {
+    expect(text).toContain("[Источник]");
+    expect(text).toContain("[Использованы библиотеки:");
     expect(agent).toContain('value: "lib-docs"');
-    expect(agent).toContain("allow_implicit_invocation: true");
   });
+
+  if (!artifactSkills.has(skill)) {
+    it("uses the bounded native fast path", () => {
+      expect(text).toContain("нативн");
+      expect(text).toContain("ровно один");
+      expect(text).toMatch(/limit(?::\s*|=)\s*5/);
+      expect(text).toContain("list_libraries");
+      expect(text).toMatch(/после реальной ошибки/u);
+    });
+  }
 });
 
-describe("lib-skill-creation", () => {
-  const text = skillFile("lib-skill-creation");
-  const agent = skillFile("lib-skill-creation", "agents/openai.yaml");
+describe("lib-skill-creator", () => {
+  const text = skillFile("lib-skill-creator");
+  const agent = skillFile("lib-skill-creator", "agents/openai.yaml");
   const contract = skillFile(
-    "lib-skill-creation",
+    "lib-skill-creator",
     "references/library-skill-contract.md",
   );
   const validator = skillFile(
-    "lib-skill-creation",
+    "lib-skill-creator",
     "scripts/validate_library_skill.py",
   );
 
-  it("requires initialization, static validation, and blind forward tests", () => {
-    expect(text).toContain("skill-creator/scripts/init_skill.py");
+  it("supports all three profiles and comparative acceptance", () => {
+    expect(text).toContain("single-library");
+    expect(text).toContain("catalog-router");
+    expect(text).toContain("artifact-retrieval");
     expect(text).toContain("quick_validate.py");
     expect(text).toContain("validate_library_skill.py");
-    expect(text).toContain("blind forward-тесты");
-    expect(text).toContain("свежих агентских контекстах");
-  });
-
-  it("forbids embedded questions and carries the full contract", () => {
-    expect(text).toContain(
-      "Не добавляй конкретные пользовательские вопросы, демонстрационные запросы",
-    );
-    expect(contract).toContain("Абсолютный максимум — три `search_docs`");
-    expect(contract).toContain("Литерал `[Источник]` появляется ровно один раз");
-    expect(contract).toContain("[Использованы библиотеки: TECHNICAL_NAME]");
+    expect(text).toMatch(/медианное\s+время не хуже/u);
+    expect(contract).toContain("Информационный запрос не получает байты");
     expect(validator).toContain("def validate(skill_dir: Path)");
   });
 
-  it("can inspect the target documentation library", () => {
+  it("can inspect target libraries", () => {
     expect(agent).toContain('value: "lib-docs"');
     expect(agent).toContain("allow_implicit_invocation: true");
+    expect(agent).toContain("$lib-skill-creator");
+  });
+});
+
+describe.each([
+  ["sap", "developer", "consultant", 13],
+  ["onec", "developer", "user", 78],
+] as const)("%s library catalog", (family, firstAudience, secondAudience, total) => {
+  it("matches the two centralized projections", () => {
+    const master = parse(skillFile(`${family}-libraries.yaml`, ""));
+    const first = parse(
+      skillFile(`lib-${family === "onec" ? "1c" : family}-dev`, "references/libraries.yaml"),
+    );
+    const second = parse(
+      skillFile(
+        `lib-${family === "onec" ? "1c" : family}-cons`,
+        "references/libraries.yaml",
+      ),
+    );
+    const masterNames = new Set(master.libraries.map(({ name }: { name: string }) => name));
+    const firstNames = new Set(first.libraries.map(({ name }: { name: string }) => name));
+    const secondNames = new Set(second.libraries.map(({ name }: { name: string }) => name));
+    expect(masterNames.size).toBe(total);
+    expect([...firstNames].filter((name) => secondNames.has(name))).toEqual([]);
+    expect(new Set([...firstNames, ...secondNames])).toEqual(masterNames);
+    expect(
+      master.libraries.every(({ audiences }: { audiences: string[] }) =>
+        audiences.includes(firstAudience) || audiences.includes(secondAudience),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -859,7 +868,7 @@ describe("lib-project-docs combining skill", () => {
   };
 
   it("is excluded from the one-library skill set", () => {
-    expect(Object.keys(librarySkills)).not.toContain("lib-project-docs");
+    expect(artifactSkills.has("lib-project-docs")).toBe(true);
   });
 
   it("uses deterministic routing and search budgets", () => {
@@ -951,7 +960,7 @@ describe("lib-project-docs combining skill", () => {
     expect(text).toContain("для недоступной записи — её `name`");
     expect(text).toContain("Не выводи пустые группы");
     expect(text).toContain("не показывай `artifactId`");
-    expect(text).toContain("`list_source_artifacts` один раз для каждого подтверждённого раздела");
+    expect(text).toContain("`list_source_artifacts` ровно один раз для каждого подтверждённого раздела");
     expect(text).toContain("полный массив `structuredContent.artifacts`");
     expect(text).toContain("инвентарём выбранного раздела");
     expect(text).toContain("<Клиент> — <Раздел>");

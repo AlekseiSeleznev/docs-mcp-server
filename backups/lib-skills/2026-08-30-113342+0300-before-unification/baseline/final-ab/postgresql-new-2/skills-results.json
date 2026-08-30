@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:55:22.787Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 3
+  },
+  "results": [
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 1,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 38023,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 45
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX CONCURRENTLY versus CREATE INDEX locking writes transactions multiple scans invalid index failure restrictions transaction block unique index partitioned table"
+          },
+          "durationMs": 1338
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` быстрее, но до завершения блокирует `INSERT`, `UPDATE` и `DELETE`. `CREATE INDEX CONCURRENTLY` сохраняет запись доступной, однако выполняет больше работы, обычно длится дольше и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычный `CREATE INDEX` блокирует изменения таблицы, но не чтение. Вариант `CONCURRENTLY` не блокирует конкурентные вставки, обновления и удаления, хотя дополнительная нагрузка CPU и I/O может замедлить их.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 2. Скорость и алгоритм\n\nОбычное построение сканирует таблицу один раз. Конкурентное выполняет два сканирования и ожидает завершения потенциально конфликтующих транзакций и старых снимков, поэтому требует больше работы и обычно занимает заметно больше времени.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 3. Транзакции и сбои\n\nОбычный `CREATE INDEX` разрешён внутри блока транзакции, а `CREATE INDEX CONCURRENTLY` — нет. При сбое конкурентного построения может остаться индекс со статусом `INVALID`: запросы его не используют, но он продолжает создавать накладные расходы при изменении таблицы. Его следует удалить и создать заново либо восстановить через `REINDEX INDEX CONCURRENTLY`.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 4. Дополнительные ограничения\n\nНа одной таблице одновременно допускается только одно конкурентное построение индекса. `CREATE INDEX CONCURRENTLY` непосредственно на секционированной таблице не поддерживается; индексы можно конкурентно создать на отдельных секциях, а затем присоединить к родительскому индексу.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY> | PostgreSQL 18 Documentation; Declarative Partitioning; <https://www.postgresql.org/docs/18/ddl-partitioning.html>\n\n## Выводы и рекомендации\n\n1. На активно используемой production-таблице обычно выбирайте `CREATE INDEX CONCURRENTLY`, чтобы не останавливать запись.\n2. При допустимом окне обслуживания выбирайте обычный `CREATE INDEX`: он быстрее и проще.\n3. Запускайте конкурентную команду отдельно, без `BEGIN`/`COMMIT`, и после ошибки проверяйте, не остался ли `INVALID`-индекс.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:54:44.829860Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:54:55.911604Z ERROR codex_skills_extension::loader::host: failed to scan skill path file:///home/as/.codex/plugins/cache/ponytail/ponytail/4.9.0/skills/ponytail-review: No such file or directory (os error 2)",
+        "2026-08-30T09:55:17.207966Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 2,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 39441,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 283
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX CONCURRENTLY versus CREATE INDEX locking writes reads multiple scans snapshot transaction block invalid index failure uniqueness caveats partitioned table PostgreSQL 18"
+          },
+          "durationMs": 1519
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` быстрее и проще, но блокирует `INSERT`, `UPDATE` и `DELETE` до завершения; чтение остаётся доступным. `CREATE INDEX CONCURRENTLY` не блокирует запись, поэтому подходит для рабочих систем, но выполняется дольше, создаёт больше нагрузки и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычный `CREATE INDEX` блокирует изменение таблицы, но разрешает чтение. Вариант `CONCURRENTLY` позволяет параллельные вставки, обновления и удаления. Изменять схему таблицы во время построения индекса нельзя в обоих случаях.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 2. Скорость и нагрузка\n\nОбычное построение сканирует таблицу один раз. Конкурентное выполняет два сканирования и ожидает завершения затрагивающих его транзакций и старых снимков MVCC. Поэтому оно обычно заметно дольше и создаёт дополнительную нагрузку на CPU и ввод-вывод.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 3. Транзакции и параллельные построения\n\nОбычный `CREATE INDEX` можно выполнять внутри блока транзакции, а `CREATE INDEX CONCURRENTLY` — нельзя. На одной таблице одновременно допускается только одно конкурентное построение индекса.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 4. Последствия ошибки\n\nЕсли конкурентное построение завершится ошибкой, например из-за deadlock или нарушения уникальности, в каталоге может остаться `INVALID`-индекс. Планировщик его не использует, но индекс продолжает создавать накладные расходы при изменениях таблицы. PostgreSQL рекомендует удалить его и повторить построение либо выполнить `REINDEX INDEX CONCURRENTLY`.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 5. Уникальные и секционированные индексы\n\nПри конкурентном создании уникального индекса проверка уникальности начинает действовать ещё до того, как индекс становится доступным запросам. Напрямую конкурентно создать индекс над секционированной таблицей нельзя: индексы создают конкурентно на каждой секции, а затем обычной метаоперацией создают секционированный индекс.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n## Выводы и рекомендации\n\n1. На активно используемой большой таблице применяйте `CREATE INDEX CONCURRENTLY`.\n2. Во время обслуживания, когда запись можно приостановить, обычный `CREATE INDEX` обычно предпочтительнее: он быстрее и дешевле.\n3. Не помещайте `CREATE INDEX CONCURRENTLY` в `BEGIN`/`COMMIT`; после ошибки проверьте, не остался ли `INVALID`-индекс.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:54:44.323318Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:55:19.040636Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "postgresql",
+      "skill": "lib-postgresql",
+      "attempt": 3,
+      "prompt": "Чем CREATE INDEX CONCURRENTLY отличается от обычного CREATE INDEX в PostgreSQL 18?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 41465,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "postgresql",
+            "targetVersion": "18.x"
+          },
+          "durationMs": 47
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "postgresql",
+            "version": "18.4.0",
+            "limit": 5,
+            "query": "CREATE INDEX CONCURRENTLY versus CREATE INDEX locking writes reads transaction block multiple scans invalid index failure unique index limitations partitioned table"
+          },
+          "durationMs": 1209
+        }
+      ],
+      "commands": [],
+      "answer": "Обычный `CREATE INDEX` быстрее, но блокирует `INSERT`, `UPDATE` и `DELETE` до завершения; чтение остаётся доступным. `CREATE INDEX CONCURRENTLY` не блокирует запись, поэтому подходит для production, но выполняется дольше и имеет дополнительные ограничения.\n\n## По документации\n\n### 1. Блокировки\n\nОбычный `CREATE INDEX` блокирует запись в таблицу, но не чтение. Вариант `CONCURRENTLY` позволяет одновременно выполнять чтение и запись.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 2. Стоимость и продолжительность\n\nОбычная команда сканирует таблицу один раз. Конкурентное построение выполняет два сканирования и ожидает завершения некоторых существующих транзакций, поэтому требует больше CPU и I/O и обычно занимает заметно больше времени.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 3. Транзакции и ошибки\n\nОбычный `CREATE INDEX` можно выполнить внутри `BEGIN`/`COMMIT`, а `CREATE INDEX CONCURRENTLY` — нельзя. При сбое конкурентного построения может остаться `INVALID`-индекс: он не используется запросами, но продолжает создавать накладные расходы при записи. Его следует удалить и повторить построение либо применить `REINDEX INDEX CONCURRENTLY`.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY>\n\n### 4. Дополнительные ограничения\n\nНа одной таблице одновременно может строиться только один конкурентный индекс. `CREATE INDEX CONCURRENTLY` непосредственно для partitioned table не поддерживается; индексы можно конкурентно создать отдельно на каждой партиции, а затем присоединить к родительскому индексу.\n\n[Источник] PostgreSQL 18 Documentation; CREATE INDEX — Building Indexes Concurrently; <https://www.postgresql.org/docs/18/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY> | PostgreSQL 18 Documentation; Table Partitioning — Declarative Partitioning; <https://www.postgresql.org/docs/18/ddl-partitioning.html>\n\n## Выводы и рекомендации\n\n1. Для новой или обслуживаемой таблицы выбирайте обычный `CREATE INDEX`: он проще и быстрее.\n2. Для активно используемой production-таблицы выбирайте `CREATE INDEX CONCURRENTLY`, если длительная блокировка записи недопустима.\n3. Запускайте конкурентное построение вне транзакционного блока и после ошибки проверяйте, не остался ли `INVALID`-индекс.\n\n[Использованы библиотеки: postgresql]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:54:45.222551Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:55:20.932036Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

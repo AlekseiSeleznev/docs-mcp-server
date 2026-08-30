@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:31:38.083Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 1
+  },
+  "results": [
+    {
+      "id": "pm2",
+      "skill": "lib-pm2-it",
+      "attempt": 1,
+      "prompt": "Какие роли участвуют в подготовке и утверждении Project Charter по PM²?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 37707,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "pm2-it",
+            "targetVersion": "3.1.0"
+          },
+          "durationMs": 348
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "pm2-it",
+            "version": "3.1.0",
+            "limit": 5,
+            "query": "Project Charter preparation approval roles Project Initiator Project Owner Solution Provider Project Manager Business Manager Approver Accountable Responsible"
+          },
+          "durationMs": 1441
+        }
+      ],
+      "commands": [],
+      "answer": "Подготовку Project Charter ведёт **Project Manager (PM)** при участии **Business Manager (BM)** и **Solution Provider (SP)**. Утверждение проходит через **Project Owner (PO)** и **Project Steering Committee (PSC)**; при необходимости корпоративное одобрение даёт **Appropriate Governance Body (AGB)**.\n\n## По документации\n\n### 1. Подготовка Project Charter\n\n**Business Manager (BM)** может инициировать документ, консультируется с ключевыми заинтересованными сторонами и участвует в составлении черновика. **Project Manager (PM)** отвечает за завершение документа и его передачу на утверждение. **Business Manager (BM)** и **Solution Provider (SP)** помогают PM; учитывается вклад заинтересованных сторон.\n\n[Источник] PM² Project Management Methodology Guide 3.1; 5.4 Project Charter\n\n### 2. Рассмотрение и утверждение\n\nКлючевые заинтересованные стороны рассматривают Project Charter. **Project Steering Committee (PSC)** принимает его в рамках контрольной точки **Ready for Planning (RfP)**. **Project Owner (PO)** рассматривает и утверждает документ, а также направляет его вместе с Business Case соответствующему органу принятия решений, если требуется дополнительное одобрение.\n\n[Источник] PM² Project Management Methodology Guide 3.1; 5.4 Project Charter\n\n### 3. Корпоративное одобрение\n\nЕсли внутреннее управление организации требует дополнительного уровня утверждения, **Appropriate Governance Body (AGB)** оценивает Project Charter и принимает либо отклоняет его.\n\n[Источник] PM² Project Management Methodology Guide 3.1; 5.4 Project Charter\n\n[Использованы библиотеки: pm2-it]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:31:02.067772Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:31:36.477903Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

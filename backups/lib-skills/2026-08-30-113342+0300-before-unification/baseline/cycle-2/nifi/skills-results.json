@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:31:00.356Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 3
+  },
+  "results": [
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 1,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 43415,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 49
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure connection object threshold data size threshold FlowFile queue processor scheduling source processor stopped queued FlowFiles"
+          },
+          "durationMs": 2823
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure настраивается для каждой `Connection`. Когда очередь достигает любого из двух лимитов — количества FlowFiles или суммарного размера данных — NiFi перестаёт планировать исходный компонент этой Connection, пока downstream-компоненты разгружают очередь.\n\n## По документации\n\n### 1. Пороги срабатывания\n\n- `Back pressure object threshold` — максимальное количество FlowFiles в очереди.\n- `Back pressure data size threshold` — максимальный суммарный размер данных в очереди (`B`, `KB`, `MB`, `GB`, `TB`).\n- Достижение любого порога применяет back pressure к исходному компоненту Connection.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Значения по умолчанию\n\nДля новой Connection используются:\n\n- `10 000` FlowFiles;\n- `1 GB` данных.\n\nГлобальные значения по умолчанию можно изменить через соответствующие свойства `nifi.properties`, а для конкретной Connection — в её настройках.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Индикация заполнения\n\nПолосы на Connection показывают долю заполнения очереди:\n\n- зелёная: `0–60%`;\n- жёлтая: `61–85%`;\n- красная: `86–100%`.\n\nЭти цвета только отображают состояние: переключение цвета само по себе не является дополнительным порогом back pressure.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 4. Ограничение Stateless Engine\n\nВ Process Group с `Stateless Execution Engine` настроенные пороги очередей игнорируются. Описанный механизм применяется к традиционному движку выполнения.\n\n[Источник] Apache NiFi User Guide; Comparing and Contrasting — Scheduling; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n## Выводы и рекомендации\n\n1. Начните с стандартных `10 000 FlowFiles / 1 GB`, затем уменьшайте лимиты, если очередь потребляет слишком много памяти или диска.\n2. Увеличивайте лимиты, если ожидаются допустимые кратковременные всплески и downstream способен их впоследствии обработать.\n3. Учитывайте оба ограничения: множество маленьких FlowFiles быстрее достигает object threshold, а несколько крупных — data size threshold.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:30:11.221617Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:30:50.443066Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 2,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 41251,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 395
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure connection Back Pressure Object Threshold Back Pressure Data Size Threshold default values FlowFile queued source processor scheduling stopped resumes swap threshold"
+          },
+          "durationMs": 1827
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure применяется к очереди конкретного `Connection`. Как только достигается любой из двух лимитов — количество FlowFile или общий размер данных — NiFi перестаёт планировать компонент-источник этого соединения, пока очередь не разгрузится.\n\n## По документации\n\n### 1. Механизм включения\n\nДля каждого `Connection` задаются два независимых ограничения:\n\n- `Back Pressure Object Threshold` — максимальное количество FlowFile в очереди.\n- `Back Pressure Data Size Threshold` — максимальный суммарный размер их содержимого.\n\nДостижение любого порога включает back pressure: источник соединения больше не запускается планировщиком. Уже находящиеся в очереди FlowFile не удаляются.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Пороги по умолчанию\n\nДля нового соединения используются:\n\n- `10 000` FlowFile;\n- `1 GB` данных.\n\nЗначения настраиваются отдельно для каждого соединения. Системные значения по умолчанию можно изменить через `nifi.properties`.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Индикация заполнения\n\nЦвет индикатора показывает долю использованного лимита:\n\n- зелёный: `0–60%`;\n- жёлтый: `61–85%`;\n- красный: `86–100%`.\n\nЭто только визуальные диапазоны. Само ограничение срабатывает при достижении настроенного порога; полностью заполненное соединение дополнительно выделяется красным.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 4. Отключение и изменение порогов\n\nЗначение `0` позволяет отключить соответствующее ограничение. Изменение порога действует пассивно: оно не удаляет уже накопленные FlowFile, но ограничивает дальнейшую подачу данных процессорами-источниками.\n\n[Источник] Apache NiFi User Guide; Configuring a Process Group; <https://nifi.apache.org/nifi-docs/user-guide.html> | Apache NiFi REST API; ConnectionDTO; <https://nifi.apache.org/nifi-docs/rest-api.html>\n\n## Выводы и рекомендации\n\n1. Обычно достаточно стандартных `10 000 / 1 GB`.\n2. Порог следует увеличивать, если один входной FlowFile способен породить большую пачку выходных FlowFile — иначе возможна остановка потока или взаимная блокировка около Output Port.\n3. Учитывайте оба ограничения: очередь из нескольких крупных FlowFile может первой достичь лимита размера, а очередь из множества маленьких — лимита количества.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:30:10.991789Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:30:48.710193Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "nifi",
+      "skill": "lib-nifi",
+      "attempt": 3,
+      "prompt": "Как в Apache NiFi 2 работает back pressure и какие пороги его включают?",
+      "profile": "single-library",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 51240,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "nifi",
+            "targetVersion": "2.x"
+          },
+          "durationMs": 300
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "nifi",
+            "version": "2.11.0",
+            "limit": 5,
+            "query": "back pressure object threshold data size threshold connection queue FlowFiles upstream processor scheduling swap threshold"
+          },
+          "durationMs": 14896
+        }
+      ],
+      "commands": [],
+      "answer": "Back pressure применяется к очереди конкретного Connection. Когда очередь достигает хотя бы одного настроенного лимита, NiFi перестаёт планировать исходный компонент этого Connection, позволяя нижестоящим компонентам разгрузить очередь.\n\n## По документации\n\n### 1. Механизм работы\n\nBack pressure ограничивает поступление новых FlowFiles в очередь: при достижении порога исходный Processor или другой Connectable перестаёт запускаться. Нижестоящий компонент продолжает обрабатывать очередь; после её разгрузки исходный компонент снова может запускаться.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 2. Пороги включения\n\nBack pressure срабатывает при достижении любого из двух порогов:\n\n- `Back pressure object threshold` — количество FlowFiles в очереди.\n- `Back pressure data size threshold` — суммарный размер содержимого FlowFiles в очереди.\n\nСтандартные значения для нового Connection:\n\n- `10,000` FlowFiles;\n- `1 GB` данных.\n\nЗначение `0` отключает соответствующее ограничение. Поэтому для нормальной защиты обычно оставляют активными оба порога.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 3. Индикация заполнения\n\nНа Connection отображаются две полосы заполнения — по количеству объектов и объёму данных. Цвет показывает процент от настроенного порога:\n\n- зелёный: `0–60%`;\n- жёлтый: `61–85%`;\n- красный: `86–100%`.\n\nЦветовые диапазоны — только индикация. Сам back pressure срабатывает при достижении `100%` одного из порогов.\n\n[Источник] Apache NiFi User Guide; Back Pressure; <https://nifi.apache.org/nifi-docs/user-guide.html>\n\n### 4. Отличие от swapping\n\n`nifi.queue.swap.threshold` не включает back pressure. Этот параметр определяет, когда менее приоритетные FlowFiles выгружаются из памяти на диск. Таким образом, swapping управляет использованием памяти, а back pressure — скоростью поступления данных в очередь.\n\n[Источник] Apache NiFi In-Depth; FlowFile Repository and Swapping; <https://nifi.apache.org/nifi-docs/nifi-in-depth.html>\n\n## Выводы и рекомендации\n\n1. Настраивайте оба порога: количество защищает от чрезмерного числа FlowFiles, размер — от переполнения Content Repository.\n2. Выбирайте лимиты с учётом максимального ожидаемого пакета: слишком низкий порог может остановить пакетную обработку или создать взаимную блокировку.\n3. Не считайте `nifi.queue.swap.threshold` заменой back pressure — он решает другую задачу.\n\n[Использованы библиотеки: nifi]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:30:11.310552Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:30:58.757316Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

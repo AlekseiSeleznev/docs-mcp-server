@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:20:59.766Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 1
+  },
+  "results": [
+    {
+      "id": "onec-dev-platform",
+      "skill": "lib-1c-dev",
+      "attempt": 1,
+      "prompt": "Как программно создать элемент справочника в 1С?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 48695,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "query": "программное создание нового элемента справочника МенеджерСправочника СоздатьЭлемент заполнение реквизитов Наименование Код Записать пример встроенный язык",
+            "limit": 5
+          },
+          "durationMs": 1529
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "onec_dev_platform",
+            "query": "СправочникМенеджер СоздатьЭлемент СправочникОбъект Записать синтаксис описание",
+            "limit": 5
+          },
+          "durationMs": 1833
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' /tmp/lib-bench-onec-dev-platform-1-cI9l1C/codex/skills/lib-1c-dev/SKILL.md && sed -n '1,260p' /tmp/lib-bench-onec-dev-platform-1-cI9l1C/codex/skills/lib-1c-dev/references/libraries.yaml\"",
+          "durationMs": 1,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Создайте объект через менеджер нужного справочника, заполните реквизиты и вызовите `Записать()`. Имя справочника и реквизитов замените на существующие в вашей конфигурации.\n\n## По документации\n\n### 1. Создание и запись элемента\n\n```bsl\nНовыйЭлемент = Справочники.Номенклатура.СоздатьЭлемент();\nНовыйЭлемент.Наименование = \"Новый товар\";\nНовыйЭлемент.Артикул = \"0001\";\nНовыйЭлемент.Записать();\n```\n\n`Номенклатура` и `Артикул` — заменяемые примеры; проверьте их технические имена в метаданных конфигурации.\n\n[Источник] Документация платформы 1С:Предприятие; Руководство администратора → Приложение 6 → Пример Web-сервиса; <https://its.1c.ru/db/content/v8327doc/src/руководство%20администратора/приложение%206.%20вспомогательные%20и%20интернет-сервисы%20администрирования.htm#_top>\n\n[Использованы библиотеки: onec_dev_platform]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:20:12.936844Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:20:58.182964Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

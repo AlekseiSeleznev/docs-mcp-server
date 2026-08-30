@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T09:21:45.172Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/library-skills-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 1
+  },
+  "results": [
+    {
+      "id": "successfactors",
+      "skill": "lib-sap-sf-odata",
+      "attempt": 1,
+      "prompt": "Как через SAP SuccessFactors OData V2 получить EmpJob и перейти к связанному пользователю?",
+      "profile": "single-library",
+      "performance": false,
+      "exitCode": 0,
+      "elapsedMs": 45374,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap-sf-odata",
+            "query": "EmpJob userNav User navigation property related User entity $expand $select OData V2 effective dated",
+            "limit": 5
+          },
+          "durationMs": 1504
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap-sf-odata",
+            "query": "\"EmpJob\" \"userNav\" \"User\" navigation property",
+            "limit": 5
+          },
+          "durationMs": 968
+        }
+      ],
+      "commands": [],
+      "answer": "Получите `EmpJob` запросом `GET` и раскройте связанную сущность `User` через `$expand=userNav`. Доступность `userNav` и конкретных полей пользователя проверьте в `$metadata` вашего tenant.\n\n## По документации\n\n### 1. Запрос `EmpJob` вместе с пользователем\n\n```http\nGET https://<api-server>/odata/v2/EmpJob\n  ?$filter=userId eq 'cgrant'\n  &$select=userId,startDate,seqNumber,userNav/userId,userNav/firstName,userNav/lastName,userNav/email\n  &$expand=userNav\n  &$format=json\n```\n\n`EmpJob` поддерживает операцию Query через `GET`. Его ключ составной: `userId`, `startDate` и `seqNumber`.\n\n[Источник] SAP SuccessFactors API Reference Guide (OData V2); EmpJob — Supported Operations and Use Cases; <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/empjob?version=2605&locale=en-US>\n\n### 2. Переход по navigation property\n\nДля уже известной записи можно обратиться непосредственно к навигации:\n\n```http\nGET https://<api-server>/odata/v2/EmpJob(\n  seqNumber=1L,\n  startDate=datetime'2020-01-01T00:00:00',\n  userId='cgrant'\n)/userNav\n```\n\nОднако найденная страница `EmpJob` не перечисляет все navigation properties. SAP предписывает проверять их в OData API Data Dictionary или метаданных tenant:\n\n```http\nGET https://<api-server>/odata/v2/$metadata\n```\n\nЕсли `userNav` отсутствует в описании `EmpJob`, подтверждение этой навигации для вашей конфигурации не найдено; используйте документированный путь `employmentNav/personNav` к данным человека.\n\n[Источник] SAP SuccessFactors API Reference Guide (OData V2); EmpJob — Properties and Navigation Properties; <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/empjob?version=2605&locale=en-US>\n\n### 3. Разрешения\n\nРезультат `$expand` ограничивается role-based permissions целевой сущности и её полей. Поэтому `userNav` может быть пустым либо возвращать не все поля, даже если навигация присутствует в `$metadata`.\n\n[Источник] SAP SuccessFactors API Reference Guide (OData V2); Permission Settings — Permissions for Navigation Properties ($expand); <https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/permission-settings?version=2605&locale=en-US>\n\n## Выводы и рекомендации\n\n1. Начните с `$expand=userNav`.\n2. Ограничивайте данные через `$select`, включая поля как `userNav/<property>`.\n3. Проверьте `EmpJob` и `userNav` в `/odata/v2/$metadata`.\n4. При пустом результате проверьте RBP-разрешения на `User` и запрошенные поля.\n\n[Использованы библиотеки: sap-sf-odata]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 2,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T09:21:01.487494Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T09:21:43.372246Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

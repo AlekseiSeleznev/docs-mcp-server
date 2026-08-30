@@ -1,0 +1,13 @@
+interface:
+  display_name: "SAP документация (консультант)"
+  short_description: "Ответы по документации консультанта SAP"
+  default_prompt: "Используй $lib-sap-cons, чтобы ответить по документации консультанта SAP и подтвердить ответ источниками."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Read-only библиотеки документации SAP"
+
+policy:
+  allow_implicit_invocation: true

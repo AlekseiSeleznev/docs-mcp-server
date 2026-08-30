@@ -1,0 +1,472 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-30T08:59:32.532Z",
+  "source": {
+    "skillsRoot": "/home/as/ai-projects/docs-mcp-server/skills",
+    "casesPath": "/home/as/ai-projects/docs-mcp-server/test/fixtures/lib-sap-dev-policy-comparison.json",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "performanceRepeats": 3
+  },
+  "results": [
+    {
+      "id": "sap-dev-abap-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 1,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 58539,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "targetVersion": "7.56.0"
+          },
+          "durationMs": 310
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "limit": 5,
+            "query": "ABAP internal tables типы STANDARD TABLE SORTED TABLE HASHED TABLE primary key secondary table key access performance когда использовать"
+          },
+          "durationMs": 1357
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/SKILL.md && sed -n '1,260p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP есть три категории внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбор определяется основным способом доступа: по индексу, по диапазону/отсортированному ключу или по точному уникальному ключу.\n\n## По документации\n\n### 1. Отличия типов\n\n| Тип | Порядок и ключ | Доступ | Когда использовать |\n|---|---|---|---|\n| `STANDARD TABLE` | Порядок вставки; primary key только non-unique или empty | По индексу — быстро; по ключу — линейный поиск O(n) | Последовательная обработка, `APPEND`, небольшие таблицы, доступ по позиции |\n| `SORTED TABLE` | Всегда отсортирована по primary key; ключ unique или non-unique | По ключу — бинарный поиск O(log n); доступ по индексу поддерживается | Поиск по ключу, диапазоны, обработка по начальному фрагменту составного ключа |\n| `HASHED TABLE` | Порядок не определён; primary key обязательно unique | По ключу — примерно O(1); доступа по индексу нет | Частые точечные поиски, проверки существования, словари и lookup-таблицы |\n\n```abap\nTYPES:\n  ty_standard TYPE STANDARD TABLE OF spfli\n                WITH EMPTY KEY,\n\n  ty_sorted   TYPE SORTED TABLE OF spfli\n                WITH NON-UNIQUE KEY carrid connid,\n\n  ty_hashed   TYPE HASHED TABLE OF spfli\n                WITH UNIQUE KEY carrid connid.\n```\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Selection of the Table Category\n\n### 2. Практическое правило выбора\n\n- Начинайте со `STANDARD TABLE`, если данные преимущественно добавляются через `APPEND`, читаются последовательно или таблица мала.\n- Используйте `SORTED TABLE`, если нужен естественный порядок, диапазонный поиск или частичный последовательный `LOOP ... WHERE` по начальным компонентам ключа.\n- Используйте `HASHED TABLE`, если таблица играет роль словаря и основная операция — поиск по уникальному ключу.\n- Не выбирайте `HASHED TABLE`, если нужен `INDEX` или допустимы дубликаты primary key.\n- Не выполняйте многократный поиск по ключу в большой `STANDARD TABLE`: это линейный поиск. Лучше сразу выбрать `SORTED`/`HASHED` либо добавить подходящий secondary key.\n\n[Источник] ABAP Keyword Documentation 7.56; Internal Tables\n\n### 3. Secondary keys\n\nОдна таблица может иметь дополнительные sorted или hash keys. Это полезно, когда данные хранятся в одном порядке, но часто читаются по другому ключу:\n\n```abap\nTYPES ty_flights TYPE STANDARD TABLE OF spfli\n  WITH EMPTY KEY\n  WITH NON-UNIQUE SORTED KEY by_city\n    COMPONENTS cityfrom cityto.\n```\n\nSecondary keys оправданы прежде всего для больших таблиц, которые создаются один раз и затем редко изменяются. Для таблиц меньше примерно 50 строк или при частых изменениях расходы памяти и обновления ключей обычно перевешивают ускорение чтения.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Using Secondary Keys\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:00.827936Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:57:55.492831Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-abap-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 2,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 54605,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "targetVersion": "7.56.0"
+          },
+          "durationMs": 421
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "limit": 5,
+            "query": "ABAP внутренние таблицы internal tables STANDARD SORTED HASHED primary key access index table key uniqueness performance when use"
+          },
+          "durationMs": 1592
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP есть три конкретных типа внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбор определяется основным способом доступа: по индексу — `STANDARD`, по индексу и ключу — `SORTED`, только по уникальному ключу — `HASHED`.\n\n## По документации\n\n### 1. `STANDARD TABLE`\n\n- Строки хранятся в порядке добавления; доступ по индексу разрешён.\n- Первичный ключ всегда `NON-UNIQUE`.\n- Поиск по первичному ключу линейный — O(n).\n- Минимальные накладные расходы на вставку и хранение.\n- Используйте для последовательной обработки, `APPEND`, доступа по индексу и небольших таблиц.\n- Неудачный выбор для частого поиска по ключу в большой таблице.\n\n```abap\nDATA lt_items TYPE STANDARD TABLE OF ty_item\n              WITH EMPTY KEY.\n\nAPPEND ls_item TO lt_items.\nDATA(ls_first) = lt_items[ 1 ].\n```\n\nЕсли после заполнения таблица сортируется и читается через `BINARY SEARCH`, ответственность за правильную сортировку остаётся на программе.\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 2. `SORTED TABLE`\n\n- Всегда автоматически отсортирована по первичному ключу по возрастанию.\n- Доступна как по ключу, так и по индексу.\n- Ключ может быть `UNIQUE` или `NON-UNIQUE`.\n- Поиск по ключу выполняется бинарным поиском — O(log n).\n- Подходит для смешанного доступа, диапазонов и циклов по начальному фрагменту ключа.\n- Вставка дороже, чем в `STANDARD TABLE`, поскольку индекс поддерживается отсортированным.\n\n```abap\nDATA lt_items TYPE SORTED TABLE OF ty_item\n              WITH NON-UNIQUE KEY category id.\n\nINSERT ls_item INTO TABLE lt_items.\n\nLOOP AT lt_items INTO DATA(ls_item)\n     WHERE category = 'A'.\n  \" ...\nENDLOOP.\n```\n\nЭто обычно лучший универсальный выбор, когда нужны быстрый поиск и допускаются дубликаты ключа.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Table Type\n\n### 3. `HASHED TABLE`\n\n- Не имеет первичного табличного индекса: `itab[ 1 ]` недоступен.\n- Первичный ключ обязательно `UNIQUE`.\n- Поиск по полному первичному ключу имеет среднюю постоянную стоимость — O(1), независимо от количества строк.\n- Имеет наибольшие накладные расходы по памяти.\n- Используйте для больших lookup-таблиц, где основная операция — поиск по уникальному ключу.\n- Не подходит, если важны порядок строк, индексный или диапазонный доступ.\n\n```abap\nDATA lt_users TYPE HASHED TABLE OF ty_user\n              WITH UNIQUE KEY user_id.\n\nINSERT ls_user INTO TABLE lt_users.\nDATA(ls_user) = lt_users[ user_id = 'U001' ].\n```\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Selection of the Table Category\n\n### 4. Краткое правило выбора\n\n| Требование | Тип |\n|---|---|\n| Последовательный обход, `APPEND`, доступ по позиции | `STANDARD` |\n| Поиск по ключу вместе с индексным или диапазонным доступом | `SORTED` |\n| Частый поиск по полному уникальному ключу | `HASHED` |\n| Несколько разных способов поиска | Основной тип плюс secondary keys |\n\nКлючи лучше объявлять явно. Для `STANDARD TABLE`, если ключ не используется, предпочтительно `WITH EMPTY KEY`, поскольку неявный `DEFAULT KEY` может включить неожиданный набор полей.\n\n[Источник] ABAP Keyword Documentation 7.56; Internal Tables — Key attributes\n\n`ANY TABLE` и `INDEX TABLE` — не дополнительные конкретные категории хранения, а generic-типы для formal parameters и field symbols. `INDEX TABLE` принимает `STANDARD` и `SORTED`, а `ANY TABLE` — все три категории.\n\n[Источник] ABAP Keyword Documentation 7.56; TYPES, tabkind\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:01.504234Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:57:51.582121Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-abap-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 3,
+      "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 43925,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "targetVersion": "7.56.0"
+          },
+          "durationMs": 48
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_abap_keyword_doc",
+            "version": "7.56.0",
+            "limit": 5,
+            "query": "внутренние таблицы internal tables STANDARD SORTED HASHED primary table key access performance когда использовать"
+          },
+          "durationMs": 1121
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "В ABAP есть три категории внутренних таблиц: `STANDARD`, `SORTED` и `HASHED`. Выбор определяется основным способом доступа: по индексу, по ключу/диапазону или только по уникальному ключу.\n\n## По документации\n\n### 1. `STANDARD TABLE`\n\nХранит строки в порядке добавления и поддерживает быстрый доступ по индексу:\n\n```abap\nDATA lt_items TYPE STANDARD TABLE OF ty_item\n              WITH EMPTY KEY.\n```\n\nИспользуйте, когда:\n\n- таблица обычно заполняется через `APPEND`;\n- важны последовательный перебор и доступ `lt_items[ 10 ]`;\n- таблица небольшая;\n- поиск по ключу выполняется редко.\n\nПоиск по первичному ключу линейный — `O(n)`. Для частых поисков большую таблицу можно один раз отсортировать и применять `BINARY SEARCH`, но обычно проще выбрать `SORTED TABLE`.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Selection of the Table Category\n\n### 2. `SORTED TABLE`\n\nВсегда хранит строки отсортированными по первичному ключу:\n\n```abap\nDATA lt_items TYPE SORTED TABLE OF ty_item\n              WITH NON-UNIQUE KEY category id.\n```\n\nКлюч может быть `UNIQUE` или `NON-UNIQUE`. Используйте, когда:\n\n- нужны и доступ по индексу, и быстрый поиск по ключу;\n- данные должны постоянно оставаться отсортированными;\n- нужны выборки по начальному фрагменту составного ключа, например только по `category`;\n- нужны диапазонные или частично последовательные обходы через `LOOP ... WHERE`.\n\nПоиск выполняется автоматически бинарным алгоритмом за `O(log n)`. Вставка дороже, чем `APPEND` в `STANDARD TABLE`, поскольку ABAP сохраняет порядок строк.\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 3. `HASHED TABLE`\n\nОрганизована как хеш-таблица и требует уникального первичного ключа:\n\n```abap\nDATA lt_items TYPE HASHED TABLE OF ty_item\n              WITH UNIQUE KEY id.\n```\n\nИспользуйте, когда:\n\n- главное действие — поиск конкретной строки по полному ключу;\n- таблица большая;\n- ключ уникален;\n- порядок строк и индексный доступ не нужны.\n\nПоиск по полному ключу имеет постоянную вычислительную стоимость — `O(1)`. Обращение `lt_items[ 1 ]` невозможно, а выборки по части составного хеш-ключа не получают преимущества хеширования. Кроме того, такая таблица расходует больше памяти на служебные структуры.\n\n[Источник] ABAP Keyword Documentation 7.56; Selecting the Table Category\n\n### 4. Практическое правило выбора\n\n- Нужны `APPEND`, `LOOP` и номера строк → `STANDARD TABLE`.\n- Нужны сортировка, диапазоны или поиск по части ключа → `SORTED TABLE`.\n- Нужен поиск по полному уникальному ключу → `HASHED TABLE`.\n- Нужны разные способы доступа к одной таблице → рассмотрите secondary sorted/hashed keys вместо копирования данных.\n- Ключ лучше объявлять явно; implicit `STANDARD KEY` может включить неожиданные поля или оказаться пустым.\n\n[Источник] ABAP Keyword Documentation 7.56; itab - Standard Key\n\n[Использованы библиотеки: sap_abap_keyword_doc]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 1,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:01.031272Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:57:40.692992Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-mixed-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 1,
+      "prompt": "Сравни варианты публикации OData-сервиса из ABAP и его потребления в SAPUI5.",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 120702,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_integration",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 319
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 323
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "ABAP публикация OData SAP Gateway SEGW CDS RAP service definition service binding OData V2 V4 сравнение"
+          },
+          "durationMs": 1105
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 потребление OData V2 V4 ODataModel manifest dataSources model binding batch CRUD"
+          },
+          "durationMs": 1618
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 OData V2 model versus OData V4 model manifest dataSources models bindings CRUD batch operations differences"
+          },
+          "durationMs": 1624
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "ABAP RAP expose OData V4 service definition service binding publish activate endpoint managed unmanaged business object"
+          },
+          "durationMs": 32735
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 sap.ui.model.odata.v4.ODataModel manifest.json dataSources settings synchronizationMode groupId updateGroupId list binding create delete actions"
+          },
+          "durationMs": 1331
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Для нового сервиса предпочтителен RAP: он разделяет CDS-модель, behavior и публикацию через service definition/service binding. SEGW оправдан для legacy-систем и нестандартной ручной реализации; CDS exposure — промежуточный вариант для сравнительно простых OData V2-сценариев. В SAPUI5 версия `ODataModel` должна совпадать с версией опубликованного протокола.\n\n## По документации\n\n### 1. Классический SAP Gateway Service Builder\n\nВариант на базе транзакции `SEGW`:\n\n- модель описывается в `MPC_EXT`;\n- операции реализуются переопределением методов `DPC_EXT`;\n- разработчик вручную контролирует CRUD, navigation, function imports и особенности OData;\n- сервис регистрируется и активируется в SAP Gateway;\n- поддерживает старые ABAP-системы и максимальную свободу реализации.\n\nЦена этой свободы — больше ABAP-кода и зависимость реализации от конкретной версии OData. Это разумный выбор для существующих сервисов, старых релизов или сложного адаптера над BAPI/RFC.\n\n[Источник] SAP Gateway and OData, 3rd Edition; 3.4.3 SAP Gateway and the ABAP Programming Model for SAP Fiori\n\n### 2. CDS exposure: RDS и `@OData.publish: true`\n\nВарианты на основе ABAP CDS уменьшают объём Gateway-кода:\n\n- `SEGW` с Referenced Data Source выводит модель и чтение из CDS; нестандартные `CREATE`, `UPDATE`, `DELETE` можно дописать в `DPC_EXT`, например вызовом BAPI;\n- `@OData.publish: true` обеспечивает наиболее короткую публикацию простого CDS-сервиса;\n- CDS annotations можно использовать для SAP Fiori elements.\n\nЭтот подход удобен для read-heavy OData V2 и существующих систем на ABAP Platform 7.4/7.5. Для сложной transactional-логики автоматической публикации CDS обычно недостаточно.\n\n[Источник] SAP Gateway and OData, 3rd Edition; 3.4.3 Implementing OData Services with the ABAP Programming Model for SAP Fiori\n\n### 3. ABAP RESTful Application Programming Model\n\nRAP разделяет сервис на несколько артефактов:\n\n1. CDS entities задают структуру business object.\n2. Behavior definition объявляет create/update/delete, actions и validations.\n3. Behavior implementation реализует необходимую логику.\n4. Service definition выбирает публикуемые сущности.\n5. Service binding связывает определение с OData-протоколом и предоставляет endpoint.\n\nВ managed-сценарии RAP берёт на себя больше стандартного transactional-поведения. Unmanaged-сценарий подходит для существующих таблиц, BAPI и legacy API. Реализация business object остаётся отделённой от деталей OData — это основной вариант для новой разработки там, где релиз ABAP Platform его поддерживает.\n\n[Источник] SAP Gateway and OData, 3rd Edition; 8.7 ABAP RESTful Programming Model\n\n### 4. Потребление сервиса в SAPUI5\n\nОбычно сервис декларативно регистрируется в `manifest.json`:\n\n```json\n{\n  \"sap.app\": {\n    \"dataSources\": {\n      \"mainService\": {\n        \"uri\": \"/sap/opu/odata/sap/Z_MY_SERVICE_SRV/\",\n        \"type\": \"OData\",\n        \"settings\": {\n          \"odataVersion\": \"2.0\"\n        }\n      }\n    }\n  },\n  \"sap.ui5\": {\n    \"models\": {\n      \"\": {\n        \"dataSource\": \"mainService\"\n      }\n    }\n  }\n}\n```\n\nПосле этого controls используют element/property/list binding, например:\n\n```xml\n<Table items=\"{/Products}\">\n  <items>\n    <ColumnListItem>\n      <cells>\n        <Text text=\"{ProductName}\" />\n      </cells>\n    </ColumnListItem>\n  </items>\n</Table>\n```\n\n`ODataModel` является server-side model: SAPUI5 запрашивает только нужные данные, а filtering, sorting и paging обычно переводятся в OData-запросы. Модель также поддерживает изменение данных и `$batch`.\n\n[Источник] SAPUI5: The Comprehensive Guide; 7.2 OData Model at a Glance и 7.3 Reading Data\n\n### 5. Соответствие вариантов\n\n| ABAP-публикация | SAPUI5-клиент | Когда выбирать |\n|---|---|---|\n| `SEGW`, `MPC_EXT`/`DPC_EXT` | `sap.ui.model.odata.v2.ODataModel` для V2 | Legacy и нестандартный protocol-level контроль |\n| CDS RDS / `@OData.publish: true` | Обычно V2 `ODataModel` | Простой или преимущественно читающий сервис |\n| RAP service definition/binding | `v2.ODataModel` либо `v4.ODataModel` согласно binding | Новая transactional-разработка |\n| Любой сервис с UI annotations | Freestyle SAPUI5 или SAP Fiori elements | Генерируемый UI и metadata-driven приложение |\n\nSAPUI5 предоставляет отдельные модели для OData V2 и V4; их API не следует считать взаимозаменяемыми. Конкретную версию нужно выбрать одновременно в ABAP service binding и в `manifest.json`.\n\n[Источник] Clean SAPUI5: A Style Guide for Developers; SAPUI5 models and data binding\n\nПрактический выбор: существующий SEGW-сервис оставлять на SEGW; небольшой read-only сервис на подходящем старом релизе публиковать из CDS; новый изменяемый business object строить на RAP.\n\n[Использованы библиотеки: sap_books_integration, sap_books_ui5_fiori]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 5,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:00.920721Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:58:58.409694Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-mixed-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 2,
+      "prompt": "Сравни варианты публикации OData-сервиса из ABAP и его потребления в SAPUI5.",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 86598,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 318
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_integration",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 323
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "ABAP публикация OData service SAP Gateway SEGW Service Builder CDS SADL RAP OData V2 V4 варианты registration activation"
+          },
+          "durationMs": 1185
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 потребление OData service ODataModel V2 V4 manifest dataSources models binding CRUD batch"
+          },
+          "durationMs": 978
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 10,
+            "query": "RAP expose OData V4 service definition service binding publish ABAP RESTful Application Programming Model versus SEGW CDS OData.publish"
+          },
+          "durationMs": 1433
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 10,
+            "query": "sap.ui.model.odata.v4.ODataModel compared sap.ui.model.odata.v2.ODataModel manifest odataVersion operation binding CRUD batch groups"
+          },
+          "durationMs": 842
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "OData V4 model SAPUI5 manifest.json \"sap.ui.model.odata.v4.ODataModel\" \"odataVersion\": \"4.0\" bindList bindContext submitBatch"
+          },
+          "durationMs": 1494
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Для нового приложения на актуальном ABAP Platform предпочтителен RAP: CDS → behavior → service definition → service binding, а в SAPUI5 — соответствующий `ODataModel` или SAP Fiori elements. `SEGW` оправдан главным образом для legacy-систем, нестандартной протокольной логики и обёртки существующих BAPI/RFC.\n\n## По документации\n\n### 1. Варианты публикации из ABAP\n\n| Вариант | Реализация | Сильная сторона | Когда выбирать |\n|---|---|---|---|\n| `SEGW`, code-based | Модель в `MPC_EXT`, операции в `DPC_EXT` | Максимальный контроль | Legacy NetWeaver, сложная нестандартная логика |\n| CDS + `SEGW` RDS | Модель и чтение генерируются из CDS; запись можно дополнить в `DPC_EXT` | Меньше ручного кода, совместимость с classic APIs | Переходные решения на ABAP 7.50 |\n| CDS + `@OData.publish: true` | Автоматическая публикация CDS | Самый короткий путь к read-oriented OData V2 | Простые сервисы без сложного поведения |\n| RAP | CDS root entities, behavior definition/implementation, service definition и service binding | Транзакционная модель, actions, locking, ETag, отделение бизнес-модели от протокола | Новая разработка на поддерживающем RAP ABAP Platform |\n\n`SEGW` поддерживает как ручную разработку, так и генерацию сервиса. При RDS чтение предоставляет CDS, а create/update/delete можно реализовать через существующие BAPI. В RAP `service definition` задаёт экспортируемые entities, а `service binding` связывает определение с конкретным протоколом и публикует endpoint.\n\n[Источник] SAP Gateway and OData, 3rd Edition; 3.4.3 SAP Gateway and the ABAP Programming Model for SAP Fiori, Chapter 5 Introduction to OData Service Creation, 8.7 ABAP RESTful Programming Model\n\n### 2. Практическое различие SEGW и RAP\n\n`SEGW` заставляет разработчика работать ближе к OData: проектировать metadata и переопределять методы provider-классов. Это гибко, но требует больше протокольного кода.\n\nRAP моделирует бизнес-объект независимо от транспорта:\n\n```abap\ndefine service ZUI_ORDER {\n  expose ZC_Order as Orders;\n}\n```\n\nДалее service binding публикует это определение. Транзакционные возможности задаются behavior definition, включая `create`, `update`, `delete`, locking, ETag и actions.\n\nПоэтому базовый выбор такой:\n\n- существующий `SEGW`-сервис — сохранять, если миграция не даёт измеримой пользы;\n- новый простой read-only сервис на старой платформе — CDS exposure;\n- classic BAPI плюс CDS-модель — RDS;\n- новый транзакционный сервис — RAP.\n\n[Источник] SAP Gateway and OData, 3rd Edition; Evolution of OData Service Implementations, OData Service Development Using CDS via RDS, Service Definition, Service Binding, Behavior Definition BDL\n\n### 3. Потребление в freestyle SAPUI5\n\nСервис обычно объявляется в `manifest.json`, после чего компонент автоматически создаёт модель:\n\n```json\n{\n  \"sap.app\": {\n    \"dataSources\": {\n      \"mainService\": {\n        \"uri\": \"/sap/opu/odata/sap/ZMY_SERVICE/\",\n        \"type\": \"OData\",\n        \"settings\": {\n          \"odataVersion\": \"2.0\"\n        }\n      }\n    }\n  },\n  \"sap.ui5\": {\n    \"models\": {\n      \"\": {\n        \"dataSource\": \"mainService\"\n      }\n    }\n  }\n}\n```\n\nЗатем controls используют declarative binding:\n\n```xml\n<Table items=\"{/Orders}\">\n  <items>\n    <ColumnListItem>\n      <cells>\n        <Text text=\"{OrderId}\" />\n      </cells>\n    </ColumnListItem>\n  </items>\n</Table>\n```\n\nSAPUI5 загружает через OData model только данные, запрошенные UI. Поддерживаются модели для OData V2 и V4; версия frontend-модели должна совпадать с протоколом опубликованного сервиса.\n\n[Источник] SAPUI5: The Comprehensive Guide; Using OData — Reading Data, Application Descriptor and manifest.json  \n[Источник] Clean SAPUI5: A Style Guide for Developers; Models and Data Binding\n\n### 4. Потребление через SAP Fiori elements\n\nSAP Fiori elements строит приложение из трёх основных составляющих:\n\n- OData service, указанный в `manifest.json`;\n- backend- или local-аннотации;\n- выбранный floorplan, например List Report/Object Page.\n\nЭто лучше всего сочетается с CDS/RAP: UI-аннотации находятся рядом с семантической моделью и переиспользуются клиентами. Freestyle SAPUI5 предпочтительнее, когда экран или взаимодействия существенно выходят за возможности стандартного floorplan.\n\n[Источник] Clean SAPUI5: A Style Guide for Developers; 3.4 SAP Fiori Elements, 3.4.2 Application Generation\n\n### 5. Итоговая совместимость\n\n| Backend | SAPUI5 | Оценка |\n|---|---|---|\n| `SEGW` OData V2 | `sap.ui.model.odata.v2.ODataModel` | Надёжный legacy-вариант |\n| CDS + RDS / `@OData.publish: true` | V2 model или Fiori elements | Минимум ручной реализации |\n| RAP service binding | Модель той же OData-версии или Fiori elements | Предпочтительно для новой разработки |\n| Любой OData | Ручные `fetch`/`jQuery.ajax` вместо ODataModel | Обычно лишает UI5 metadata, binding и batch-возможностей |\n\nТочные доступные протоколы RAP service binding зависят от релиза ABAP Platform. Подтверждение актуальной матрицы релизов в найденных материалах не найдено.\n\n[Использованы библиотеки: sap_books_integration, sap_books_ui5_fiori]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 5,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:44.292786Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:59:08.127001Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    },
+    {
+      "id": "sap-dev-mixed-policy",
+      "skill": "lib-sap-dev",
+      "attempt": 3,
+      "prompt": "Сравни варианты публикации OData-сервиса из ABAP и его потребления в SAPUI5.",
+      "profile": "catalog-router",
+      "performance": true,
+      "exitCode": 0,
+      "elapsedMs": 99272,
+      "tools": [
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_integration",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 424
+        },
+        {
+          "server": "lib-docs",
+          "tool": "find_version",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "targetVersion": "2026.8.29"
+          },
+          "durationMs": 431
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 потребление OData manifest dataSources sap.ui.model.odata.v2.ODataModel sap.ui.model.odata.v4.ODataModel data binding"
+          },
+          "durationMs": 1408
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "ABAP публикация OData SAP Gateway SEGW service registration CDS RAP service definition service binding OData V2 V4"
+          },
+          "durationMs": 1869
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "manifest.json dataSources settings odataVersion sap.ui.model.odata.v2.ODataModel sap.ui.model.odata.v4.ODataModel differences binding operations batch"
+          },
+          "durationMs": 1302
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_integration",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "RAP service definition service binding publish activate OData V2 V4 ABAP RESTful Application Programming Model"
+          },
+          "durationMs": 2380
+        },
+        {
+          "server": "lib-docs",
+          "tool": "search_docs",
+          "arguments": {
+            "library": "sap_books_ui5_fiori",
+            "version": "2026.8.29",
+            "limit": 5,
+            "query": "SAPUI5 OData V4 model sap.ui.model.odata.v4.ODataModel bindList bindContext operation binding submitBatch limitations compared V2"
+          },
+          "durationMs": 1643
+        }
+      ],
+      "commands": [
+        {
+          "command": "/bin/bash -lc \"sed -n '1,240p' skills/lib-sap-dev/SKILL.md && sed -n '1,260p' skills/lib-sap-dev/references/libraries.yaml\"",
+          "durationMs": 0,
+          "exitCode": 0
+        }
+      ],
+      "answer": "Для новых разработок на поддерживаемом S/4HANA или ABAP Cloud основной вариант — RAP с `service definition` и `service binding`. `SEGW` оправдан для старых систем и нестандартной логики, а CDS через RDS или `@OData.publish: true` — промежуточный путь с меньшим количеством кода. В SAPUI5 версия `ODataModel` должна соответствовать протоколу опубликованного сервиса.\n\n## По документации\n\n### 1. Варианты публикации из ABAP\n\n| Вариант | Реализация | Сильная сторона | Цена |\n|---|---|---|---|\n| `SEGW`, code-based | Модель в `MPC_EXT`, операции в `DPC_EXT`, регистрация SAP Gateway | Максимальный контроль, поддержка старых ABAP-релизов и существующих API/BAPI | Много ручного кода и знание деталей OData |\n| CDS + RDS | CDS используется как referenced data source в `SEGW`; чтение генерируется, CUD можно дополнить в `DPC_EXT` | Меньше кода, сохраняется возможность вызвать классический API | Остаётся зависимость от Gateway/SEGW |\n| CDS + `@OData.publish: true` | Автоматическая публикация CDS как OData | Самый короткий путь для простого read-oriented сервиса | Меньше контроля над контрактом и поведением |\n| RAP | CDS projection → `service definition` → `service binding`; поведение задаётся через BDEF | Единая модель для CRUD, locking, authorization, ETag и actions; минимум protocol-specific кода | Требует подходящего ABAP/S/4HANA-релиза и ADT |\n\nRAP разделяет контракт и транспорт: `service definition` определяет, какие CDS entities экспортируются, а `service binding` связывает контракт с конкретным OData-протоколом и публикует endpoint.\n\n[Источник] SAP Gateway and OData, 3rd Edition; 3.4.3 SAP Gateway and the ABAP Programming Model for SAP Fiori, 8.7 ABAP RESTful Programming Model\n\n### 2. Embedded и hub-публикация Gateway\n\nДокументация различает локальную публикацию на ABAP-системе и удалённую публикацию через отдельную Gateway-систему.\n\n- Embedded проще в эксплуатации и имеет меньше сетевых переходов.\n- Hub-топология централизует frontend/Gateway, но добавляет регистрацию, маршрутизацию и ещё одну систему в цепочке.\n\nВторой пункт — архитектурный вывод из описанных вариантов топологии.\n\n[Источник] Интеграция SAP NW с внешними системами; Создание OData сервиса — Публикация сервиса\n\n### 3. Потребление в SAPUI5\n\nПредпочтительный декларативный вариант — описать сервис и модель в `manifest.json`:\n\n```json\n{\n  \"sap.app\": {\n    \"dataSources\": {\n      \"mainService\": {\n        \"uri\": \"/sap/opu/odata/sap/Z_SERVICE_SRV/\",\n        \"type\": \"OData\",\n        \"settings\": {\n          \"odataVersion\": \"2.0\"\n        }\n      }\n    }\n  },\n  \"sap.ui5\": {\n    \"models\": {\n      \"\": {\n        \"dataSource\": \"mainService\"\n      }\n    }\n  }\n}\n```\n\n`mainService` и `Z_SERVICE_SRV` здесь — заменяемые имена проекта. Компонент создаёт модель автоматически; данные потребляются через element, property и aggregation binding. Для V2 используется `sap.ui.model.odata.v2.ODataModel`; SAPUI5 также предоставляет отдельную V4-модель. OData model является server-side model: filtering, sorting и выборка данных в основном превращаются в запросы к backend. Для V2 поддерживаются batching и two-way property binding.\n\n[Источник] SAPUI5: The Comprehensive Guide; 7.2 OData Model at a Glance, 7.3.3 Reading Data, 7.6 Batch Mode\n\n### 4. Практический выбор\n\n| Backend | SAPUI5 | Когда выбирать |\n|---|---|---|\n| `SEGW` OData V2 | `sap.ui.model.odata.v2.ODataModel` | Старый Business Suite, существующие `DPC_EXT`, сложный нестандартный контракт |\n| CDS RDS / `@OData.publish: true` | V2 model; freestyle UI5 или Fiori elements с annotations | CDS уже используется, нужен быстрый сервис с небольшим объёмом ручной логики |\n| RAP OData binding | Соответствующая V2/V4 model | Новая разработка на ABAP Cloud или поддерживаемом S/4HANA |\n\nЕсли UI строится главным образом из annotations, RAP/CDS естественно сочетается с Fiori elements. Для полностью нестандартного интерфейса тот же сервис можно потреблять из freestyle SAPUI5 через обычные bindings.\n\n[Источник] SAP Gateway and OData, 3rd Edition; ABAP Programming Model for SAP Fiori  \n[Источник] Clean SAPUI5: A Style Guide for Developers; Data Binding and Model Types\n\n### 5. Зависимость от релиза\n\nТочная доступность типов RAP service binding и OData V4 зависит от версии ABAP Platform/S/4HANA. Найденный раздел RAP исторический и описывает часть возможностей как планируемые, поэтому актуальная матрица по конкретному релизу не подтверждена. Для окончательного выбора нужна версия вашей ABAP Platform.\n\nПодтверждение не найдено.\n\n[Использованы библиотеки: sap_books_integration, sap_books_ui5_fiori]",
+      "checks": {
+        "usedExpectedTool": true,
+        "searchCount": 5,
+        "hasFooter": true,
+        "leakedInternalPath": false
+      },
+      "stderrSummary": [
+        "2026-08-30T08:57:54.974943Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 426 Upgrade Required, url: ws://127.0.0.1:10100/v1/responses",
+        "2026-08-30T08:59:31.492565Z  WARN codex_mcp::rmcp_client: failed to initialize MCP client during shutdown: MCP startup failed: No such file or directory (os error 2)"
+      ]
+    }
+  ]
+}

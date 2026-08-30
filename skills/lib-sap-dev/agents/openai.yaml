@@ -1,0 +1,13 @@
+interface:
+  display_name: "SAP документация (разработчик)"
+  short_description: "Ответы по документации разработчика SAP"
+  default_prompt: "Используй $lib-sap-dev, чтобы ответить по документации разработчика SAP и подтвердить технические факты источниками."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "lib-docs"
+      description: "Read-only библиотеки документации SAP"
+
+policy:
+  allow_implicit_invocation: true

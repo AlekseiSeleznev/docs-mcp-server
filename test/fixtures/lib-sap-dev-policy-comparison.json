@@ -1,0 +1,16 @@
+[
+  {
+    "id": "sap-dev-abap-policy",
+    "skill": "lib-sap-dev",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "Какие типы внутренних таблиц есть в ABAP, чем они отличаются и когда какую использовать?"
+  },
+  {
+    "id": "sap-dev-mixed-policy",
+    "skill": "lib-sap-dev",
+    "profile": "catalog-router",
+    "performance": true,
+    "prompt": "Сравни варианты публикации OData-сервиса из ABAP и его потребления в SAPUI5."
+  }
+]
