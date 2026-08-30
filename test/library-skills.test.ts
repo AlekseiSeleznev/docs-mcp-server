@@ -8,12 +8,8 @@ import { parse } from "yaml";
 
 const root = resolve(import.meta.dirname, "..");
 const appliedSkills = [
-  "lib-1c-buh",
   "lib-1c-cons",
   "lib-1c-dev",
-  "lib-1c-docflow",
-  "lib-1c-erp",
-  "lib-1c-toir",
   "lib-nifi",
   "lib-pm2-it",
   "lib-postgresql",

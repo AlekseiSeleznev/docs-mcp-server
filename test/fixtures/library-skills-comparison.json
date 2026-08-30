@@ -28,30 +28,6 @@
     "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?"
   },
   {
-    "id": "onec-buh",
-    "skill": "lib-1c-buh",
-    "profile": "single-library",
-    "prompt": "В 1С:Бухгалтерии как закрыть месяц?"
-  },
-  {
-    "id": "onec-erp",
-    "skill": "lib-1c-erp",
-    "profile": "catalog-router",
-    "prompt": "Какие этапы обследования предусмотрены в проекте внедрения ERP?"
-  },
-  {
-    "id": "onec-docflow",
-    "skill": "lib-1c-docflow",
-    "profile": "catalog-router",
-    "prompt": "Как в 1С:Документообороте настроить маршрут согласования?"
-  },
-  {
-    "id": "onec-toir",
-    "skill": "lib-1c-toir",
-    "profile": "single-library",
-    "prompt": "Какие документы используются для заявки на ремонт в 1С:ТОИР?"
-  },
-  {
     "id": "nifi",
     "skill": "lib-nifi",
     "profile": "single-library",
