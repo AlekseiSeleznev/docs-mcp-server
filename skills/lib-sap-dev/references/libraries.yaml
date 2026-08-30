@@ -35,12 +35,13 @@ libraries:
   version_kind: snapshot
   audiences:
   - developer
-  description: разработка, объекты, производительность, тестирование и сертификация ABAP
+  description: разработка, объекты, S/4HANA, производительность, тестирование и сертификация ABAP
   aliases:
   - ABAP books
   - книги ABAP
   keywords:
   - ABAP Objects
+  - ABAP for S/4HANA
   - Open SQL
   - CDS
   - AMDP
@@ -53,11 +54,12 @@ libraries:
   version_kind: snapshot
   audiences:
   - developer
-  description: SAPUI5, Fiori, launchpad, элементы управления и разработка интерфейсов
+  description: SAPUI5, Fiori, launchpad, разработка, отладка и UX интерфейсов
   aliases:
   - SAPUI5
   - SAP Fiori
   - Fiori Launchpad
+  - Fiori UX
   keywords:
   - data binding
   - OData model
@@ -65,6 +67,8 @@ libraries:
   - view
   - launchpad
   - Fiori app
+  - debugging
+  - UX design
 - name: sap_books_integration
   canonical_name: Книги по интеграции SAP
   versions:
@@ -91,14 +95,22 @@ libraries:
   version_kind: snapshot
   audiences:
   - developer
-  description: SAP HANA, моделирование данных, SQLScript, BW и платформенная архитектура
+  description: SAP HANA, интеграция и качество данных, машинное обучение, Data Services, BW и платформенная архитектура
   aliases:
   - SAP HANA
   - SAP BW
+  - SAP Data Services
+  - SAP HANA SDI
+  - SAP HANA SDQ
+  - SAP Leonardo
   - data platform
   keywords:
   - calculation view
   - SQLScript
   - HANA modeling
-  - database
+  - remote source
+  - virtual table
+  - flowgraph
+  - machine learning
+  - data quality
   - BW/4HANA

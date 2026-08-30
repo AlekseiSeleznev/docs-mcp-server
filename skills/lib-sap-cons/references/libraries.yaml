@@ -17,13 +17,17 @@ libraries:
   version_kind: snapshot
   audiences:
   - consultant
-  description: Universal Journal, финансовые процессы и настройка SAP S/4HANA Finance
+  description: Universal Journal, Cash Management, ликвидность и настройка SAP S/4HANA Finance
   aliases:
   - SAP S/4HANA Finance
   - S4 Finance
+  - SAP Cash Management
   keywords:
   - Universal Journal
   - asset accounting
+  - cash management
+  - liquidity planning
+  - bank account management
   - controlling
   - closing
   - finance migration
@@ -105,12 +109,14 @@ libraries:
   version_kind: snapshot
   audiences:
   - consultant
-  description: SAP Analytics Cloud, Analysis for Office, отчётность и планирование
+  description: SAP Analytics Cloud, Analysis for Office, финансовое планирование, отчётность и анализ
   aliases:
   - SAP Analytics Cloud
   - SAC
   - Analysis for Office
   keywords:
+  - financial planning
+  - FP&A
   - planning
   - dashboard
   - story
@@ -123,13 +129,16 @@ libraries:
   version_kind: snapshot
   audiences:
   - consultant
-  description: роли, полномочия, GRC, аудит, риски и безопасность SAP
+  description: роли, полномочия, Fiori Security, GRC, аудит, риски и безопасность SAP
   aliases:
   - SAP Security
+  - SAP Fiori Security
   - SAP GRC
   - SAP Authorizations
   keywords:
   - authorization role
+  - Fiori catalog
+  - OData service authorization
   - access control
   - audit
   - risk management
@@ -141,14 +150,18 @@ libraries:
   version_kind: snapshot
   audiences:
   - consultant
-  description: архитектура, миграция, BPM, управление проектом и эксплуатация SAP
+  description: внедрение, Cloud ALM, миграция, управление документами, архитектура и эксплуатация SAP
   aliases:
   - SAP implementation
+  - SAP Cloud ALM
+  - SAP DMS
   - SAP migration
   - SAP project
   keywords:
   - implementation methodology
-  - migration
+  - application lifecycle management
+  - document management
+  - data migration
   - project management
   - architecture
   - BPM
