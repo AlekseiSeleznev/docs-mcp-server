@@ -1,0 +1,222 @@
+{
+  "createdAt": "2026-08-30T11:33:42+03:00",
+  "canonicalProject": "/home/as/ai-projects/docs-mcp-server",
+  "repositories": [
+    {
+      "name": "docs-mcp-server",
+      "root": "/home/as/ai-projects/docs-mcp-server",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d"
+    },
+    {
+      "name": "sap-library-mcp",
+      "root": "/home/as/ai-projects/sap-library-mcp",
+      "commit": "79e2b4a7603fa66d2cc95258f06f17b045464ec8"
+    },
+    {
+      "name": "onec-library-mcp",
+      "root": "/home/as/ai-projects/onec-library-mcp",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84"
+    }
+  ],
+  "skills": [
+    {
+      "name": "lib-nifi",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-nifi",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-nifi"
+    },
+    {
+      "name": "lib-pm2-it",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-pm2-it",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-pm2-it"
+    },
+    {
+      "name": "lib-postgresql",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-postgresql",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-postgresql"
+    },
+    {
+      "name": "lib-project-docs",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-project-docs",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-project-docs"
+    },
+    {
+      "name": "lib-sap-process-navigator",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-sap-process-navigator",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-sap-process-navigator"
+    },
+    {
+      "name": "lib-sap-sf-odata",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-sap-sf-odata",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-sap-sf-odata"
+    },
+    {
+      "name": "lib-skill-creation",
+      "sourceRepository": "docs-mcp-server",
+      "sourcePath": "/home/as/ai-projects/docs-mcp-server/skills/lib-skill-creation",
+      "commit": "2d6d8b862c8c26d221800c902a85394d0a1d572d",
+      "archive": "docs-mcp-server-skills.tar.gz",
+      "member": "sources/docs-mcp-server/skills/lib-skill-creation"
+    },
+    {
+      "name": "lib-sap-cons",
+      "sourceRepository": "sap-library-mcp",
+      "sourcePath": "/home/as/ai-projects/sap-library-mcp/skills/lib-sap-cons",
+      "commit": "79e2b4a7603fa66d2cc95258f06f17b045464ec8",
+      "archive": "sap-library-mcp-skills.tar.gz",
+      "member": "sources/sap-library-mcp/skills/lib-sap-cons"
+    },
+    {
+      "name": "lib-sap-dev",
+      "sourceRepository": "sap-library-mcp",
+      "sourcePath": "/home/as/ai-projects/sap-library-mcp/skills/lib-sap-dev",
+      "commit": "79e2b4a7603fa66d2cc95258f06f17b045464ec8",
+      "archive": "sap-library-mcp-skills.tar.gz",
+      "member": "sources/sap-library-mcp/skills/lib-sap-dev"
+    },
+    {
+      "name": "lib-1c-buh",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-buh",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-buh"
+    },
+    {
+      "name": "lib-1c-cons",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-cons",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-cons"
+    },
+    {
+      "name": "lib-1c-dev",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-dev",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-dev"
+    },
+    {
+      "name": "lib-1c-docflow",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-docflow",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-docflow"
+    },
+    {
+      "name": "lib-1c-erp",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-erp",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-erp"
+    },
+    {
+      "name": "lib-1c-toir",
+      "sourceRepository": "onec-library-mcp",
+      "sourcePath": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-toir",
+      "commit": "3d80c267d7c256452b710afd150c152a0563bd84",
+      "archive": "onec-library-mcp-skills.tar.gz",
+      "member": "sources/onec-library-mcp/skills/lib-1c-toir"
+    }
+  ],
+  "installed": [
+    {
+      "name": "lib-1c-cons",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-cons",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-1c-cons"
+    },
+    {
+      "name": "lib-1c-dev",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/onec-library-mcp/skills/lib-1c-dev",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-1c-dev"
+    },
+    {
+      "name": "lib-nifi",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/docs-mcp-server/skills/lib-nifi",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-nifi"
+    },
+    {
+      "name": "lib-pm2-it",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/docs-mcp-server/skills/lib-pm2-it",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-pm2-it"
+    },
+    {
+      "name": "lib-postgresql",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/docs-mcp-server/skills/lib-postgresql",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-postgresql"
+    },
+    {
+      "name": "lib-project-docs",
+      "type": "directory",
+      "target": null,
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-project-docs"
+    },
+    {
+      "name": "lib-sap-cons",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/sap-library-mcp/skills/lib-sap-cons",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-sap-cons"
+    },
+    {
+      "name": "lib-sap-dev",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/sap-library-mcp/skills/lib-sap-dev",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-sap-dev"
+    },
+    {
+      "name": "lib-sap-process-navigator",
+      "type": "directory",
+      "target": null,
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-sap-process-navigator"
+    },
+    {
+      "name": "lib-sap-sf-odata",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/docs-mcp-server/skills/lib-sap-sf-odata",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-sap-sf-odata"
+    },
+    {
+      "name": "lib-skill-creation",
+      "type": "symlink",
+      "target": "/home/as/ai-projects/docs-mcp-server/skills/lib-skill-creation",
+      "archive": "codex-installed-lib-skills.tar.gz",
+      "member": "installed/lib-skill-creation"
+    }
+  ]
+}

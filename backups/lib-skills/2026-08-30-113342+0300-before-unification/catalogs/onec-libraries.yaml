@@ -1,0 +1,1738 @@
+libraries:
+- name: onec_buh
+  canonical_name: 1С:Бухгалтерия
+  versions:
+  - 3.0.0
+  description: функциональность и практическая работа в 1С:Бухгалтерии
+  aliases:
+  - 1С:Бухгалтерия
+  - Бухгалтерия
+  keywords:
+  - бухгалтерский учёт
+  - налоговый учёт
+  - проводки
+  - счета учёта
+  - закрытие периода
+  - регламентированная отчётность
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bp8doc/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_docflow
+  canonical_name: 1С:Документооборот
+  versions:
+  - 3.0.0
+  description: функциональность, настройки, процессы, документы, права и поведение 1С:Документооборота
+  aliases:
+  - 1С:Документооборот
+  - Документооборот
+  keywords:
+  - внутренние документы
+  - входящие документы
+  - исходящие документы
+  - правила обработки
+  - маршруты
+  - задачи
+  - согласующие
+  - маршрут согласования
+  - согласование договора
+  - регистрация
+  - права доступа
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/doc30/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_docflow_integration
+  canonical_name: Интеграция с 1С:Документооборотом
+  versions:
+  - 3.0.4
+  description: настройка, механизмы и программные интерфейсы интеграции с 1С:Документооборотом
+  aliases:
+  - Интеграция с 1С:Документооборотом
+  - Библиотека интеграции с 1С:Документооборотом
+  keywords:
+  - бесшовная интеграция
+  - связанные объекты
+  - обработка объектов
+  - обмен статусами
+  - программный интерфейс
+  - веб-сервис
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bid304doc/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_erp
+  canonical_name: 1С:ERP
+  versions:
+  - 2.5.0
+  description: функциональность, бизнес-процессы, настройки, операции, документы и поведение 1С:ERP
+  aliases:
+  - 1С:ERP
+  - ERP
+  keywords:
+  - управление предприятием
+  - продажи
+  - закупки
+  - склад
+  - обеспечение
+  - производство
+  - казначейство
+  - бюджетирование
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/erp25doc/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_erp_implementation
+  canonical_name: Внедрение ERP
+  versions:
+  - 2026.8.8
+  description: выбор и внедрение ERP-системы, требования, жизненный цикл, этапы, роли, обследование и проектирование
+  aliases:
+  - Внедрение ERP
+  - Проект внедрения ERP
+  keywords:
+  - обследование
+  - требования
+  - функциональная модель
+  - архитектурная концепция
+  - проектирование
+  - этапы проекта
+  - опытная эксплуатация
+  - промышленная эксплуатация
+  category: внедрение, сопровождение и управление проектами
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpvvedenuprpr/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: null
+- name: onec_ka
+  canonical_name: 1С:Комплексная автоматизация
+  versions:
+  - 2.5.0
+  description: функциональность, бизнес-процессы, настройки, операции, документы и поведение 1С:Комплексной автоматизации
+  aliases:
+  - 1С:КА
+  - Комплексная автоматизация
+  - КА 2.5
+  keywords:
+  - продажи
+  - закупки
+  - склад
+  - обеспечение
+  - производство
+  - казначейство
+  - бюджетирование
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/ka25doc/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_toir
+  canonical_name: 1С:ТОИР
+  versions:
+  - 3.0.0
+  description: настройка и практическая работа в 1С:ТОИР
+  aliases:
+  - 1С:ТОИР
+  - ТОИР
+  keywords:
+  - техническое обслуживание
+  - ремонты
+  - объект ремонта
+  - дефект
+  - ППР
+  - заявка на ремонт
+  - наряд
+  - ремонтные ресурсы
+  - оборудование
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/toir30corp/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_zupcorp
+  canonical_name: 1С:ЗУП КОРП
+  versions:
+  - 3.1.0
+  description: настройка, кадровый учёт, расчёт зарплаты, налоги и отчётность в 1С:Зарплата и управление персоналом КОРП
+  aliases:
+  - 1С:ЗУП
+  - ЗУП
+  - ЗУП КОРП
+  - Зарплата и управление персоналом КОРП
+  keywords:
+  - кадровый учёт
+  - штатное расписание
+  - начисления
+  - удержания
+  - зарплата
+  - НДФЛ
+  - страховые взносы
+  - отпуска
+  - больничные
+  - воинский учёт
+  - персональные данные
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/zupcorpdoc/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: null
+- name: onec_wms
+  canonical_name: 1С:WMS
+  versions:
+  - 5.1.0
+  description: 'Документация 1С:WMS редакции 5.1: описание конфигурации и работы с мобильными терминалами сбора данных.'
+  aliases:
+  - WMS Логистика. Управление складом
+  - 1С:Предприятие 8. WMS Логистика. Управление складом
+  - 1С:WMS
+  - WMS
+  - WMS 5.1
+  - WMS 5.1.0
+  - 1С:Предприятие 8. WMS Логистика. Управление складом. Редакция 5.1. Описание конфигурации
+  - 1С:Предприятие 8. WMS Логистика. Управление складом. Редакция 5.1. Описание работы с мобильными терминалами сбора данных
+  keywords:
+  - управление складом
+  - мобильные терминалы сбора данных
+  - складская логистика
+  - приемка
+  - размещение
+  - отбор
+  - отгрузка
+  - пополнение
+  - инвентаризация
+  - складская топология
+  - штрихкодирование
+  - складские операции
+  - приёмка
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/wms501/
+  - https://its.1c.ru/db/wms502/
+  version_kind: semantic
+  audiences:
+  - user
+  package_sha: 7f57b0c85445535deb312bbcf458e0e06c50acab912572db513659ca2ae17e2c
+- name: onec_consulting_pm_analyst
+  canonical_name: Методические материалы для РП и аналитиков
+  versions:
+  - 2026.8.19
+  description: методические материалы для руководителей проектов и аналитиков внедрения 1С
+  aliases:
+  - Методические материалы для РП и аналитиков
+  - Материалы для РП и аналитиков
+  keywords:
+  - руководитель проекта
+  - аналитик
+  - обследование
+  - требования
+  - проектные документы
+  - организация внедрения
+  category: внедрение, сопровождение и управление проектами
+  package_sha: 22658c1ad5708cc2fa9a2864193577f314bdf64f423019b9f568bc5cc1b0d379
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/pm-analyst
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_competency_model
+  canonical_name: Модель компетенций
+  versions:
+  - 2026.8.19
+  description: модель ролей, компетенций и оценки специалистов проектов 1С
+  aliases:
+  - Модель компетенций
+  - Модель компетенций 1С
+  keywords:
+  - компетенции
+  - роли специалистов
+  - оценка компетенций
+  - развитие сотрудников
+  - профиль роли
+  category: компетенции, качество и управление компанией
+  package_sha: dc2d3554715d36a48ffb540ab85d930cc39cd15c89eaeb9e82719168c4369979
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/competency-model
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_quick_result
+  canonical_name: Технология быстрого результата
+  versions:
+  - 2026.8.19
+  description: технология быстрого получения результата в проектах внедрения 1С
+  aliases:
+  - Технология быстрого результата
+  - ТБР
+  keywords:
+  - быстрый результат
+  - короткий проект
+  - запуск системы
+  - этапы внедрения
+  - проектные шаблоны
+  category: внедрение, сопровождение и управление проектами
+  package_sha: 0ad14e7a393ff64ec5acf884a29642da3604d896a67268a51d2cc9fb44ffb0f0
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/quick-result
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_corporate_implementation_lite
+  canonical_name: Технология корпоративного внедрения Лайт
+  versions:
+  - 2026.8.19
+  description: облегчённая технология управления корпоративным внедрением решений 1С
+  aliases:
+  - Технология корпоративного внедрения Лайт
+  - ТКВ Лайт
+  keywords:
+  - корпоративное внедрение лайт
+  - управление проектом
+  - этапы проекта
+  - проектные роли
+  - проектные шаблоны
+  category: внедрение, сопровождение и управление проектами
+  package_sha: a29be61635062e68cd6db1c325fa4a1cef853ad4bca4c899692084e8e4ca774e
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/corporate-implementation-lite
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_corporate_implementation
+  canonical_name: Технология корпоративного внедрения
+  versions:
+  - 2026.8.19
+  description: полная технология управления корпоративным внедрением решений 1С
+  aliases:
+  - Технология корпоративного внедрения
+  - ТКВ
+  keywords:
+  - корпоративное внедрение
+  - управление проектом
+  - этапы проекта
+  - проектные роли
+  - проектные документы
+  category: внедрение, сопровождение и управление проектами
+  package_sha: 944c6060099dec34d455854241af417f7147c11244626d3e6a33a31c0d98339a
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/corporate-implementation
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_corporate_support
+  canonical_name: Технология корпоративного сопровождения
+  versions:
+  - 2026.8.19
+  description: организация корпоративного сопровождения и развития информационных систем 1С
+  aliases:
+  - Технология корпоративного сопровождения
+  - ТКС
+  keywords:
+  - корпоративное сопровождение
+  - эксплуатация
+  - поддержка пользователей
+  - развитие системы
+  - управление изменениями
+  category: внедрение, сопровождение и управление проектами
+  package_sha: e04d13da5bee07aaa95fe3d2592ba09f300b8429d7596631865636db81bcb391
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/corporate-support
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_standard_implementation
+  canonical_name: Технология стандартного внедрения
+  versions:
+  - 2026.8.19
+  description: технология стандартного внедрения типовых решений 1С
+  aliases:
+  - Технология стандартного внедрения
+  - ТСВ
+  keywords:
+  - стандартное внедрение
+  - типовое решение
+  - запуск системы
+  - этапы внедрения
+  - проектные шаблоны
+  category: внедрение, сопровождение и управление проектами
+  package_sha: 1061f54a312fa7685f15666297f4c649d48ce18c65ca639ecaadb8a27cb70ef6
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/standard-implementation
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_franchise_quality
+  canonical_name: Типовая система качества франчайзи
+  versions:
+  - 2026.8.19
+  description: система менеджмента качества партнёра 1С и шаблоны её процессов
+  aliases:
+  - Типовая система качества франчайзи
+  - Система качества франчайзи
+  keywords:
+  - система качества
+  - франчайзи
+  - менеджмент качества
+  - аудит качества
+  - процессы компании
+  category: компетенции, качество и управление компанией
+  package_sha: 87c67de66cb05f8ca75aa3754d6305686ce8efb4822e0c6dbbd6db5d7555e60b
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/franchise-quality
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_consulting_company_management
+  canonical_name: Управление компанией
+  versions:
+  - 2026.8.19
+  description: материалы по организации и управлению компанией-партнёром 1С
+  aliases:
+  - Управление компанией
+  - Управление компанией-партнёром 1С
+  keywords:
+  - управление компанией
+  - организационная структура
+  - стратегия компании
+  - управление персоналом
+  - бизнес-процессы компании
+  category: компетенции, качество и управление компанией
+  package_sha: 5114b227b66a1271c35e3bc80c59cb9725454a1efba58d89d01c9e55b032a79a
+  source_kind: local_archive
+  source_roots:
+  - archive://1c-consulting/company-management
+  version_kind: snapshot
+  audiences:
+  - user
+- name: onec_dev_bsp
+  canonical_name: Библиотека стандартных подсистем
+  versions:
+  - 3.2.1
+  version_kind: semantic
+  description: стандартные подсистемы и их программные интерфейсы
+  aliases:
+  - БСП
+  - Библиотека стандартных подсистем
+  - БСП 3.2.1
+  keywords:
+  - стандартные подсистемы
+  - программный интерфейс БСП
+  - подсистема БСП
+  - общий модуль БСП
+  category: разработка и библиотеки
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bsp321doc/
+  audiences:
+  - developer
+  package_sha: aa7bfe3fe4ba10b1f703f8c1fbcf9b7d78d6de383214319afba67478d426c73d
+- name: onec_dev_methodology
+  canonical_name: Методическая поддержка разработчиков
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: практические рекомендации разработчикам и администраторам
+  aliases:
+  - методическая поддержка
+  - методология разработки 1С
+  keywords:
+  - методика разработки
+  - практические рекомендации
+  - администрирование
+  - проектное решение
+  category: разработка и стандарты
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/metod8dev/
+  audiences:
+  - developer
+  package_sha: f4be7d8bffd40c37f8ac7b6aafded6fc16a030730b4e456444796bc41eb02bbb
+- name: onec_dev_standards
+  canonical_name: Стандарты разработки 1С
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: стандарты разработки, именование, оформление и проверка конфигураций
+  aliases:
+  - стандарты 1С
+  - система стандартов разработки
+  - ССМР
+  keywords:
+  - стандарт разработки
+  - именование
+  - оформление кода
+  - проверка конфигурации
+  - правило разработки
+  category: разработка и стандарты
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/v8std/
+  audiences:
+  - developer
+  package_sha: 8a63ceb7171a2e07067c75330b4f09d73e3e907ed3791371daf570b1b44b5f2e
+- name: onec_dev_glossary
+  canonical_name: Глоссарий разработчика 1С
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: определения и терминология разработки 1С
+  aliases:
+  - глоссарий разработчика
+  - глоссарий 1С
+  keywords:
+  - определение термина
+  - терминология
+  - понятие платформы
+  category: разработка и стандарты
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/v8devgloss/
+  audiences:
+  - developer
+  package_sha: f6e8339c7292d9201ab807e89d688466e3cfa559aba7cefb3e04c70ca8818fa8
+- name: onec_dev_platform
+  canonical_name: Документация платформы 1С:Предприятие
+  versions:
+  - 8.3.27
+  version_kind: semantic
+  description: встроенный язык, объекты, методы, свойства и поведение платформы
+  aliases:
+  - платформа 1С
+  - 1С:Предприятие 8.3.27
+  - встроенный язык 1С
+  - BSL
+  keywords:
+  - встроенный язык
+  - объект платформы
+  - метод платформы
+  - свойство платформы
+  - событие платформы
+  - клиент сервер
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/v8327doc/
+  audiences:
+  - developer
+  package_sha: af910cf6078bf5b45dea0e90dad8ec30dcc7d132940cb9324008903213f288a5
+- name: onec_dev_installer
+  canonical_name: Установщик 1С:Предприятия
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: установка, обновление, удаление и командная строка установщика
+  aliases:
+  - установщик 1С
+  - установка платформы 1С
+  keywords:
+  - установка платформы
+  - обновление платформы
+  - удаление платформы
+  - командная строка установщика
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/inst10doc/
+  audiences:
+  - developer
+  package_sha: afb07afb96fba55c89cfcfa73a63d6f090c08d14d1175b9b6231a8650c2dcbde
+- name: onec_dev_equipment
+  canonical_name: Библиотека подключаемого оборудования
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: подключаемое оборудование, драйверы, сканеры, ККТ и весы
+  aliases:
+  - подключаемое оборудование
+  - БПО
+  - библиотека подключаемого оборудования
+  keywords:
+  - драйвер оборудования
+  - сканер штрихкода
+  - ККТ
+  - весы
+  - торговое оборудование
+  category: разработка и библиотеки
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bpodoc/
+  audiences:
+  - developer
+  package_sha: e08c97e6a14c185e2feccf942ceb6bb4d8b8d8d768c3ea707084a28b3d60d6c2
+- name: onec_dev_integration
+  canonical_name: Технологии интеграции 1С:Предприятия
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: HTTP- и web-сервисы, OData, COM, XDTO, XML, JSON и интеграционные интерфейсы
+  aliases:
+  - технологии интеграции 1С
+  - интеграция 1С
+  keywords:
+  - HTTP-сервис
+  - HTTP API
+  - web-сервис
+  - OData
+  - COM-соединение
+  - XDTO
+  - XML
+  - JSON
+  - внешний интерфейс
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/intgr83/
+  audiences:
+  - developer
+  package_sha: 06177a7bdbf9c87b59584ec306d04227fe54dc4bcb49a6028379f051660ceefd
+- name: onec_dev_ui
+  canonical_name: Разработка интерфейса 1С
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: управляемые формы, команды и командный интерфейс
+  aliases:
+  - интерфейс 1С
+  - управляемый интерфейс
+  - разработка форм 1С
+  keywords:
+  - управляемая форма
+  - команда формы
+  - командный интерфейс
+  - элемент формы
+  - событие формы
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubv8devui/
+  audiences:
+  - developer
+  package_sha: 9e07f33845b87636099af8733443f9a9177ac1e768f34906abd695850d25e0a8
+- name: onec_dev_extensions
+  canonical_name: Расширения конфигураций
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: расширения, заимствование объектов и адаптация конфигураций
+  aliases:
+  - расширение конфигурации
+  - расширения 1С
+  keywords:
+  - заимствование объекта
+  - адаптация конфигурации
+  - назначение расширения
+  - расширение формы
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubextensions/
+  audiences:
+  - developer
+  package_sha: f46c844cf0dfab83041cd5e970c89dbfd69b809bb661a46f331a34e9d5814bb6
+- name: onec_dev_cloud
+  canonical_name: Облачные технологии 1С:Предприятия
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: облачные технологии, SaaS и разделение данных
+  aliases:
+  - облачные технологии 1С
+  - облако 1С
+  - SaaS 1С
+  keywords:
+  - облачное приложение
+  - SaaS
+  - разделение данных
+  - область данных
+  - облачный сервис
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubcloud1c/
+  audiences:
+  - developer
+  package_sha: c5d8196f18dc53bf7e0494a26a94b36da5b245b6a90cd527a1af293158905831
+- name: onec_dev_query_language
+  canonical_name: Язык запросов 1С:Предприятия
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: язык запросов, соединения, временные и виртуальные таблицы, итоги
+  aliases:
+  - язык запросов 1С
+  - запросы 1С
+  keywords:
+  - текст запроса
+  - соединение таблиц
+  - временная таблица
+  - виртуальная таблица
+  - итоги запроса
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubqlang/
+  audiences:
+  - developer
+  package_sha: 2467fdf0f40f057b6385c34b0b8450befa46ddb34d785dac7fc06acef90925aa
+- name: onec_dev_complex_reports
+  canonical_name: Разработка сложных отчётов
+  versions:
+  - 2026.8.14
+  version_kind: snapshot
+  description: СКД, наборы данных, настройки и разработка сложных отчётов
+  aliases:
+  - сложные отчёты 1С
+  - СКД
+  - система компоновки данных
+  keywords:
+  - схема компоновки данных
+  - набор данных СКД
+  - настройка СКД
+  - вычисляемое поле
+  - компоновка отчёта
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubcomplexreports/
+  audiences:
+  - developer
+  package_sha: e58bca6f960d4d0320d0516bad1e7db6e891f2fb5ab2b452025ff13f8b51335e
+- name: onec_its_analytics
+  canonical_name: 1С:Аналитика
+  versions:
+  - 2026.8.19
+  description: материал по теме «Аналитика»
+  aliases:
+  - 1С:Аналитика
+  - 1С:Аналитики
+  - 1С:Аналитику
+  - Аналитика 1С
+  keywords:
+  - Аналитика
+  - диаграмма
+  - дашборд
+  - источник данных
+  - дата акселератор
+  - сервер аналитики
+  category: аналитика, BI и хранилища данных
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/analytics/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 050e7dc339cbbb893e97516a97591299bb92804a8dbf61d657eee4480cb2e4b7
+- name: onec_its_corpdatastore
+  canonical_name: 1С:Предприятие 8. Конфигурация «1C:Корпоративное хранилище данных»
+  versions:
+  - 2026.8.19
+  description: материал по теме «Корпоративное хранилище данных»
+  aliases:
+  - 1С:Предприятие 8. Конфигурация «1C:Корпоративное хранилище данных»
+  - 1С:КХД
+  keywords:
+  - Корпоративное хранилище данных
+  - хранилище данных
+  - КХД
+  - загрузка данных
+  - HTTP-сервис КХД
+  category: аналитика, BI и хранилища данных
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/corpdatastore/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: c009d98e5cf53edb53fba361896d450afb0db9d010441166f01f39f5a212cf1d
+- name: onec_its_freshpub
+  canonical_name: 1С:Облачная подсистема Фреш
+  versions:
+  - 2026.8.19
+  description: материал по теме «Облачная подсистема Фреш»
+  aliases:
+  - 1С:Облачная подсистема Фреш
+  - 1С:Фреш
+  keywords:
+  - Облачная подсистема Фреш
+  - абонент сервиса
+  - приложение сервиса
+  - резервное копирование Фреш
+  - менеджер сервиса
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/freshpub/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: ea9b2efbc4b23245724319f9ff5aca025a4d81c6bfe105898e864f90aa0543b1
+- name: onec_its_pub1802bp8
+  canonical_name: ПБУ 18/02. Практические примеры ведения учета в "1С:Бухгалтерии 8"
+  versions:
+  - 2026.8.19
+  description: практические примеры учета налога на прибыль и разниц по ПБУ 18/02 в 1С:Бухгалтерии
+  aliases:
+  - ПБУ 18/02. Практические примеры ведения учета в "1С:Бухгалтерии 8"
+  - ПБУ 18/02 в 1С:Бухгалтерии
+  keywords:
+  - налог на прибыль
+  - временные разницы
+  - постоянные разницы
+  - отложенные налоговые активы и обязательства
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1802bp8/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 7b4a01d248dfb46e2794680d0f3ffe81cbdf5f7d9945f7c0d7cbb65d78e146d4
+- name: onec_its_pub1cerpcrm
+  canonical_name: 1С:Академия ERP. Управление продажами и взаимоотношениями с клиентами
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление продажами и взаимоотношениями с клиентами»
+  aliases:
+  - 1С:Академия ERP. Управление продажами и взаимоотношениями с клиентами
+  - Академия ERP. Продажи и CRM
+  keywords:
+  - управление продажами
+  - CRM
+  - взаимоотношения с клиентами
+  - воронка продаж
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpcrm/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: fc78338b2f45157720c95463925d44624e4ab176d07362edf2d5546f7fc07597
+- name: onec_its_pub1cerpfpb
+  canonical_name: 1С:Академия ERP. Финансовое планирование и бюджетирование
+  versions:
+  - 2026.8.19
+  description: материал по теме «Финансовое планирование и бюджетирование»
+  aliases:
+  - 1С:Академия ERP. Финансовое планирование и бюджетирование
+  - Академия ERP. Бюджетирование
+  keywords:
+  - финансовое планирование
+  - бюджетирование
+  - бюджетный процесс
+  - план-фактный анализ
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpfpb/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 39826e1203cae74dfd99830c3f7942fac6d868b5240b3c9c48604211634ad76b
+- name: onec_its_pub1cerpgoz
+  canonical_name: '1С:Академия ERP. Гособоронзаказ: концепция раздельного учета по контрактам'
+  versions:
+  - 2026.8.19
+  description: материал по теме «концепция раздельного учета по контрактам»
+  aliases:
+  - '1С:Академия ERP. Гособоронзаказ: концепция раздельного учета по контрактам'
+  - Академия ERP. Гособоронзаказ
+  keywords:
+  - гособоронзаказ
+  - раздельный учет по контрактам
+  - ГОЗ
+  - контрактные ресурсы
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpgoz/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 6059ee8b78142582a6e6221034ede7ef6cc1d417535e568059dea237512394bc
+- name: onec_its_pub1cerphr
+  canonical_name: 1С:Академия ERP. Управление человеческими ресурсами
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление человеческими ресурсами»
+  aliases:
+  - 1С:Академия ERP. Управление человеческими ресурсами
+  - Академия ERP. Управление персоналом
+  keywords:
+  - управление человеческими ресурсами
+  - кадровое планирование
+  - персонал ERP
+  - HR-процессы
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerphr/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: a0992c342a01049536b83b0a77f20b78f04e17b2a89c3831ab0045486f4d6db2
+- name: onec_its_pub1cerpktpp
+  canonical_name: 1С:Академия ERP. Конструкторско-технологическая подготовка производства с использованием решений фирмы 1С
+  versions:
+  - 2026.8.19
+  description: материал по теме «Конструкторско-технологическая подготовка производства с использованием решений фирмы 1С»
+  aliases:
+  - 1С:Академия ERP. Конструкторско-технологическая подготовка производства с использованием решений фирмы 1С
+  - Академия ERP. Конструкторско-технологическая подготовка производства
+  keywords:
+  - конструкторская подготовка производства
+  - технологическая подготовка производства
+  - КТПП
+  - ресурсные спецификации
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpktpp/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 160e631eb13d789422b2bfee26de90fa1bdee5a01fe8b50074ce8a5840f1e4f8
+- name: onec_its_pub1cerpmsfo
+  canonical_name: 1С:Академия ERP. Подготовка и автоматизация отчетности по МСФО
+  versions:
+  - 2026.8.19
+  description: материал по теме «Подготовка и автоматизация отчетности по МСФО»
+  aliases:
+  - 1С:Академия ERP. Подготовка и автоматизация отчетности по МСФО
+  - Академия ERP. МСФО
+  keywords:
+  - отчетность по МСФО
+  - трансформация отчетности
+  - международный учет
+  - консолидация данных МСФО
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpmsfo/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 0d08977652f0aedec4b926df231d51260c6a692d864f196bda973016eae2af17
+- name: onec_its_pub1cerpmto
+  canonical_name: 1С:Академия ERP. Управление материально-техническим обеспечением
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление материально-техническим обеспечением»
+  aliases:
+  - 1С:Академия ERP. Управление материально-техническим обеспечением
+  - Академия ERP. Материально-техническое обеспечение
+  keywords:
+  - материально-техническое обеспечение
+  - закупки
+  - снабжение
+  - обеспечение потребностей
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpmto/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 3d367f88d1ac7a82ddb4ef0854ece8c0189587bbad257cd474bbedce6d205dc0
+- name: onec_its_pub1cerpreguch
+  canonical_name: 1С:Академия ERP. Регламентированный учет
+  versions:
+  - 2026.8.19
+  description: материал по теме «Регламентированный учет»
+  aliases:
+  - 1С:Академия ERP. Регламентированный учет
+  - Академия ERP. Регламентированный учет
+  keywords:
+  - регламентированный учет ERP
+  - бухгалтерский учет ERP
+  - налоговый учет ERP
+  - закрытие месяца ERP
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpreguch/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 2ce741597de1cf7a8090ac77acdddfcf128a18c64d6961be3ff6ad138d299c6a
+- name: onec_its_pub1cerpruchet
+  canonical_name: 1С:Академия ERP. Автоматизация раздельного учета
+  versions:
+  - 2026.8.19
+  description: материал по теме «Автоматизация раздельного учета»
+  aliases:
+  - 1С:Академия ERP. Автоматизация раздельного учета
+  - Академия ERP. Раздельный учет
+  keywords:
+  - автоматизация раздельного учета
+  - направления деятельности
+  - обособленный учет
+  - распределение затрат
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpruchet/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 57dfbdddba23f54f1f44a3c4cfd653cec7b1c78b1cba4bbe2b3a72e6e66c6af0
+- name: onec_its_pub1cerptoir
+  canonical_name: 1С:Академия ERP. Организация ремонтов и технического обслуживания оборудования
+  versions:
+  - 2026.8.19
+  description: материал по теме «Организация ремонтов и технического обслуживания оборудования»
+  aliases:
+  - 1С:Академия ERP. Организация ремонтов и технического обслуживания оборудования
+  - Академия ERP. Ремонты и техническое обслуживание
+  keywords:
+  - техническое обслуживание оборудования
+  - ремонты оборудования
+  - график ППР
+  - ремонтные заказы
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerptoir/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: ee6942798a931bedb85b90365de023ff29f9977cd715c1d49b8ee56be2d50c8f
+- name: onec_its_pub1cerpupplan
+  canonical_name: '1С:Академия ERP. Управление производством: планирование и диспетчеризация'
+  versions:
+  - 2026.8.19
+  description: материал по теме «планирование и диспетчеризация»
+  aliases:
+  - '1С:Академия ERP. Управление производством: планирование и диспетчеризация'
+  - Академия ERP. Планирование производства
+  keywords:
+  - производственное планирование
+  - диспетчеризация производства
+  - график производства
+  - производственные этапы
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpupplan/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 0ab741cf89b574f3da88e538f1bc506dbdd134267aa0c3ccfb92ff4138edb33a
+- name: onec_its_pub1cerpuu
+  canonical_name: 1С:Академия ERP. Управленческий учет
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управленческий учет»
+  aliases:
+  - 1С:Академия ERP. Управленческий учет
+  - Академия ERP. Управленческий учет
+  keywords:
+  - управленческий учет ERP
+  - финансовый результат
+  - доходы и расходы
+  - управленческий баланс
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1cerpuu/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 23186b5ef55946339900609599a5130a7957b88f6184533737e334bf53a7ac4d
+- name: onec_its_pubanaliticabisystem2
+  canonical_name: 1С:Аналитика. BI-система в "1С:Предприятии 8"
+  versions:
+  - 2026.8.19
+  description: материал по теме «Предприятии 8»
+  aliases:
+  - 1С:Аналитика. BI-система в "1С:Предприятии 8"
+  keywords:
+  - BI-система 1С
+  - диаграмма BI
+  - дашборд BI
+  - поля источника данных
+  category: аналитика, BI и хранилища данных
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubanaliticabisystem2/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 15fb58583613a54ec0c144af0bc0bb6bc264751df1b609d32ee9adf441556678
+- name: onec_its_pubdeskbookzup21
+  canonical_name: Настольная книга по оплате труда и ее расчету в «1С:Зарплата и управление персоналом 8» (редакция 3). Издание 21
+  versions:
+  - 2026.8.19
+  description: практическое руководство по оплате труда и расчету зарплаты в ЗУП 3
+  aliases:
+  - Настольная книга по оплате труда и ее расчету в «1С:Зарплата и управление персоналом 8» (редакция 3). Издание 21
+  - Настольная книга по оплате труда в ЗУП 3
+  keywords:
+  - расчет зарплаты
+  - оплата труда
+  - удержания
+  - средний заработок
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdeskbookzup21/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 9267f6ed04bc2bbda5c188ca62c4cec2134d824f7fd273864bc5abad1236ccf2
+- name: onec_its_pubdocflow300quest
+  canonical_name: '1С:Документооборот. Версия 3.0. 300 вопросов и ответов: практическое пособие'
+  versions:
+  - 2026.8.19
+  description: практические ответы по пользовательской работе в 1С:Документообороте 3.0
+  aliases:
+  - '1С:Документооборот. Версия 3.0. 300 вопросов и ответов: практическое пособие'
+  - 1С:Документооборот. Версия 3.0. 300 вопросов и ответов
+  - 300 вопросов по 1С:Документообороту 3.0
+  keywords:
+  - практические вопросы Документооборота
+  - согласование документов
+  - задачи и процессы
+  - настройка Документооборота 3.0
+  category: внедрение, сопровождение и управление проектами
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdocflow300quest/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: a2fe907fcc68c6ed5cd1fcb3cb7823eab69437ceed873387cf39abf861e47609
+- name: onec_its_pubdocmng
+  canonical_name: 'Управление документами: быстро, эффективно, своими силами'
+  versions:
+  - 2026.8.19
+  description: практическая организация электронного документооборота собственными силами
+  aliases:
+  - 'Управление документами: быстро, эффективно, своими силами'
+  - Быстрое внедрение управления документами
+  keywords:
+  - внедрение документооборота
+  - управление документами
+  - электронный архив
+  - маршруты обработки документов
+  category: внедрение, сопровождение и управление проектами
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdocmng/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: d1d6d8f2b1c46d5669f5bec9c94f8c32ca63350e943f5b07b31e02f86899a2a7
+- name: onec_its_pubdocupr
+  canonical_name: Управление документами в современной организации
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление документами в современной организации»
+  aliases:
+  - Управление документами в современной организации
+  keywords:
+  - система управления документами
+  - делопроизводство
+  - жизненный цикл документа
+  - организационный документооборот
+  category: внедрение, сопровождение и управление проектами
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdocupr/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 68d3426724a319ae38a8b8a74f1d0c98aecd87413bbe06bf2c10c1ad90e4edb9
+- name: onec_its_pubecs
+  canonical_name: Система взаимодействия. Коммуникации в бизнес приложениях
+  versions:
+  - 2026.8.19
+  description: материал по теме «Коммуникации в бизнес приложениях»
+  aliases:
+  - Система взаимодействия. Коммуникации в бизнес приложениях
+  - Система взаимодействия 1С
+  keywords:
+  - Коммуникации в бизнес приложениях
+  - обсуждение 1С
+  - видеозвонок 1С
+  - API системы взаимодействия
+  - BSL взаимодействие
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubecs/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: d54a351ae3e85b6827dd0cfeca196557a92cb7e050f869812742492f108da902
+- name: onec_its_puberpmarketing
+  canonical_name: 1С:Академия ERP. Управление маркетингом и сбытом
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление маркетингом и сбытом»
+  aliases:
+  - 1С:Академия ERP. Управление маркетингом и сбытом
+  - Академия ERP. Маркетинг и сбыт
+  keywords:
+  - маркетинг ERP
+  - сбыт
+  - маркетинговые мероприятия
+  - каналы продаж
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/puberpmarketing/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 054e9aa09e18fb3ab90f544ebac83e5f7a0de542b96a84ae47525209c89e09a0
+- name: onec_its_puberpplan
+  canonical_name: Основы оперативно-производственного планирования с использованием информационной системы "1С:ERP Управление предприятием"
+  versions:
+  - 2026.8.19
+  description: материал по теме «ERP Управление предприятием»
+  aliases:
+  - Основы оперативно-производственного планирования с использованием информационной системы "1С:ERP Управление предприятием"
+  - Основы оперативно-производственного планирования в 1С:ERP
+  keywords:
+  - оперативно-производственное планирование
+  - производственная программа
+  - график производства
+  - диспетчеризация
+  category: ERP и предметные методические книги
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/puberpplan/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 936d55d1d7e4adaf5017c2f93c861f3fde0a24bc0579a20923c6f6b55d332373
+- name: onec_its_pubnds30
+  canonical_name: Учет расчетов по НДС. Секреты профессиональной работы с "1С:Бухгалтерией 8" (ред. 3.0). Издание 4
+  versions:
+  - 2026.8.19
+  description: профессиональная методика учета расчетов по НДС в 1С:Бухгалтерии 3.0
+  aliases:
+  - Учет расчетов по НДС. Секреты профессиональной работы с "1С:Бухгалтерией 8" (ред. 3.0). Издание 4
+  - Учет расчетов по НДС в 1С:Бухгалтерии 3.0
+  keywords:
+  - расчеты по НДС
+  - книга покупок
+  - книга продаж
+  - декларация по НДС
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubnds30/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 7098b01541241893dce258fc2842cc497d60325e75cd00b672a891860ee91fe8
+- name: onec_its_pubndspractbuh4
+  canonical_name: НДС. Практические примеры ведения учета в «1С:Бухгалтерии 8». Издание 4
+  versions:
+  - 2026.8.19
+  description: практические примеры отражения НДС в 1С:Бухгалтерии
+  aliases:
+  - НДС. Практические примеры ведения учета в «1С:Бухгалтерии 8». Издание 4
+  - Практические примеры НДС в 1С:Бухгалтерии
+  keywords:
+  - практические примеры НДС
+  - входной НДС
+  - начисление НДС
+  - налоговые вычеты
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubndspractbuh4/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: ca14833f4e078f64fb0ee5e01b19132a3c212e953e71eed1dd44c9a04b4e0e1d
+- name: onec_its_pubopltrudgosuchzup10
+  canonical_name: 'Учет и оплата труда работников бюджетной сферы: актуальные вопросы. Применение "1С:Зарплата и кадры государственного учреждения
+    8". Издание 10'
+  versions:
+  - 2026.8.19
+  description: актуальные вопросы учета и оплаты труда работников бюджетной сферы в ЗКГУ
+  aliases:
+  - 'Учет и оплата труда работников бюджетной сферы: актуальные вопросы. Применение "1С:Зарплата и кадры государственного учреждения 8". Издание
+    10'
+  - Оплата труда бюджетной сферы в ЗКГУ
+  keywords:
+  - зарплата бюджетной сферы
+  - оплата труда ЗКГУ
+  - кадровый учет государственного учреждения
+  - начисления работникам учреждения
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubopltrudgosuchzup10/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: fff494bd7b0e5038c03c1b95b2f8a1e1fa95884e26a7b2008e7f4ecffe951bd5
+- name: onec_its_pubuchetpro
+  canonical_name: Учет производственных операций. Секреты профессиональной работы с «1С:Бухгалтерией 8» (ред. 3.0). Издание 4
+  versions:
+  - 2026.8.19
+  description: профессиональная методика учета производственных операций в 1С:Бухгалтерии 3.0
+  aliases:
+  - Учет производственных операций. Секреты профессиональной работы с «1С:Бухгалтерией 8» (ред. 3.0). Издание 4
+  - Учет производственных операций в 1С:Бухгалтерии 3.0
+  keywords:
+  - производственный учет
+  - выпуск продукции
+  - себестоимость продукции
+  - незавершенное производство
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubuchetpro/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 8eb828c1552aeb23a56e1ad3ecb975cee66bb6133658c57592b10ecb7ab619c2
+- name: onec_its_pubuchetto
+  canonical_name: Учет торговых операций. Секреты профессиональной работы с «1С:Бухгалтерией 8» (ред. 3.0). Издание 2
+  versions:
+  - 2026.8.19
+  description: профессиональная методика учета торговых операций в 1С:Бухгалтерии 3.0
+  aliases:
+  - Учет торговых операций. Секреты профессиональной работы с «1С:Бухгалтерией 8» (ред. 3.0). Издание 2
+  - Учет торговых операций в 1С:Бухгалтерии 3.0
+  keywords:
+  - торговые операции
+  - поступление товаров
+  - реализация товаров
+  - себестоимость продаж
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubuchetto/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: ab10b3209bfc4afd7464ad7b8f557b8ce1c7a1fc72cd54c1cc66e1643c368c0d
+- name: onec_its_pubunfreal
+  canonical_name: Реальная автоматизация малого бизнеса. 1С:Управление нашей фирмой и 1С:Розница
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление нашей фирмой и 1С»
+  aliases:
+  - Реальная автоматизация малого бизнеса. 1С:Управление нашей фирмой и 1С:Розница
+  - Реальная автоматизация малого бизнеса в УНФ и Рознице
+  - 1С:УНФ
+  - 1С:Розница
+  keywords:
+  - автоматизация малого бизнеса
+  - 1С:УНФ
+  - 1С:Розница
+  - продажи малого бизнеса
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubunfreal/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 9d4713398655b1a6d27c559a1fc3913fc3d458e204897285260b1e8150060bd3
+- name: onec_its_sppr2doc
+  canonical_name: 1С:Предприятие 8. Конфигурация «Система проектирования прикладных решений». Редакция 2.0. Руководство пользователя
+  versions:
+  - 2.0.0
+  description: материал по теме «Руководство пользователя»
+  aliases:
+  - 1С:Предприятие 8. Конфигурация «Система проектирования прикладных решений». Редакция 2.0. Руководство пользователя
+  - СППР 2.0
+  keywords:
+  - Руководство пользователя
+  - проектирование прикладного решения
+  - функциональная модель СППР
+  - синхронизация конфигурации
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/sppr2doc/
+  version_kind: semantic
+  audiences:
+  - developer
+  package_sha: 3f6158d47213c898c2abfb79047e58131b90358e35a93a062c06a749faec26b7
+- name: onec_its_utovio
+  canonical_name: Управление торговыми операциями в вопросах и ответах
+  versions:
+  - 2026.8.19
+  description: материал по теме «Управление торговыми операциями в вопросах и ответах»
+  aliases:
+  - Управление торговыми операциями в вопросах и ответах
+  - Торговые операции в вопросах и ответах
+  - 1С:Управление торговлей
+  - Управление торговлей
+  - 1С:УТ
+  - УТ
+  keywords:
+  - торговые операции
+  - закупки и продажи
+  - складской учет
+  - взаиморасчеты
+  - номенклатура
+  - заказы клиентов
+  category: прикладные конфигурации и бизнес-операции
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/utovio/
+  version_kind: snapshot
+  audiences:
+  - user
+  package_sha: 2d34e92abb0b743d1ca24cf2fe42fa499f17f7e67c6f02d2f6dfea1105a4228d
+- name: onec_its_bed1101doc
+  canonical_name: Библиотека электронных документов 1.10.1
+  versions:
+  - 1.10.1
+  description: программные интерфейсы обмена электронными документами библиотеки 1.10.1
+  aliases:
+  - Библиотека электронных документов 1.10.1
+  - БЭД 1.10.1
+  keywords:
+  - электронные документы
+  - обмен электронными документами
+  - электронная подпись
+  - программный интерфейс БЭД
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bed1101doc/
+  version_kind: semantic
+  audiences:
+  - developer
+  package_sha: d666a95d3296649449a52f5d5884789cd626a36ac17cfd2fcc99041fe9f8f1cd
+- name: onec_its_bed1101taxidoc
+  canonical_name: Библиотека электронных документов 1.10.1 (интерфейс Такси)
+  versions:
+  - 1.10.1
+  description: реализация пользовательского интерфейса Такси для библиотеки электронных документов 1.10.1
+  aliases:
+  - Библиотека электронных документов 1.10.1 (интерфейс Такси)
+  - БЭД 1.10.1 Такси
+  keywords:
+  - интерфейс Такси БЭД
+  - формы электронных документов
+  - команды обмена ЭД
+  - пользовательский интерфейс БЭД
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bed1101taxidoc/
+  version_kind: semantic
+  audiences:
+  - developer
+  package_sha: ff9573129c6bef6e1331070e997acfd0baeb60310a25cd71f8680c4e65d53189
+- name: onec_its_bia104doc
+  canonical_name: Библиотека интеграции с 1С:Архивом 1.0.4
+  versions:
+  - 1.0.4
+  description: программные интерфейсы интеграции прикладных решений с 1С:Архивом
+  aliases:
+  - Библиотека интеграции с 1С:Архивом 1.0.4
+  - БИА 1.0.4
+  keywords:
+  - интеграция с 1С:Архивом
+  - передача документов в архив
+  - архивное хранение
+  - программный интерфейс БИА
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/bia104doc/
+  version_kind: semantic
+  audiences:
+  - developer
+  package_sha: 97cac39725da860138be9723c9d57b5ba1af8467b076aeffdb53df81cfb95130
+- name: onec_its_coldev
+  canonical_name: Групповая разработка в программах «1С»
+  versions:
+  - 2026.8.19
+  description: совместная разработка конфигураций, хранилище, версии и объединение изменений
+  aliases:
+  - Групповая разработка в программах «1С»
+  keywords:
+  - хранилище конфигурации
+  - совместная разработка
+  - захват объектов
+  - объединение изменений
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/coldev/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 370b5296590f551afa9eb02e8b058746996f70dd09e9469a80cf67026266fda3
+- name: onec_its_cs27doc
+  canonical_name: 1С:Сервер взаимодействия 27
+  versions:
+  - 2026.8.19
+  description: установка, настройка и эксплуатация сервера взаимодействия версии 27
+  aliases:
+  - 1С:Сервер взаимодействия 27
+  - Сервер взаимодействия 27
+  keywords:
+  - установка сервера взаимодействия
+  - настройка сервера взаимодействия
+  - кластер сервера взаимодействия
+  - администрирование коммуникаций
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/cs27doc/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 59bd92f0c56b07eb5ea53a08f95ef12fc207c141309958c0fa3b7c5e3d2e072a
+- name: onec_its_freshdev
+  canonical_name: 1С:Облачная подсистема Фреш. Руководство разработчика
+  versions:
+  - 2026.8.19
+  description: разработка и адаптация приложений для облачной подсистемы 1С:Фреш
+  aliases:
+  - 1С:Облачная подсистема Фреш. Руководство разработчика
+  - Фреш для разработчика
+  keywords:
+  - разработка для 1С:Фреш
+  - разделение данных Фреш
+  - публикация приложения Фреш
+  - API менеджера сервиса
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/freshdev/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 2201def184317a06cc96d86dcfc655998c7c8718a98183582f03906e48739451
+- name: onec_its_kip
+  canonical_name: Корпоративный инструментальный пакет
+  versions:
+  - 2026.8.19
+  description: материал по теме «Корпоративный инструментальный пакет»
+  aliases:
+  - Корпоративный инструментальный пакет
+  - КИП 1С
+  keywords:
+  - Корпоративный инструментальный пакет
+  - нагрузочное тестирование
+  - тест-центр
+  - производительность 1С
+  - качество кода
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/kip/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: abcc4188a696a43861227e67287f67ddfaf3894b61d0c48c41a399bda9c72570
+- name: onec_its_landscapedoc
+  canonical_name: 1C:Управление ландшафтом. Руководство по использованию
+  versions:
+  - 2026.8.19
+  description: управление ИТ-ландшафтом 1С, контурами, системами и развертываниями
+  aliases:
+  - 1C:Управление ландшафтом. Руководство по использованию
+  - 1С:Управление ландшафтом
+  keywords:
+  - ИТ-ландшафт 1С
+  - контуры информационных систем
+  - управление развертываниями
+  - инвентаризация систем
+  category: администрирование, инфраструктура и производительность
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/landscapedoc/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 97639ff1e80e5f04f877aa28808ecc0c9ae6a961ff2bacb531d8a57568d8e647
+- name: onec_its_pub1celementarno
+  canonical_name: '1С:ЭЛЕМЕНТарно! 1С:Элемент для будущих разработчиков: практикум 10-11 класс'
+  versions:
+  - 2026.8.19
+  description: учебный практикум по созданию приложений на платформе 1С:Элемент
+  aliases:
+  - '1С:ЭЛЕМЕНТарно! 1С:Элемент для будущих разработчиков: практикум 10-11 класс'
+  - 1С:ЭЛЕМЕНТарно
+  keywords:
+  - разработка в 1С:Элемент
+  - модель данных Элемент
+  - формы приложения Элемент
+  - учебное приложение
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pub1celementarno/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: ce438a6cad543a9a49e5df149c53847cbb6082a912b209bc5c959311bd18dd84
+- name: onec_its_pubdevguide83
+  canonical_name: 1С:Предприятие 8.3. Практическое пособие разработчика
+  versions:
+  - 2026.8.19
+  description: практическое руководство по объектам платформы, BSL, формам и прикладной разработке 1С 8.3
+  aliases:
+  - 1С:Предприятие 8.3. Практическое пособие разработчика
+  - Практическое пособие разработчика 1С 8.3
+  keywords:
+  - объекты конфигурации
+  - встроенный язык 1С
+  - управляемые формы
+  - практическая разработка 1С
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdevguide83/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: df38269fdf7d1faa243115078301b896ec2602afe5ce4386832e02cf282e8a51
+- name: onec_its_pubdevguideedt
+  canonical_name: 1C:Предприятие 8.3. Практическое пособие разработчика. Используем 1C:EDT
+  versions:
+  - 2026.8.19
+  description: практическая разработка приложений 1С:Предприятия в среде 1C:EDT
+  aliases:
+  - 1C:Предприятие 8.3. Практическое пособие разработчика. Используем 1C:EDT
+  - Практическое пособие 1C:EDT
+  keywords:
+  - проект 1C:EDT
+  - рабочее пространство EDT
+  - разработка конфигурации в EDT
+  - отладка в EDT
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubdevguideedt/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 6468f465645a14a71310a77e4fe10c12213e6e91a0073c0eaa0c2d8d5fa54d81
+- name: onec_its_pubelementlang
+  canonical_name: «1С:Предприятие.Элемент». Возможности встроенного языка
+  versions:
+  - 2026.8.19
+  description: материал по теме «Возможности встроенного языка»
+  aliases:
+  - «1С:Предприятие.Элемент». Возможности встроенного языка
+  - Язык 1С:Элемента
+  keywords:
+  - встроенный язык 1С:Элемента
+  - типы данных Элемент
+  - коллекции Элемент
+  - функции языка Элемент
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubelementlang/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: dac182a40fcfd37a0a1a2017de5e7571ce6f8581749ddeb08bdd76ac4ad7c6b7
+- name: onec_its_pubintromobile
+  canonical_name: Знакомство с разработкой мобильных приложений на платформе 1С:Предприятие 8
+  versions:
+  - 2026.8.19
+  description: практическое введение в разработку мобильных приложений на платформе 1С
+  aliases:
+  - Знакомство с разработкой мобильных приложений на платформе 1С:Предприятие 8
+  - Мобильная разработка 1С
+  keywords:
+  - мобильная платформа 1С
+  - мобильное приложение 1С
+  - автономная работа
+  - синхронизация мобильного приложения
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubintromobile/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: ff09b3f89923c28f76c5e5e0dfd50fc639f1bf53f8625f0b64241506f4fb49a5
+- name: onec_its_pubtirage
+  canonical_name: Инструменты для создания тиражируемых приложений «1С:Предприятия 8»
+  versions:
+  - 2026.8.19
+  description: архитектура, поставка и сопровождение тиражируемых приложений 1С
+  aliases:
+  - Инструменты для создания тиражируемых приложений «1С:Предприятия 8»
+  - Тиражируемые приложения 1С
+  keywords:
+  - тиражируемое приложение 1С
+  - поставка конфигурации
+  - обновление прикладного решения
+  - сопровождение конфигурации
+  category: разработка, платформа и встроенный язык
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/pubtirage/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: 6ade58f691fe2be9998e1e38d34719787824b8e53b8716f9711fd5de78ea59c9
+- name: onec_its_uisl29doc
+  canonical_name: Библиотека интернет-поддержки пользователей 2.9. Документация
+  versions:
+  - 2026.8.19
+  description: программные интерфейсы библиотеки интернет-поддержки пользователей 2.9
+  aliases:
+  - Библиотека интернет-поддержки пользователей 2.9. Документация
+  - БИП 2.9
+  keywords:
+  - интернет-поддержка пользователей
+  - программный интерфейс БИП
+  - подключение сервисов 1С
+  - учетная запись интернет-поддержки
+  category: интеграция и обмен данными
+  source_kind: its
+  source_roots:
+  - https://its.1c.ru/db/uisl29doc/
+  version_kind: snapshot
+  audiences:
+  - developer
+  package_sha: d3427a07946f58dda681e780241fea555331dd65f908f6000b9e28931858484c
