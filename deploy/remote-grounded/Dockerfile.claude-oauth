@@ -1,0 +1,5 @@
+# Build only the new OAuth gateway on top of the already-pinned production image.
+# No worker, index, web UI, or existing MCP code is replaced.
+ARG DOCS_MCP_BASE_IMAGE
+FROM ${DOCS_MCP_BASE_IMAGE}
+COPY --chown=root:root dist/claude-oauth-gateway.js /app/dist/claude-oauth-gateway.js

@@ -1,0 +1,27 @@
+# Separate project so deploying this gateway cannot recreate the index worker
+# or change the existing read-only / administrative MCP containers.
+services:
+  claude-oauth:
+    image: ${DOCS_MCP_CLAUDE_IMAGE:?Set DOCS_MCP_CLAUDE_IMAGE to the approved gateway image}
+    entrypoint: ["node", "--enable-source-maps", "/app/dist/claude-oauth-gateway.js"]
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      CLAUDE_OAUTH_PUBLIC_BASE_URL: https://aichat.msgplaut.com/plaut-ai-library
+      CLAUDE_OAUTH_UPSTREAM_URL: http://127.0.0.1:16281/mcp
+      CLAUDE_OAUTH_VERIFY_URL: http://127.0.0.1:6281/mcp
+      CLAUDE_OAUTH_DATABASE_PATH: /data/oauth.sqlite
+      CLAUDE_OAUTH_SESSION_EPOCH: "1"
+      CLAUDE_OAUTH_PORT: "16283"
+      CLAUDE_OAUTH_HOST: 127.0.0.1
+    volumes:
+      - claude-oauth-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(16283,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+volumes:
+  claude-oauth-data:

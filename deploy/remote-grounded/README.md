@@ -1,5 +1,47 @@
 # Production reranking deployment
 
+## Claude web connector OAuth gateway
+
+The optional `claude-oauth` service adds a separate read-only OAuth endpoint at
+`https://aichat.msgplaut.com/plaut-ai-library/mcp`. It does not replace the
+existing static-Bearer `/lib-docs/mcp` endpoint or the administrative MCP.
+The gateway accepts the **same** `REMOTE_DOCS_MCP_READ_BEARER_TOKEN` on a
+browser login form, verifies it once against the existing protected read-only
+Apache listener on localhost, then issues independent, short-lived OAuth
+access tokens and rotating refresh tokens to Claude. The gateway never stores
+or receives a configured copy of the shared Bearer secret. OAuth tokens are
+hashed in a separate SQLite volume. Its upstream is only the localhost-bound
+read-only `mcp-read` port, never the administrative MCP.
+
+Build `dist/claude-oauth-gateway.js` with Node 22, then build
+`Dockerfile.claude-oauth` from the currently approved pinned
+`DOCS_MCP_IMAGE`. Pin the resulting gateway image as
+`DOCS_MCP_CLAUDE_IMAGE` and start it with the separate
+`docker-compose.claude-oauth.yml` project. It uses host networking but binds
+only to `127.0.0.1:16283`; do not rebuild or recreate worker, web,
+mcp-read, or mcp-admin for this change. Add the routes in
+`claude-oauth-apache.conf.template` to the existing HTTPS vhost after a backup;
+run `apache2ctl configtest` before reloading Apache.
+
+Whenever the shared read token is rotated, increment the non-secret
+`CLAUDE_OAUTH_SESSION_EPOCH` in the gateway Compose file and restart only this
+gateway. The epoch change clears existing OAuth access and refresh tokens.
+
+Pre-organization acceptance: unauthenticated MCP gives 401 with OAuth resource
+metadata, registration rejects non-Claude redirect URLs, browser login rejects
+wrong tokens, PKCE code redemption is one-time, refresh tokens rotate, and an
+authenticated `tools/list` plus `search_docs` reaches the read-only MCP without
+write/admin tools. Existing static-Bearer initialization and search must still
+pass. The real Claude Desktop/Cowork login requires an organization Owner to
+add the custom Web connector later; do not change the AI Library web page
+before that pilot passes.
+
+Rollback: remove the three new Apache routes, reload Apache after configtest,
+and stop only the separate `claude-oauth` project. The old MCP endpoints and
+index remain unchanged.
+
+---
+
 This Compose stack runs one search-owning worker and three credential-free
 proxies: the web UI, read-only MCP, and administrative MCP. The repository-wide
 reranker default stays disabled. The production Compose file enables reranking

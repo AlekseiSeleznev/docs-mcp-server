@@ -44,6 +44,7 @@ export default defineConfig({
       // Define entry points using path.resolve for robustness
       entry: {
         index: path.resolve(__dirname, 'src/index.ts'),
+        'claude-oauth-gateway': path.resolve(__dirname, 'src/claudeOAuthGatewayMain.ts'),
       },
       formats: ['es'], // Output ESM format only
       // Output filename will be based on the entry key (index.js)

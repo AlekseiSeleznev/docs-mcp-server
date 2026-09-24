@@ -1,0 +1,9 @@
+# Add these exact routes inside the existing HTTPS aichat.msgplaut.com vhost.
+# The container port is bound to 127.0.0.1 only. The existing /lib-docs/mcp
+# and /lib-docs-full/mcp routes remain untouched.
+ProxyPass "/.well-known/oauth-protected-resource/plaut-ai-library/mcp" "http://127.0.0.1:16283/.well-known/oauth-protected-resource/plaut-ai-library/mcp" connectiontimeout=10 timeout=30 retry=0
+ProxyPassReverse "/.well-known/oauth-protected-resource/plaut-ai-library/mcp" "http://127.0.0.1:16283/.well-known/oauth-protected-resource/plaut-ai-library/mcp"
+ProxyPass "/.well-known/oauth-authorization-server/plaut-ai-library" "http://127.0.0.1:16283/.well-known/oauth-authorization-server/plaut-ai-library" connectiontimeout=10 timeout=30 retry=0
+ProxyPassReverse "/.well-known/oauth-authorization-server/plaut-ai-library" "http://127.0.0.1:16283/.well-known/oauth-authorization-server/plaut-ai-library"
+ProxyPass "/plaut-ai-library/" "http://127.0.0.1:16283/plaut-ai-library/" connectiontimeout=10 timeout=600 retry=0
+ProxyPassReverse "/plaut-ai-library/" "http://127.0.0.1:16283/plaut-ai-library/"

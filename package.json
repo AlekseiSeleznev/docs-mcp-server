@@ -29,6 +29,7 @@
     "build:remote-mcpb:server": "vite build --config vite.config.remote-mcpb.ts",
     "build:remote-mcpb": "vite-node scripts/build-remote-mcpb.ts",
     "smoke:remote-mcpb": "vite-node scripts/smoke-remote-mcpb.ts",
+    "smoke:claude-oauth": "vite-node scripts/smoke-claude-oauth.ts",
     "start": "node --enable-source-maps dist/index.js",
     "cli": "node --enable-source-maps dist/index.js",
     "server": "node --enable-source-maps dist/index.ts",
