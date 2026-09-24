@@ -13,6 +13,8 @@ const FIVE_MINUTES = 5 * 60;
 const ACCESS_LIFETIME = 60 * 60;
 const REFRESH_LIFETIME = 30 * 24 * 60 * 60;
 const TOKEN_SCOPE = "mcp:tools";
+const LOGIN_CSP =
+  "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai https://claude.com; frame-ancestors 'none'";
 
 export interface ClaudeOAuthGatewayConfig {
   publicBaseUrl: string;
@@ -243,10 +245,7 @@ export async function createClaudeOAuthGateway(
       resource,
       now() + FIVE_MINUTES,
     );
-    reply.header(
-      "Content-Security-Policy",
-      "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
-    );
+    reply.header("Content-Security-Policy", LOGIN_CSP);
     reply.header(
       "Set-Cookie",
       `libdocs_oauth=${pending}; HttpOnly; Secure; SameSite=Lax; Path=${prefix}; Max-Age=${FIVE_MINUTES}`,
@@ -290,10 +289,7 @@ export async function createClaudeOAuthGateway(
         count: (attempt?.until && attempt.until > now() ? attempt.count : 0) + 1,
         until: now() + 15 * 60,
       });
-      reply.header(
-        "Content-Security-Policy",
-        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
-      );
+      reply.header("Content-Security-Policy", LOGIN_CSP);
       return reply
         .code(401)
         .type("text/html; charset=utf-8")

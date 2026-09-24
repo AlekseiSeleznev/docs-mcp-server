@@ -103,6 +103,24 @@ describe("Claude OAuth gateway", () => {
     expect(await authorize(clientId, "wrong-token")).toBe("401");
   });
 
+  it("allows form-submission redirects to Claude callback origins", async () => {
+    const clientId = await register();
+    const query = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: CALLBACK,
+      response_type: "code",
+      code_challenge: CHALLENGE,
+      code_challenge_method: "S256",
+      state: "client-state",
+    });
+    const page = await app.inject({ method: "GET", url: `${PREFIX}/authorize?${query}` });
+    expect(page.statusCode).toBe(200);
+    expect(page.headers["content-security-policy"]).toContain(
+      "form-action 'self' https://claude.ai https://claude.com",
+    );
+    expect(page.headers["content-security-policy"]).not.toContain("form-action *");
+  });
+
   it("exchanges a one-time PKCE code, refreshes, and proxies only after authorization", async () => {
     const clientId = await register();
     const code = await authorize(clientId, "shared-read-token");

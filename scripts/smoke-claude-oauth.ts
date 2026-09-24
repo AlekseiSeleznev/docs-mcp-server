@@ -39,6 +39,10 @@ const authorization = await fetch(
   })}`,
 );
 if (authorization.status !== 200) throw new Error("Authorization page failed");
+const csp = authorization.headers.get("content-security-policy") ?? "";
+if (!csp.includes("form-action 'self' https://claude.ai https://claude.com")) {
+  throw new Error("Claude callback redirects are blocked by the login CSP");
+}
 const requestId = /name="request_id" value="([^"]+)"/.exec(await authorization.text())?.[1];
 const cookie = authorization.headers.get("set-cookie")?.split(";")[0];
 if (!requestId || !cookie) throw new Error("Authorization form is incomplete");
