@@ -1,0 +1,75 @@
+name: Hosted Library Desktop Extensions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/claude-desktop-remote-mcpb-4"
+    paths:
+      - ".github/workflows/remote-mcpb.yml"
+      - "scripts/build-remote-mcpb.ts"
+      - "scripts/smoke-remote-mcpb.ts"
+      - "src/build/remoteMcpb*"
+      - "src/remoteMcpb.ts"
+      - "vite.config.remote-mcpb.ts"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    paths:
+      - ".github/workflows/remote-mcpb.yml"
+      - "scripts/build-remote-mcpb.ts"
+      - "scripts/smoke-remote-mcpb.ts"
+      - "src/build/remoteMcpb*"
+      - "src/remoteMcpb.ts"
+      - "vite.config.remote-mcpb.ts"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-latest
+          - target: windows-x64
+            runner: windows-latest
+          - target: macos-x64
+            runner: macos-15-intel
+          - target: macos-arm64
+            runner: macos-15
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate source contract
+        run: npm run typecheck && npx vitest run src/build/remoteMcpb.test.ts
+
+      - name: Bundle bridge
+        run: npm run build:remote-mcpb:server
+
+      - name: Package ${{ matrix.target }}
+        run: npm run build:remote-mcpb -- --target ${{ matrix.target }}
+
+      - name: Smoke-test packaged MCPB
+        run: npm run smoke:remote-mcpb -- ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-docs-4.0.0-${{ matrix.target }}
+          path: artifacts/lib-docs-4.0.0-${{ matrix.target }}.mcpb
+          if-no-files-found: error

@@ -2,6 +2,7 @@
 node_modules/
 dist/
 mcpb-dist/
+remote-mcpb-dist/
 artifacts/
 .store/
 public/assets/
