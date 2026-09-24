@@ -1,4 +1,5 @@
 import type * as cheerio from "cheerio";
+import type { PublicationMetadata } from "../../publicationMetadata";
 import type { ContentFetcher } from "../fetcher/types";
 import type { ScraperOptions } from "../types";
 
@@ -18,6 +19,8 @@ export interface MiddlewareContext {
   links: string[];
   /** Errors encountered during processing. */
   errors: Error[];
+  /** Optional bibliographic metadata extracted from Markdown. */
+  publication?: PublicationMetadata;
   /** Job-specific options influencing processing. */
   readonly options: ScraperOptions;
 

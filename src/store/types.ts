@@ -1,3 +1,4 @@
+import type { PublicationMetadata } from "../publicationMetadata";
 import type { ScrapeMode } from "../scraper/types";
 
 /**
@@ -13,6 +14,7 @@ export interface DbPage {
   source_content_type: string | null;
   content_type: string | null;
   depth: number | null;
+  publication_metadata: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +56,7 @@ export interface DbPageChunk extends DbChunk {
   title?: string | null;
   source_content_type?: string | null;
   content_type?: string | null;
+  publication_metadata?: string | null;
 }
 
 /**
@@ -80,6 +83,7 @@ export interface StoreSearchResult {
   score: number | null;
   mimeType?: string | null;
   sourceMimeType?: string | null;
+  publication?: PublicationMetadata;
 }
 
 /**

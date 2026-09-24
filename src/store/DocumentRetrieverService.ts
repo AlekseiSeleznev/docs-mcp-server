@@ -1,3 +1,4 @@
+import { parsePublicationMetadata } from "../publicationMetadata";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { createContentAssemblyStrategy } from "./assembly/ContentAssemblyStrategyFactory";
@@ -223,6 +224,10 @@ export class DocumentRetrieverService {
       initialChunks.length > 0
         ? (initialChunks[0].source_content_type ?? undefined)
         : undefined;
+    const publication =
+      initialChunks.length > 0
+        ? parsePublicationMetadata(initialChunks[0].publication_metadata)
+        : undefined;
 
     // Find the maximum score from the initial results
     const maxScore = Math.max(...initialChunks.map((chunk) => chunk.score));
@@ -246,6 +251,7 @@ export class DocumentRetrieverService {
       score: maxScore,
       mimeType,
       sourceMimeType,
+      ...(publication ? { publication } : {}),
     };
   }
 

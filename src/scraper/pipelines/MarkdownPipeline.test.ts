@@ -143,6 +143,25 @@ This is a paragraph with a [link](https://test.example.com).
     // Verify the result contains the original content
     // Note: Frontmatter extraction and link extraction are not implemented yet
     expect(result.textContent).toBe(markdown);
+    expect(result.publication).toEqual({ authors: ["Test Author"] });
+  });
+
+  it("extracts authors and edition year from book frontmatter", async () => {
+    const pipeline = new MarkdownPipeline(appConfig);
+    const raw: RawContent = {
+      content:
+        "---\nauthors:\n  - Jane Doe\n  - John Smith\npublicationYear: 2024\n---\n# Book",
+      mimeType: "text/markdown",
+      source: "file:///book.md",
+      status: FetchStatus.SUCCESS,
+    };
+
+    const result = await pipeline.process(raw, {} as ScraperOptions);
+
+    expect(result.publication).toEqual({
+      authors: ["Jane Doe", "John Smith"],
+      year: 2024,
+    });
   });
 
   it("process collects errors from middleware", async () => {

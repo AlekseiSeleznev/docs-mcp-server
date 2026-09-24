@@ -210,6 +210,26 @@ describe("DocumentPipeline", () => {
       expect(result.textContent).toContain("| A | B |");
     });
 
+    it.each([
+      ["application/pdf", "book.pdf"],
+      ["application/epub+zip", "book.epub"],
+    ])("extracts publication metadata from %s", async (mimeType, filename) => {
+      vi.mocked(extract).mockResolvedValueOnce(
+        envelope({
+          content: "# Book\n\n1st edition 2024",
+          metadata: { title: "Book", authors: ["Jane Doe", "John Smith"] },
+        }),
+      );
+      const rawContent = createRawContent(filename, mimeType, Buffer.from("book"));
+
+      const result = await pipeline.process(rawContent, baseOptions);
+
+      expect(result.publication).toEqual({
+        authors: ["Jane Doe", "John Smith"],
+        year: 2024,
+      });
+    });
+
     it("should extract mixed DOCX content with tables and prose", async () => {
       const content = loadFixture("mixed-content.docx");
       const rawContent = createRawContent(
@@ -226,6 +246,7 @@ describe("DocumentPipeline", () => {
       expect(result.textContent).toContain("Paragraph before table.");
       expect(result.textContent).toContain("Paragraph after table.");
       expect(result.textContent).toContain("| Header A | Header B |");
+      expect(result.publication).toBeUndefined();
     });
 
     it("should process an XLSX file and produce Markdown tables", async () => {

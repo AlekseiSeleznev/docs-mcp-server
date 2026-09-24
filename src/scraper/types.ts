@@ -1,3 +1,4 @@
+import type { PublicationMetadata } from "../publicationMetadata";
 import type { Chunk } from "../splitter/types";
 import type { ProgressCallback } from "../types";
 
@@ -151,6 +152,8 @@ export interface ScrapeResult {
   errors: Error[];
   /** Pre-split chunks from pipeline processing */
   chunks: Chunk[];
+  /** Optional bibliographic metadata for book-like documents. */
+  publication?: PublicationMetadata;
   /** ETag from HTTP response for caching */
   etag?: string | null;
   /** Last-Modified from HTTP response for caching */

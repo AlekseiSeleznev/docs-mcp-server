@@ -1,3 +1,4 @@
+import type { PublicationMetadata } from "../../publicationMetadata";
 import type { Chunk } from "../../splitter/types";
 import type { ContentFetcher, RawContent } from "../fetcher/types";
 import type { ScraperOptions } from "../types";
@@ -18,6 +19,8 @@ export interface PipelineResult {
   errors?: Error[];
   /** Pre-split chunks from pipeline processing */
   chunks?: Chunk[];
+  /** Optional bibliographic metadata for book-like documents. */
+  publication?: PublicationMetadata;
 }
 
 /**

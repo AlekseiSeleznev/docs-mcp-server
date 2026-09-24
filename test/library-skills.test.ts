@@ -47,10 +47,35 @@ describe.each(appliedSkills)("%s", (skill) => {
       expect(text).toContain("нативн");
       expect(text).toContain("ровно один");
       expect(text).toMatch(/limit(?::\s*|=)\s*5/);
+      expect(text).toMatch(/максимум\s*—\s*два поиска/iu);
       expect(text).toContain("list_libraries");
       expect(text).toMatch(/после реальной ошибки/u);
     });
+
+    it("keeps recommendations inside the sourced answer", () => {
+      expect(text).not.toContain("## Выводы и рекомендации");
+    });
   }
+});
+
+describe("ordinary library answer consistency", () => {
+  it("asks only one question before searching 1C developer documentation", () => {
+    const text = skillFile("lib-1c-dev");
+    expect(text).toContain("Выведи только вопрос, без разделов, источников и");
+    expect(text).toContain("footer; это исключение из формата ответа ниже");
+  });
+
+  it.each(["lib-sap-cons", "lib-sap-dev"])(
+    "%s keeps one source line and plural author label",
+    (skill) => {
+      const text = skillFile(skill);
+      expect(text).toContain("добавь ровно одну строку");
+      expect(text).toContain("`авторы:` используй и для одного имени");
+      expect(text).toContain("разделяй ` | ` после одного");
+      expect(text).toContain("не оставляй");
+      expect(text).toContain("отдельный абзац или строку `[Источник]` вне пункта");
+    },
+  );
 });
 
 describe("lib-skill-creator", () => {
@@ -85,7 +110,7 @@ describe("lib-skill-creator", () => {
 
 describe.each([
   ["sap", "developer", "consultant", 13],
-  ["onec", "developer", "user", 78],
+  ["onec", "developer", "user", 79],
 ] as const)("%s library catalog", (family, firstAudience, secondAudience, total) => {
   it("matches the two centralized projections", () => {
     const master = parse(skillFile(`${family}-libraries.yaml`, ""));

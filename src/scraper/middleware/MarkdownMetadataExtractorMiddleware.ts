@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import { extractPublicationMetadata } from "../../publicationMetadata";
 import { logger } from "../../utils/logger";
 import type { ContentProcessorMiddleware, MiddlewareContext } from "./types";
 
@@ -24,6 +25,23 @@ export class MarkdownMetadataExtractorMiddleware implements ContentProcessorMidd
           // Convert to string to handle numeric titles (e.g. title: 2024)
           frontmatterTitle = String(file.data.title).trim();
         }
+        const rawAuthors = file.data.authors ?? file.data.author ?? file.data.creator;
+        const structuredAuthors = Array.isArray(rawAuthors)
+          ? rawAuthors.map(String)
+          : typeof rawAuthors === "string"
+            ? rawAuthors
+            : undefined;
+        const structuredYear =
+          file.data.editionYear ??
+          file.data.publicationYear ??
+          file.data.published ??
+          file.data.year ??
+          file.data.date;
+        context.publication = extractPublicationMetadata({
+          content: context.content,
+          structuredAuthors,
+          structuredYear,
+        }).publication;
       } catch (err) {
         // Log warning but continue - don't crash the pipeline for bad frontmatter
         logger.warn(

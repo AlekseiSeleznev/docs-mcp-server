@@ -1140,6 +1140,47 @@ describe("MCP Server Read-Only Mode", () => {
     );
   });
 
+  it("formats publication metadata identically in full and packaged servers", async () => {
+    const texts: string[] = [];
+    for (const server of [
+      createMcpServerInstance(mockTools, mockConfig),
+      createReadOnlyMcpServer(mockTools),
+    ]) {
+      vi.mocked(mockTools.search.execute).mockResolvedValueOnce({
+        results: [
+          {
+            url: "file:///book.pdf",
+            content: "Book excerpt",
+            score: 0.9,
+            publication: { authors: ["Jane Doe", "John Smith"], year: 2024 },
+          },
+        ],
+      });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      const client = new Client({ name: "publication-test", version: "1.0.0" });
+      try {
+        await server.connect(serverTransport);
+        await client.connect(clientTransport);
+        const result = CallToolResultSchema.parse(
+          await client.callTool({
+            name: "search_docs",
+            arguments: { library: "lib", query: "book", limit: 5 },
+          }),
+        );
+        const textResult = result.content[0];
+        if (textResult?.type === "text") texts.push(textResult.text);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    }
+
+    expect(texts).toHaveLength(2);
+    expect(texts[0]).toBe(texts[1]);
+    expect(texts[0]).toContain("Publication authors: Jane Doe; John Smith");
+    expect(texts[0]).toContain("Publication year: 2024");
+  });
+
   it("should create server without prompts capability and not fail", () => {
     // This test verifies that the server can be created successfully
     // without advertising prompts capability, which was the root cause

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
 import type { ReadOnlyMcpTools } from "./tools";
-import { createError, createResponse } from "./utils";
+import { createError, createResponse, formatSearchResults } from "./utils";
 
 /** Creates the minimal read-only MCP server used by packaged desktop extensions. */
 export function createReadOnlyMcpServer(tools: ReadOnlyMcpTools): McpServer {
@@ -43,13 +43,7 @@ export function createReadOnlyMcpServer(tools: ReadOnlyMcpTools): McpServer {
           limit,
           exactMatch: false,
         });
-        const formattedResults = result.results.map(
-          (item: { url: string; content: string }, index: number) => `
-------------------------------------------------------------
-Result ${index + 1}: ${item.url}
-
-${item.content}\n`,
-        );
+        const formattedResults = formatSearchResults(result.results);
         return formattedResults.length === 0
           ? createResponse(
               `No results found for '${query}' in ${library}. Try to use a different or more general query.`,

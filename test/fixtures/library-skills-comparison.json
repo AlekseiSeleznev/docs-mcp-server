@@ -28,6 +28,12 @@
     "prompt": "В 1С:ERP не формируется заказ на производство — что проверить?"
   },
   {
+    "id": "onec-cons-erp-holding",
+    "skill": "lib-1c-cons",
+    "profile": "catalog-router",
+    "prompt": "Как в 1С:ERP. Управление холдингом проводится сверка и элиминация внутригрупповых операций?"
+  },
+  {
     "id": "nifi",
     "skill": "lib-nifi",
     "profile": "single-library",

@@ -104,6 +104,29 @@ describe("DocumentRetrieverService", () => {
     ]);
   });
 
+  it("attaches parsed publication metadata without another store call", async () => {
+    const initialResult = {
+      id: "doc1",
+      content: "Book excerpt",
+      url: "book-url",
+      score: 0.9,
+      sort_order: 1,
+      metadata: {},
+      publication_metadata: JSON.stringify({ authors: ["Jane Doe"], year: 2024 }),
+    } as DbPageChunk & DbChunkRank;
+    vi.spyOn(store, "findByContent").mockResolvedValue([initialResult]);
+    vi.spyOn(store, "findParentChunk").mockResolvedValue(null);
+    vi.spyOn(store, "findPrecedingSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChildChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findSubsequentSiblingChunks").mockResolvedValue([]);
+    vi.spyOn(store, "findChunksByIds").mockResolvedValue([initialResult]);
+
+    const results = await service.search("lib", "1.0.0", "query", 1);
+
+    expect(results[0].publication).toEqual({ authors: ["Jane Doe"], year: 2024 });
+    expect(store.findByContent).toHaveBeenCalledTimes(1);
+  });
+
   it("should return a single result for a single hit with context", async () => {
     const library = "lib";
     const version = "1.0.0";

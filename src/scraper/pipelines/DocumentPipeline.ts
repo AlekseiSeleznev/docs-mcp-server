@@ -27,6 +27,7 @@ import {
   extract,
   OutputFormat,
 } from "@xberg-io/xberg";
+import { extractPublicationMetadata } from "../../publicationMetadata";
 import { GreedySplitter } from "../../splitter/GreedySplitter";
 import { SemanticMarkdownSplitter } from "../../splitter/SemanticMarkdownSplitter";
 import type { AppConfig } from "../../utils/config";
@@ -140,6 +141,13 @@ export class DocumentPipeline extends BasePipeline {
 
       // Split the content (Xberg output is Markdown)
       const chunks = await this.splitter.splitText(content, "text/markdown");
+      const publication =
+        mimeType === "application/pdf" || mimeType === "application/epub+zip"
+          ? extractPublicationMetadata({
+              content,
+              structuredAuthors: document.metadata?.authors,
+            }).publication
+          : undefined;
 
       return {
         title,
@@ -148,6 +156,7 @@ export class DocumentPipeline extends BasePipeline {
         links: [], // Documents don't have extractable links
         errors: [],
         chunks,
+        publication,
       };
     } catch (error) {
       // Surface the underlying cause chain so environmental failures

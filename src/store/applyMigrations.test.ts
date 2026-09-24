@@ -145,6 +145,7 @@ describe("Database Migrations", () => {
         "last_modified",
         "source_content_type",
         "content_type",
+        "publication_metadata",
         "created_at",
       ]),
     );

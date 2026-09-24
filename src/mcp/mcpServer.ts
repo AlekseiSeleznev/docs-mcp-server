@@ -8,7 +8,7 @@ import { ToolError } from "../tools/errors";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import type { McpServerTools } from "./tools";
-import { createError, createResponse } from "./utils";
+import { createError, createResponse, formatSearchResults } from "./utils";
 
 /**
  * Creates and configures an instance of the MCP server with registered tools and resources.
@@ -236,13 +236,7 @@ export function createMcpServerInstance(
           exactMatch: false, // Always false for MCP interface
         });
 
-        const formattedResults = result.results.map(
-          (r: { url: string; content: string }, i: number) => `
-------------------------------------------------------------
-Result ${i + 1}: ${r.url}
-
-${r.content}\n`,
-        );
+        const formattedResults = formatSearchResults(result.results);
 
         if (formattedResults.length === 0) {
           return createResponse(

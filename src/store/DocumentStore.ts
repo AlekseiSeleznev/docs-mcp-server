@@ -51,6 +51,7 @@ interface RawSearchResult extends DbChunk {
   title?: string | null;
   source_content_type?: string | null;
   content_type?: string | null;
+  publication_metadata?: string | null;
   // Search scoring fields
   vec_score?: number | null;
   fts_score?: number | null;
@@ -126,6 +127,7 @@ export class DocumentStore {
         string | null,
         string | null,
         number | null,
+        string | null,
       ]
     >;
     getPageId: Database.Statement<[number, string]>;
@@ -322,9 +324,10 @@ export class DocumentStore {
           string | null,
           string | null,
           number | null,
+          string | null,
         ]
       >(
-        "INSERT INTO pages (version_id, url, title, etag, last_modified, source_content_type, content_type, depth) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(version_id, url) DO UPDATE SET title = excluded.title, source_content_type = excluded.source_content_type, content_type = excluded.content_type, etag = excluded.etag, last_modified = excluded.last_modified, depth = excluded.depth",
+        "INSERT INTO pages (version_id, url, title, etag, last_modified, source_content_type, content_type, depth, publication_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(version_id, url) DO UPDATE SET title = excluded.title, source_content_type = excluded.source_content_type, content_type = excluded.content_type, etag = excluded.etag, last_modified = excluded.last_modified, depth = excluded.depth, publication_metadata = excluded.publication_metadata",
       ),
       getPageId: this.db.prepare<[number, string]>(
         "SELECT id FROM pages WHERE version_id = ? AND url = ?",
@@ -1842,6 +1845,7 @@ export class DocumentStore {
           sourceContentType,
           contentType,
           depth,
+          result.publication ? JSON.stringify(result.publication) : null,
         );
 
         // Query for the page ID since we can't use RETURNING
@@ -2158,6 +2162,7 @@ export class DocumentStore {
             p.title as title,
             p.source_content_type as source_content_type,
             p.content_type as content_type,
+            p.publication_metadata as publication_metadata,
             CASE WHEN v.id IS NULL THEN NULL ELSE 1 / (1 + v.vec_distance) END as vec_score,
             CASE WHEN f.id IS NULL THEN NULL ELSE -MIN(f.fts_score, 0) END as fts_score
           FROM candidates c
@@ -2194,6 +2199,7 @@ export class DocumentStore {
             title: row.title || null,
             source_content_type: row.source_content_type || null,
             content_type: row.content_type || null,
+            publication_metadata: row.publication_metadata || null,
           };
           // Add search scores as additional properties (not in metadata)
           return Object.assign(result, {
@@ -2213,6 +2219,7 @@ export class DocumentStore {
             p.title as title,
             p.source_content_type as source_content_type,
             p.content_type as content_type,
+            p.publication_metadata as publication_metadata,
             bm25(documents_fts, 10.0, 1.0, 5.0, 1.0) as fts_score
           FROM documents_fts f
           JOIN documents d ON f.rowid = d.id
@@ -2239,6 +2246,7 @@ export class DocumentStore {
             title: row.title || null,
             source_content_type: row.source_content_type || null,
             content_type: row.content_type || null,
+            publication_metadata: row.publication_metadata || null,
           };
           // Add search scores as additional properties (not in metadata)
           return Object.assign(result, {

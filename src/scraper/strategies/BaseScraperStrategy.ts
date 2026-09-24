@@ -354,6 +354,7 @@ export abstract class BaseScraperStrategy implements ScraperStrategy {
                 links: result.content.links || [],
                 errors: result.content.errors || [],
                 chunks: result.content.chunks || [],
+                publication: result.content.publication,
                 etag: result.etag || null,
                 lastModified: result.lastModified || null,
               } satisfies ScrapeResult,

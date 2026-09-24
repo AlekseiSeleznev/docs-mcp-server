@@ -277,6 +277,7 @@ describe("HierarchicalAssemblyStrategy", () => {
         "text/typescript",
         "text/typescript",
         0, // depth
+        null, // publication metadata
       );
       const pageId = pageResult.lastInsertRowid as number;
 
@@ -398,6 +399,7 @@ describe("HierarchicalAssemblyStrategy", () => {
         "text/typescript",
         "text/typescript",
         0, // depth
+        null, // publication metadata
       );
       const pageAId = pageAResult.lastInsertRowid as number;
 
@@ -411,6 +413,7 @@ describe("HierarchicalAssemblyStrategy", () => {
         "text/typescript",
         "text/typescript",
         0, // depth
+        null, // publication metadata
       );
       const pageBId = pageBResult.lastInsertRowid as number;
 

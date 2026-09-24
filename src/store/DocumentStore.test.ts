@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PublicationMetadata } from "../publicationMetadata";
 import type { ScrapeResult } from "../scraper/types";
 import type { Chunk } from "../splitter/types";
 import { loadConfig, markVectorDimensionSource } from "../utils/config";
@@ -122,6 +123,7 @@ function createScrapeResult(
   options?: {
     etag?: string | null;
     lastModified?: string | null;
+    publication?: PublicationMetadata;
   },
 ): ScrapeResult {
   const chunks: Chunk[] = [
@@ -143,6 +145,7 @@ function createScrapeResult(
     chunks,
     etag: options?.etag,
     lastModified: options?.lastModified,
+    publication: options?.publication,
   } satisfies ScrapeResult;
 }
 
@@ -1339,6 +1342,26 @@ describe("DocumentStore - Without Embeddings (FTS-only)", () => {
       expect(results[0]).toHaveProperty("fts_rank");
       // Should NOT have vector rank since vectorization is disabled
       expect((results[0] as any).vec_rank).toBeUndefined();
+    });
+
+    it("stores publication metadata and returns it with search hits", async () => {
+      await store.addDocuments(
+        "testlib",
+        "1.0.0",
+        1,
+        createScrapeResult(
+          "Book",
+          "https://example.com/book",
+          "Distinct bibliographic search phrase.",
+          ["Book"],
+          { publication: { authors: ["Jane Doe"], year: 2024 } },
+        ),
+      );
+
+      const [result] = await store.findByContent("testlib", "1.0.0", "bibliographic", 5);
+      expect(result.publication_metadata).toBe(
+        JSON.stringify({ authors: ["Jane Doe"], year: 2024 }),
+      );
     });
 
     it("should handle various search queries correctly", async () => {
