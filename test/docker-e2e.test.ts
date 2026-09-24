@@ -297,13 +297,12 @@ async function exerciseProductionComposeStack(): Promise<DistributedStackEvidenc
   const fixture = fs
     .readFileSync(EXISTING_RERANKER_DB_FIXTURE, "utf8")
     .replace(/\s/g, "");
-  fs.writeFileSync(
-    path.join(dataDir, "documents.db"),
-    gunzipSync(Buffer.from(fixture, "base64")),
-  );
+  const dbPath = path.join(dataDir, "documents.db");
+  fs.writeFileSync(dbPath, gunzipSync(Buffer.from(fixture, "base64")));
+  // The CI runner and the container's non-root node user can have different UIDs.
+  fs.chmodSync(dbPath, 0o666);
   fs.writeFileSync(workerEnvPath, "VOYAGE_API_KEY=test-only-worker-key\n");
 
-  const dbPath = path.join(dataDir, "documents.db");
   const before = snapshotDatabase(dbPath);
   const composeContext: ComposeTestContext = {
     args: [
@@ -711,9 +710,22 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(evidence.workerLogs).not.toContain("test-only-worker-key");
     });
 
-    it("opens existing SQLite data without schema changes or reindexing", () => {
+    it("adds publication metadata to existing SQLite data without reindexing", () => {
       expect(evidence.before.counts.documents).toBeGreaterThan(0);
-      expect(evidence.after).toEqual(evidence.before);
+      expect(evidence.after.userVersion).toBe(evidence.before.userVersion);
+      expect(evidence.after.counts).toEqual(evidence.before.counts);
+
+      const isPagesTable = (entry: string) => entry.startsWith("table:pages:");
+      expect(evidence.after.schema.filter((entry) => !isPagesTable(entry))).toEqual(
+        evidence.before.schema.filter((entry) => !isPagesTable(entry)),
+      );
+      const beforePages = evidence.before.schema.find(isPagesTable);
+      const afterPages = evidence.after.schema.find(isPagesTable);
+      expect(beforePages).toBeDefined();
+      expect(afterPages).toMatch(/\bpublication_metadata JSON\b/u);
+      expect(
+        afterPages?.replace(/,\s*publication_metadata JSON\b/u, ""),
+      ).toBe(beforePages);
     });
   });
   it("runs the entrypoint as a non-root user", async () => {
