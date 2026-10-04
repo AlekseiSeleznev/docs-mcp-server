@@ -20,7 +20,7 @@ function parseArguments(argv) {
     const flag = argv[index];
     const value = argv[index + 1];
     if (flag === "--destination") destination = value;
-    if (flag === "--count") count = Number.parseInt(value ?? "", 10);
+    if (flag === "--count") count = /^\d+$/.test(value ?? "") ? Number(value) : NaN;
   }
   if (!destination || !isAbsolute(destination)) {
     throw new Error("--destination must be an absolute path");
@@ -39,9 +39,7 @@ function decodeBase64(value) {
   if (
     typeof value !== "string" ||
     value.length === 0 ||
-    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-      value,
-    )
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)
   ) {
     throw new Error("blob must be canonical base64");
   }
@@ -126,8 +124,7 @@ function validateRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("record must be an object");
   }
-  const { blob, mimeType, sha256: expectedSha256, sizeBytes, suggestedFilename } =
-    value;
+  const { blob, mimeType, sha256: expectedSha256, sizeBytes, suggestedFilename } = value;
   if (
     typeof suggestedFilename !== "string" ||
     suggestedFilename.length === 0 ||
@@ -207,7 +204,9 @@ function main() {
     stopped = true;
     restoreTerminal();
     const message = error instanceof Error ? error.message : "unknown writer error";
-    process.stderr.write(`${JSON.stringify({ error: message })}\n`, () => process.exit(1));
+    process.stderr.write(`${JSON.stringify({ error: message })}\n`, () =>
+      process.exit(1),
+    );
   };
   const acceptLine = (line) => {
     if (line.length === 0) return;
@@ -224,7 +223,7 @@ function main() {
   };
 
   process.stdin.on("data", (chunk) => {
-    if (stopped) return;
+    if (stopped || completed >= count) return;
     try {
       buffer += chunk;
       for (;;) {
@@ -233,7 +232,7 @@ function main() {
         const line = buffer.slice(0, newline).replace(/\r$/, "");
         buffer = buffer.slice(newline + 1);
         acceptLine(line);
-        if (stopped) break;
+        if (stopped || completed >= count) break;
       }
     } catch (error) {
       fail(error);

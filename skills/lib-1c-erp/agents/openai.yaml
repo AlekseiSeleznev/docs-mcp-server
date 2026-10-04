@@ -1,0 +1,12 @@
+interface:
+  display_name: 1С:ERP документация
+  short_description: Документация продукта и внедрения 1С:ERP
+  default_prompt: Используй $lib-1c-erp для проверки продукта или проекта внедрения
+    1С:ERP.
+dependencies:
+  tools:
+  - type: mcp
+    value: "lib-docs"
+    description: Удалённая библиотека документации
+policy:
+  allow_implicit_invocation: true

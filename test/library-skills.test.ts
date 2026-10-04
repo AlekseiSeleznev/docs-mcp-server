@@ -10,6 +10,7 @@ const root = resolve(import.meta.dirname, "..");
 const appliedSkills = [
   "lib-1c-cons",
   "lib-1c-dev",
+  "lib-1c-erp",
   "lib-nifi",
   "lib-pm2-it",
   "lib-postgresql",
@@ -57,6 +58,65 @@ describe.each(appliedSkills)("%s", (skill) => {
     });
   }
 });
+
+describe.each(["lib-sap-process-navigator", "lib-project-docs"])(
+  "%s artifact writer boundaries",
+  (skill) => {
+    const writer = resolve(root, "skills", skill, "scripts/save-source-artifacts.mjs");
+    const record = (name: string) => ({
+      suggestedFilename: name,
+      blob: Buffer.from("abc").toString("base64"),
+      sizeBytes: 3,
+      sha256: createHash("sha256").update("abc").digest("hex"),
+      mimeType: "text/plain",
+    });
+
+    it.each(["1x", "1.5", "0", "-1", skill === "lib-project-docs" ? "1001" : "101"])(
+      "rejects invalid record count %s before writing",
+      (count) => {
+        const destination = mkdtempSync(join(tmpdir(), "lib-writer-count-"));
+        try {
+          const result = spawnSync(
+            process.execPath,
+            [writer, "--destination", destination, "--count", count],
+            {
+              encoding: "utf8",
+              input: `${JSON.stringify(record("unexpected.txt"))}\n`,
+            },
+          );
+          expect(result.status).toBe(1);
+          expect(existsSync(join(destination, "unexpected.txt"))).toBe(false);
+        } finally {
+          rmSync(destination, { recursive: true, force: true });
+        }
+      },
+    );
+
+    it("writes only the declared number of records", () => {
+      const destination = mkdtempSync(join(tmpdir(), "lib-writer-overflow-"));
+      try {
+        const input =
+          [record("first.txt"), record("extra.txt")]
+            .map((value) => JSON.stringify(value))
+            .join("\n") + "\n";
+        const result = spawnSync(
+          process.execPath,
+          [writer, "--destination", destination, "--count", "1"],
+          {
+            encoding: "utf8",
+            input,
+          },
+        );
+        expect(result.status).toBe(0);
+        expect(readFileSync(join(destination, "first.txt"), "utf8")).toBe("abc");
+        expect(existsSync(join(destination, "extra.txt"))).toBe(false);
+        expect(result.stdout.trim().split("\n")).toHaveLength(2);
+      } finally {
+        rmSync(destination, { recursive: true, force: true });
+      }
+    });
+  },
+);
 
 describe("ordinary library answer consistency", () => {
   it("asks only one question before searching 1C developer documentation", () => {

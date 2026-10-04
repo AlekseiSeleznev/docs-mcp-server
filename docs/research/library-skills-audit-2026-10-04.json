@@ -1,0 +1,2571 @@
+{
+  "date": "2026-10-04",
+  "libraries": [
+    {
+      "library": "onec_buh",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.0.0",
+      "versionError": false,
+      "version": "3.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 30450,
+      "elapsedMs": 3545
+    },
+    {
+      "library": "onec_docflow_integration",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.0.4",
+      "versionError": false,
+      "version": "3.0.4",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 28390,
+      "elapsedMs": 5983
+    },
+    {
+      "library": "onec_docflow",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.0.0",
+      "versionError": false,
+      "version": "3.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 22167,
+      "elapsedMs": 5984
+    },
+    {
+      "library": "onec_erp",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2.5.0",
+      "versionError": false,
+      "version": "2.5.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18515,
+      "elapsedMs": 2999
+    },
+    {
+      "library": "onec_ka",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2.5.0",
+      "versionError": false,
+      "version": "2.5.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 26567,
+      "elapsedMs": 2235
+    },
+    {
+      "library": "onec_erp_implementation",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.8",
+      "versionError": false,
+      "version": "2026.8.8",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 21427,
+      "elapsedMs": 3254
+    },
+    {
+      "library": "onec_erp_holding",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.3.0",
+      "versionError": false,
+      "version": "3.3.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18707,
+      "elapsedMs": 3256
+    },
+    {
+      "library": "onec_toir",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.0.0",
+      "versionError": false,
+      "version": "3.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 42129,
+      "elapsedMs": 2967
+    },
+    {
+      "library": "onec_wms",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "5.1.0",
+      "versionError": false,
+      "version": "5.1.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 34975,
+      "elapsedMs": 3252
+    },
+    {
+      "library": "onec_zupcorp",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "3.1.0",
+      "versionError": false,
+      "version": "3.1.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18563,
+      "elapsedMs": 3912
+    },
+    {
+      "library": "onec_consulting_pm_analyst",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 36946,
+      "elapsedMs": 1661
+    },
+    {
+      "library": "onec_consulting_competency_model",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13507,
+      "elapsedMs": 1640
+    },
+    {
+      "library": "onec_consulting_quick_result",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 12865,
+      "elapsedMs": 3626
+    },
+    {
+      "library": "onec_consulting_corporate_implementation_lite",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 19153,
+      "elapsedMs": 3595
+    },
+    {
+      "library": "onec_consulting_corporate_implementation",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 31766,
+      "elapsedMs": 3455
+    },
+    {
+      "library": "onec_consulting_standard_implementation",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 16412,
+      "elapsedMs": 1541
+    },
+    {
+      "library": "onec_consulting_franchise_quality",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 32723,
+      "elapsedMs": 1968
+    },
+    {
+      "library": "onec_consulting_corporate_support",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 26098,
+      "elapsedMs": 3031
+    },
+    {
+      "library": "onec_consulting_company_management",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 33784,
+      "elapsedMs": 2138
+    },
+    {
+      "library": "onec_its_analytics",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20030,
+      "elapsedMs": 2061
+    },
+    {
+      "library": "onec_its_pub1802bp8",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 28204,
+      "elapsedMs": 1874
+    },
+    {
+      "library": "onec_its_pub1cerpcrm",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13969,
+      "elapsedMs": 2270
+    },
+    {
+      "library": "onec_its_pub1cerpfpb",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 17076,
+      "elapsedMs": 1642
+    },
+    {
+      "library": "onec_its_pub1cerphr",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15652,
+      "elapsedMs": 2281
+    },
+    {
+      "library": "onec_its_pub1cerpgoz",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 28389,
+      "elapsedMs": 3655
+    },
+    {
+      "library": "onec_its_pub1cerpktpp",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 27853,
+      "elapsedMs": 3152
+    },
+    {
+      "library": "onec_its_pub1cerpmto",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15946,
+      "elapsedMs": 1983
+    },
+    {
+      "library": "onec_its_pub1cerpmsfo",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15929,
+      "elapsedMs": 2298
+    },
+    {
+      "library": "onec_its_pub1cerpruchet",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 25500,
+      "elapsedMs": 2686
+    },
+    {
+      "library": "onec_its_pub1cerpreguch",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 28505,
+      "elapsedMs": 3765
+    },
+    {
+      "library": "onec_its_pub1cerpupplan",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18864,
+      "elapsedMs": 1659
+    },
+    {
+      "library": "onec_its_pub1cerptoir",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 40603,
+      "elapsedMs": 4927
+    },
+    {
+      "library": "onec_its_pub1cerpuu",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 16985,
+      "elapsedMs": 2827
+    },
+    {
+      "library": "onec_its_pubanaliticabisystem2",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 16105,
+      "elapsedMs": 2067
+    },
+    {
+      "library": "onec_its_pubdeskbookzup21",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 32864,
+      "elapsedMs": 1911
+    },
+    {
+      "library": "onec_its_pubdocmng",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13832,
+      "elapsedMs": 1607
+    },
+    {
+      "library": "onec_its_pubdocflow300quest",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15900,
+      "elapsedMs": 3931
+    },
+    {
+      "library": "onec_its_pubdocupr",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 26957,
+      "elapsedMs": 3458
+    },
+    {
+      "library": "onec_its_pubecs",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13690,
+      "elapsedMs": 2831
+    },
+    {
+      "library": "onec_its_puberpmarketing",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 23836,
+      "elapsedMs": 2243
+    },
+    {
+      "library": "onec_its_puberpplan",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 25181,
+      "elapsedMs": 1870
+    },
+    {
+      "library": "onec_its_pubnds30",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20042,
+      "elapsedMs": 1768
+    },
+    {
+      "library": "onec_its_pubndspractbuh4",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 25232,
+      "elapsedMs": 1672
+    },
+    {
+      "library": "onec_its_pubopltrudgosuchzup10",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18660,
+      "elapsedMs": 1572
+    },
+    {
+      "library": "onec_its_pubuchetpro",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 26330,
+      "elapsedMs": 2680
+    },
+    {
+      "library": "onec_its_pubuchetto",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 22768,
+      "elapsedMs": 3107
+    },
+    {
+      "library": "onec_its_pubunfreal",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 8529,
+      "elapsedMs": 3177
+    },
+    {
+      "library": "onec_its_utovio",
+      "skills": [
+        "lib-1c-cons"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 27495,
+      "elapsedMs": 2539
+    },
+    {
+      "library": "onec_dev_bsp",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "3.2.1",
+      "versionError": false,
+      "version": "3.2.1",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 22689,
+      "elapsedMs": 1972
+    },
+    {
+      "library": "onec_dev_methodology",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 11487,
+      "elapsedMs": 1906
+    },
+    {
+      "library": "onec_dev_glossary",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 8483,
+      "elapsedMs": 1472
+    },
+    {
+      "library": "onec_dev_standards",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 14903,
+      "elapsedMs": 3084
+    },
+    {
+      "library": "onec_dev_platform",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "8.3.27",
+      "versionError": false,
+      "version": "8.3.27",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 35294,
+      "elapsedMs": 3085
+    },
+    {
+      "library": "onec_dev_installer",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 7996,
+      "elapsedMs": 2181
+    },
+    {
+      "library": "onec_dev_equipment",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15693,
+      "elapsedMs": 1710
+    },
+    {
+      "library": "onec_dev_ui",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20881,
+      "elapsedMs": 2099
+    },
+    {
+      "library": "onec_dev_integration",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 23761,
+      "elapsedMs": 2259
+    },
+    {
+      "library": "onec_dev_query_language",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 37629,
+      "elapsedMs": 1648
+    },
+    {
+      "library": "onec_dev_extensions",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20473,
+      "elapsedMs": 3670
+    },
+    {
+      "library": "onec_dev_cloud",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 25457,
+      "elapsedMs": 2884
+    },
+    {
+      "library": "onec_dev_complex_reports",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.14",
+      "versionError": false,
+      "version": "2026.8.14",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 29726,
+      "elapsedMs": 1797
+    },
+    {
+      "library": "onec_its_corpdatastore",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18089,
+      "elapsedMs": 1996
+    },
+    {
+      "library": "onec_its_freshpub",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 29608,
+      "elapsedMs": 2231
+    },
+    {
+      "library": "onec_its_sppr2doc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2.0.0",
+      "versionError": false,
+      "version": "2.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20761,
+      "elapsedMs": 2115
+    },
+    {
+      "library": "onec_its_bed1101doc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "1.10.1",
+      "versionError": false,
+      "version": "1.10.1",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 37857,
+      "elapsedMs": 2279
+    },
+    {
+      "library": "onec_its_bia104doc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "1.0.4",
+      "versionError": false,
+      "version": "1.0.4",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 15838,
+      "elapsedMs": 1761
+    },
+    {
+      "library": "onec_its_bed1101taxidoc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "1.10.1",
+      "versionError": false,
+      "version": "1.10.1",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 10382,
+      "elapsedMs": 3030
+    },
+    {
+      "library": "onec_its_cs27doc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 9997,
+      "elapsedMs": 2079
+    },
+    {
+      "library": "onec_its_coldev",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 23485,
+      "elapsedMs": 4138
+    },
+    {
+      "library": "onec_its_kip",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 14620,
+      "elapsedMs": 1654
+    },
+    {
+      "library": "onec_its_freshdev",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 10891,
+      "elapsedMs": 3092
+    },
+    {
+      "library": "onec_its_landscapedoc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13380,
+      "elapsedMs": 2254
+    },
+    {
+      "library": "onec_its_pub1celementarno",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 11734,
+      "elapsedMs": 3366
+    },
+    {
+      "library": "onec_its_pubdevguide83",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18705,
+      "elapsedMs": 3825
+    },
+    {
+      "library": "onec_its_pubdevguideedt",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 9051,
+      "elapsedMs": 2938
+    },
+    {
+      "library": "onec_its_pubelementlang",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 14531,
+      "elapsedMs": 2102
+    },
+    {
+      "library": "onec_its_pubintromobile",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 16841,
+      "elapsedMs": 1851
+    },
+    {
+      "library": "onec_its_pubtirage",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 13083,
+      "elapsedMs": 2233
+    },
+    {
+      "library": "onec_its_uisl29doc",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.8.19",
+      "versionError": false,
+      "version": "2026.8.19",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 10829,
+      "elapsedMs": 2062
+    },
+    {
+      "library": "onec_dev_vanessa_automation",
+      "skills": [
+        "lib-1c-dev"
+      ],
+      "requestedVersion": "2026.10.2",
+      "versionError": false,
+      "version": "2026.10.2",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 16813,
+      "elapsedMs": 2358
+    },
+    {
+      "library": "sap_books_finance_s4hana",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 29781,
+      "elapsedMs": 2358
+    },
+    {
+      "library": "sap_books_finance_erp",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 45683,
+      "elapsedMs": 2118
+    },
+    {
+      "library": "sap_books_logistics_s4hana",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 32351,
+      "elapsedMs": 1843
+    },
+    {
+      "library": "sap_books_hcm_erp",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 30891,
+      "elapsedMs": 2380
+    },
+    {
+      "library": "sap_books_logistics_erp",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 37851,
+      "elapsedMs": 3943
+    },
+    {
+      "library": "sap_books_security_governance",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 26829,
+      "elapsedMs": 2328
+    },
+    {
+      "library": "sap_books_implementation",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 30539,
+      "elapsedMs": 3162
+    },
+    {
+      "library": "sap_abap_keyword_doc",
+      "skills": [
+        "lib-sap-dev"
+      ],
+      "requestedVersion": "7.56.0",
+      "versionError": false,
+      "version": "7.56.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 21703,
+      "elapsedMs": 3223
+    },
+    {
+      "library": "sap_books_analytics_user",
+      "skills": [
+        "lib-sap-cons"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 21544,
+      "elapsedMs": 13772
+    },
+    {
+      "library": "sap_books_abap",
+      "skills": [
+        "lib-sap-dev"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 20529,
+      "elapsedMs": 9234
+    },
+    {
+      "library": "sap_books_integration",
+      "skills": [
+        "lib-sap-dev"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 37384,
+      "elapsedMs": 3025
+    },
+    {
+      "library": "sap_books_data_platform",
+      "skills": [
+        "lib-sap-dev"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 30460,
+      "elapsedMs": 2926
+    },
+    {
+      "library": "sap_books_ui5_fiori",
+      "skills": [
+        "lib-sap-dev"
+      ],
+      "requestedVersion": "2026.8.29",
+      "versionError": false,
+      "version": "2026.8.29",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": true,
+      "hasArtifactMetadata": false,
+      "responseBytes": 38311,
+      "elapsedMs": 11375
+    },
+    {
+      "library": "nifi",
+      "skills": [
+        "lib-nifi"
+      ],
+      "requestedVersion": null,
+      "versionError": false,
+      "version": "2.11.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 14530,
+      "elapsedMs": 2323
+    },
+    {
+      "library": "postgresql",
+      "skills": [
+        "lib-postgresql"
+      ],
+      "requestedVersion": null,
+      "versionError": false,
+      "version": "18.4.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 24729,
+      "elapsedMs": 1576
+    },
+    {
+      "library": "pm2-it",
+      "skills": [
+        "lib-pm2-it"
+      ],
+      "requestedVersion": null,
+      "versionError": false,
+      "version": "3.1.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 18793,
+      "elapsedMs": 1464
+    },
+    {
+      "library": "sap-sf-odata",
+      "skills": [
+        "lib-sap-sf-odata"
+      ],
+      "requestedVersion": null,
+      "versionError": false,
+      "version": "2605.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": false,
+      "responseBytes": 24038,
+      "elapsedMs": 2019
+    },
+    {
+      "library": "sap_process_navigator",
+      "skills": [
+        "lib-sap-process-navigator"
+      ],
+      "requestedVersion": null,
+      "versionError": false,
+      "version": "2025.1.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 43192,
+      "elapsedMs": 2867
+    },
+    {
+      "library": "project-docs-luve-01-dogovor",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 25921,
+      "elapsedMs": 3375
+    },
+    {
+      "library": "project-docs-mane-01-dogovor",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 29789,
+      "elapsedMs": 2629
+    },
+    {
+      "library": "project-docs-mane-03-fit-gap",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 21181,
+      "elapsedMs": 1575
+    },
+    {
+      "library": "project-docs-mane-02-plans",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 14512,
+      "elapsedMs": 2616
+    },
+    {
+      "library": "project-docs-polis-02-plans",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 6108,
+      "elapsedMs": 2173
+    },
+    {
+      "library": "project-docs-mane-05-infrastructure",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 18872,
+      "elapsedMs": 2242
+    },
+    {
+      "library": "project-docs-mane-04-settings",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 6290,
+      "elapsedMs": 2252
+    },
+    {
+      "library": "project-docs-polis-05-infrastructure",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 5878,
+      "elapsedMs": 1712
+    },
+    {
+      "library": "project-docs-mane-06-test-scenarios",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 4916,
+      "elapsedMs": 1496
+    },
+    {
+      "library": "project-docs-mane-07-training",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 19969,
+      "elapsedMs": 1555
+    },
+    {
+      "library": "project-docs-mane-08-roles",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 20298,
+      "elapsedMs": 2730
+    },
+    {
+      "library": "project-docs-polis-09-fs",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 3289,
+      "elapsedMs": 1586
+    },
+    {
+      "library": "project-docs-mane-09-fs",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 15113,
+      "elapsedMs": 2658
+    },
+    {
+      "library": "project-docs-polis-10-migration",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 5212,
+      "elapsedMs": 1271
+    },
+    {
+      "library": "project-docs-mane-10-migration",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 4897,
+      "elapsedMs": 2147
+    },
+    {
+      "library": "project-docs-mane-11-cutover",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 4681,
+      "elapsedMs": 1917
+    },
+    {
+      "library": "project-docs-polis-11-cutover",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 5301,
+      "elapsedMs": 1764
+    },
+    {
+      "library": "project-docs-mane-12-ope",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 10812,
+      "elapsedMs": 2433
+    },
+    {
+      "library": "project-docs-polis-12-ope",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 9066,
+      "elapsedMs": 1386
+    },
+    {
+      "library": "project-docs-mane-13-lessons",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 2213,
+      "elapsedMs": 3882
+    },
+    {
+      "library": "project-docs-polis-15-org-change",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 5796,
+      "elapsedMs": 3099
+    },
+    {
+      "library": "project-docs-polis-14-approaches",
+      "skills": [
+        "lib-project-docs"
+      ],
+      "requestedVersion": "1.0.0",
+      "versionError": false,
+      "version": "1.0.0",
+      "catalogVersionMatches": true,
+      "searchError": false,
+      "resultCount": 5,
+      "noResults": false,
+      "hasPublicationMetadata": false,
+      "hasArtifactMetadata": true,
+      "responseBytes": 22620,
+      "elapsedMs": 3395
+    }
+  ],
+  "inventories": [
+    {
+      "library": "project-docs-luve-01-dogovor",
+      "version": "1.0.0",
+      "processId": "project-docs-luve-01-dogovor",
+      "isError": false,
+      "count": 8,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 8
+      }
+    },
+    {
+      "library": "project-docs-mane-01-dogovor",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-01-dogovor",
+      "isError": false,
+      "count": 11,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 11
+      }
+    },
+    {
+      "library": "project-docs-mane-02-plans",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-02-plans",
+      "isError": false,
+      "count": 5,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 5
+      }
+    },
+    {
+      "library": "project-docs-polis-02-plans",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-02-plans",
+      "isError": false,
+      "count": 6,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 6
+      }
+    },
+    {
+      "library": "project-docs-mane-03-fit-gap",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-03-fit-gap",
+      "isError": false,
+      "count": 60,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 60
+      }
+    },
+    {
+      "library": "project-docs-mane-04-settings",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-04-settings",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-mane-05-infrastructure",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-05-infrastructure",
+      "isError": false,
+      "count": 5,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 5
+      }
+    },
+    {
+      "library": "project-docs-mane-06-test-scenarios",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-06-test-scenarios",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-polis-05-infrastructure",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-05-infrastructure",
+      "isError": false,
+      "count": 2,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 2
+      }
+    },
+    {
+      "library": "project-docs-mane-09-fs",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-09-fs",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-mane-08-roles",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-08-roles",
+      "isError": false,
+      "count": 17,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 17
+      }
+    },
+    {
+      "library": "project-docs-mane-07-training",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-07-training",
+      "isError": false,
+      "count": 33,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 33
+      }
+    },
+    {
+      "library": "project-docs-polis-10-migration",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-10-migration",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-polis-09-fs",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-09-fs",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-mane-11-cutover",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-11-cutover",
+      "isError": false,
+      "count": 5,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 5
+      }
+    },
+    {
+      "library": "project-docs-polis-11-cutover",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-11-cutover",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-mane-12-ope",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-12-ope",
+      "isError": false,
+      "count": 2,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 2
+      }
+    },
+    {
+      "library": "project-docs-mane-13-lessons",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-13-lessons",
+      "isError": false,
+      "count": 2,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 2
+      }
+    },
+    {
+      "library": "project-docs-mane-10-migration",
+      "version": "1.0.0",
+      "processId": "project-docs-mane-10-migration",
+      "isError": false,
+      "count": 2,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 2
+      }
+    },
+    {
+      "library": "project-docs-polis-14-approaches",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-14-approaches",
+      "isError": false,
+      "count": 13,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 13
+      }
+    },
+    {
+      "library": "project-docs-polis-15-org-change",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-15-org-change",
+      "isError": false,
+      "count": 1,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 1
+      }
+    },
+    {
+      "library": "project-docs-polis-12-ope",
+      "version": "1.0.0",
+      "processId": "project-docs-polis-12-ope",
+      "isError": false,
+      "count": 3,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 3
+      }
+    },
+    {
+      "library": "sap_process_navigator",
+      "version": "2025.1.0",
+      "processId": "4HH",
+      "isError": false,
+      "count": 6,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 6
+      }
+    },
+    {
+      "library": "sap_process_navigator",
+      "version": "2025.1.0",
+      "processId": "4HI",
+      "isError": false,
+      "count": 4,
+      "duplicateIds": 0,
+      "statuses": {
+        "Downloaded": 4
+      }
+    }
+  ],
+  "artifactIntegrity": [
+    {
+      "profile": "project",
+      "library": "project-docs-luve-01-dogovor",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "error": false,
+      "sizeBytes": 120570,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "project",
+      "library": "project-docs-mane-01-dogovor",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "error": false,
+      "sizeBytes": 87116,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "project",
+      "library": "project-docs-mane-03-fit-gap",
+      "mimeType": "application/msword",
+      "error": false,
+      "sizeBytes": 19043328,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "project",
+      "library": "project-docs-mane-13-lessons",
+      "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "error": false,
+      "sizeBytes": 5072896,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "project",
+      "library": "project-docs-polis-14-approaches",
+      "mimeType": "application/vnd.ms-project",
+      "error": false,
+      "sizeBytes": 11156480,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "sap",
+      "library": "sap_process_navigator",
+      "mimeType": "text/plain",
+      "error": false,
+      "sizeBytes": 1866,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "sap",
+      "library": "sap_process_navigator",
+      "mimeType": "text/xml",
+      "error": false,
+      "sizeBytes": 112352,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "sap",
+      "library": "sap_process_navigator",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "error": false,
+      "sizeBytes": 167687,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    },
+    {
+      "profile": "sap",
+      "library": "sap_process_navigator",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "error": false,
+      "sizeBytes": 43148,
+      "sizeMatches": true,
+      "sha256Matches": true,
+      "embeddedResource": true
+    }
+  ],
+  "negativeCases": [
+    {
+      "name": "missingLibrary",
+      "error": true,
+      "emptyArtifacts": false,
+      "unavailable": true,
+      "textLength": 58,
+      "passed": true
+    },
+    {
+      "name": "unsupportedVersion",
+      "error": false,
+      "emptyArtifacts": false,
+      "unavailable": false,
+      "textLength": 19,
+      "passed": true,
+      "behavior": "closest version returned; skill must reject incompatible major",
+      "resolvedVersion": "2.11.0"
+    },
+    {
+      "name": "unknownArtifact",
+      "error": true,
+      "emptyArtifacts": false,
+      "unavailable": true,
+      "textLength": 25,
+      "passed": true
+    },
+    {
+      "name": "unknownProcess",
+      "error": true,
+      "emptyArtifacts": false,
+      "unavailable": true,
+      "textLength": 33,
+      "passed": true
+    }
+  ],
+  "archives": [
+    {
+      "archive": "lib-1c-cons.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-1c-dev.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-1c-erp.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-nifi.zip",
+      "files": 2,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-pm2-it.zip",
+      "files": 2,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-postgresql.zip",
+      "files": 2,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-sap-cons.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-sap-dev.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-sap-process-navigator.zip",
+      "files": 3,
+      "matchesSource": true
+    },
+    {
+      "archive": "lib-sap-sf-odata.zip",
+      "files": 2,
+      "matchesSource": true
+    }
+  ],
+  "automated": {
+    "testFiles": 157,
+    "testsPassed": 2610,
+    "skillTestsPassed": 101,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "validators": 23
+  },
+  "installedValidation": {
+    "checks": 48,
+    "failures": 0
+  },
+  "websiteVerification": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-1c-cons.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-1c-dev.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-1c-erp.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-nifi.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-pm2-it.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-postgresql.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-sap-cons.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-sap-dev.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-sap-process-navigator.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    },
+    {
+      "file": "downloads/lib-sap-sf-odata.zip",
+      "status": 200,
+      "sha256Matches": true,
+      "validZip": true
+    }
+  ]
+}
