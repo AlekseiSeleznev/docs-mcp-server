@@ -1,0 +1,11 @@
+{
+  "name": "lib-sap-dev",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "03a11d39c1f264cc3c609578650ed431b61dec08691d1837271cb616e0cf424f",
+    "agents/openai.yaml": "b8d91073ca5d502534e7f3714ff5bc998146963354810fdeecbc6860a269082b",
+    "references/libraries.yaml": "b27de1a1198519711be6e08fb887a1682468e53c61b96e5b9ba03538e4dc7844",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

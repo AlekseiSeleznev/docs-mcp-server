@@ -1,0 +1,11 @@
+{
+  "name": "lib-1c-dev",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "1839ce3295d3cdfde98c0efcee230197d0eee40402a50fa5eae2b14bb40f62ce",
+    "agents/openai.yaml": "5a62fa7dd7b21a843bfcbe119bd365557b675d42c45d7a732e5754d34eb00bc0",
+    "references/libraries.yaml": "1495b094c3bf0185635db22b1c47d8f84e7cbe90962a461504fe39f5791334e0",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

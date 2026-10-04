@@ -1,0 +1,10 @@
+{
+  "name": "lib-nifi",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "d34a7a7058c6fc2cfef36dca29ebe6d849961609e480c5fb99808cc1dfa7891a",
+    "agents/openai.yaml": "1dd3ba0171e4add47142cd96ec06b466ce11f69d881e95fad09ff9b032026f8c",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "lib-1c-cons",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "db2eb14e9619bea7ed54153d7d71e40b81e83d03c7ff674b5173e10b39fe4e9c",
+    "agents/openai.yaml": "a2c62448f38d367d5e65f268fea34703e5e1562362b0ee83018841eb9a54e849",
+    "references/libraries.yaml": "4a86d991832f804a8875d9ffda6bfd5ecf92629e9e61a9005090ec0e58ebdc83",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

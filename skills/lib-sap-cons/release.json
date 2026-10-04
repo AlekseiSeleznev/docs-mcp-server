@@ -1,0 +1,11 @@
+{
+  "name": "lib-sap-cons",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "f2d3af49df00f4a1874b73d0de4da15b83bbb52010ed66d687823d0564789810",
+    "agents/openai.yaml": "a603949fce3a8e8e653c1354119ca9fce110fb402c2dba84613017ea1635f509",
+    "references/libraries.yaml": "9f1838a81d37c1bbc362aa185eaa801496c4c37a4dfedc44bef1ee13300b3ad2",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

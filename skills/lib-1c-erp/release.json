@@ -1,0 +1,11 @@
+{
+  "name": "lib-1c-erp",
+  "version": "1.0.0",
+  "files": {
+    "SKILL.md": "a6519407b11f2c3f046745c7e691643a47ce710ed24b98f56e8e40aee794683d",
+    "agents/openai.yaml": "cbcd7b159561afa3c69ff3fe813a2ee2e163b3df1f4b49c7b3721b9b57eea019",
+    "references/libraries.yaml": "71f663b675a299fd4ca777ea62a4e57317740e383b5afa61ab1d51b6c608335e",
+    "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+    "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+  }
+}

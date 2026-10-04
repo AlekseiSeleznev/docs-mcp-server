@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "skills": {
+    "lib-1c-cons": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-1c-cons.zip",
+      "sha256": "beef9d8c55757a6aebda3bd9261d73610402411787a5117b0367fae818f3d40b",
+      "files": {
+        "SKILL.md": "db2eb14e9619bea7ed54153d7d71e40b81e83d03c7ff674b5173e10b39fe4e9c",
+        "agents/openai.yaml": "a2c62448f38d367d5e65f268fea34703e5e1562362b0ee83018841eb9a54e849",
+        "references/libraries.yaml": "4a86d991832f804a8875d9ffda6bfd5ecf92629e9e61a9005090ec0e58ebdc83",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "3abd98ccc57045d792d3a6eaeaad7d0821e4ddaefe58a4095394cf653bdb6894",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-1c-dev": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-1c-dev.zip",
+      "sha256": "33ed0755afe6f6b95bfa5d4dd008a65b999d8c04d94127964583c5378ac6c8c3",
+      "files": {
+        "SKILL.md": "1839ce3295d3cdfde98c0efcee230197d0eee40402a50fa5eae2b14bb40f62ce",
+        "agents/openai.yaml": "5a62fa7dd7b21a843bfcbe119bd365557b675d42c45d7a732e5754d34eb00bc0",
+        "references/libraries.yaml": "1495b094c3bf0185635db22b1c47d8f84e7cbe90962a461504fe39f5791334e0",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "839e7e4a38f07616efdefc3fef8c0ee8ced43fd4c4a03d5efc10e408a973f7ce",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-1c-erp": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-1c-erp.zip",
+      "sha256": "9a24d8273dbc159b5b701a7207b843ae7780cc3f4ea489f1e1b93e83449fd862",
+      "files": {
+        "SKILL.md": "a6519407b11f2c3f046745c7e691643a47ce710ed24b98f56e8e40aee794683d",
+        "agents/openai.yaml": "cbcd7b159561afa3c69ff3fe813a2ee2e163b3df1f4b49c7b3721b9b57eea019",
+        "references/libraries.yaml": "71f663b675a299fd4ca777ea62a4e57317740e383b5afa61ab1d51b6c608335e",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "aa9e951841e39de3ae1bf18abe61e841c373cb90ae7526450d003b0a1c9d01ac",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-nifi": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-nifi.zip",
+      "sha256": "77da5f21cf73e311304ffa28a97ef5ae96cd9c4feda3f96e95d86d2b9e737f74",
+      "files": {
+        "SKILL.md": "d34a7a7058c6fc2cfef36dca29ebe6d849961609e480c5fb99808cc1dfa7891a",
+        "agents/openai.yaml": "1dd3ba0171e4add47142cd96ec06b466ce11f69d881e95fad09ff9b032026f8c",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "f540145b9c8c570d12500fc21b3c1ebd94510e4dfed10e564f56a99e2f1e0a13",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-pm2-it": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-pm2-it.zip",
+      "sha256": "f458d260cb872db8ca20e8294633cb4481d47f57fee0c799c3d2073cde980b14",
+      "files": {
+        "SKILL.md": "bc30aba21a8b108cd201c3a598876f5f5f54a93e0719c9860bc95c7d8c63d68a",
+        "agents/openai.yaml": "1a4e9da2eb14e2d32ba7ead925c6da87d1a53ace63c62bd5644212c2a8c62be6",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "da22f23c065f5011aaa7c0748966655c4c955dcd58b2199b23151a9233018716",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-postgresql": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-postgresql.zip",
+      "sha256": "c183321e1e0012450394423f2c1e043b6543def6794c898f61a9bc2d187a6a55",
+      "files": {
+        "SKILL.md": "6050a5583cd5acdd0842775940b4a23528b84e19708b2c8f73a51b70f111778d",
+        "agents/openai.yaml": "f946534391787e99c43796c30dd2ed3e07637b80c7b62877270eb2501e787a8f",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "59ebcba619833fcee2207f2bfd55ab643e1ebca3bd761a0fce85492132093223",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-sap-cons": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-sap-cons.zip",
+      "sha256": "a691e36ff44649094c3bae164a8c0979994cd630cc1fd5df51d732747af0b1ce",
+      "files": {
+        "SKILL.md": "f2d3af49df00f4a1874b73d0de4da15b83bbb52010ed66d687823d0564789810",
+        "agents/openai.yaml": "a603949fce3a8e8e653c1354119ca9fce110fb402c2dba84613017ea1635f509",
+        "references/libraries.yaml": "9f1838a81d37c1bbc362aa185eaa801496c4c37a4dfedc44bef1ee13300b3ad2",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "5057ae4ad428cb8fdb5941042be6ea2fb9ad27464ec01113289ce3b01112f4e7",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-sap-dev": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-sap-dev.zip",
+      "sha256": "d6587eaadf40ad046c1c41701039f70fd17e8c8bb801a37e4efea54ef9744165",
+      "files": {
+        "SKILL.md": "03a11d39c1f264cc3c609578650ed431b61dec08691d1837271cb616e0cf424f",
+        "agents/openai.yaml": "b8d91073ca5d502534e7f3714ff5bc998146963354810fdeecbc6860a269082b",
+        "references/libraries.yaml": "b27de1a1198519711be6e08fb887a1682468e53c61b96e5b9ba03538e4dc7844",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "a616e1486a766fd71013aa46d5010bac415113f68845ffc3cc7f899fccdd2396",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-sap-process-navigator": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-sap-process-navigator.zip",
+      "sha256": "72055b41156b41a82ac1ccb13cd7328d6c993993faf96e40f7e576675c6f0d00",
+      "files": {
+        "SKILL.md": "52d097e423caf965d26a35d4449712566ccf4ab8b5459dad1f99c65e0c4c00bd",
+        "agents/openai.yaml": "82b7bf2a706b0ec3fcd84b97d159f2c51e855a334a2cf65b67180be77d67f165",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "fbbbf546b13ba581d92548385baefe0fd5e185d5249c63b775bb3df866a60a2b",
+        "scripts/save-source-artifacts.mjs": "235aac06d958774e43dee17f4e913975d2902736e2aa4acc89356546989e3aae",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    },
+    "lib-sap-sf-odata": {
+      "version": "1.0.0",
+      "url": "https://aichat.msgplaut.com/ai-library/downloads/lib-sap-sf-odata.zip",
+      "sha256": "88d3c37ef1956e6ec9cec78dce8504fe211eff04c03edb96e9f8eb8a7c7742e3",
+      "files": {
+        "SKILL.md": "7d1eb0c9779fed0c28624abba258882e2cfc38c735284df10f3864f91943ea76",
+        "agents/openai.yaml": "5d7dcfef00c1f6bfa06e0538bb1949b5f5fc913fe47366fbab046825c966c4e2",
+        "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
+        "release.json": "9fa3d5d77c06ce29dbebdb59ccf55330b5d5fe29103527b6566bb519016cf6d8",
+        "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
+      }
+    }
+  }
+}
