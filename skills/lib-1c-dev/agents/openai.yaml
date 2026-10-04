@@ -1,12 +1,14 @@
 interface:
   display_name: "1С документация (разработчик)"
-  short_description: "Ответы по документации разработчика 1С"
+  short_description: "Разработка 1С и автотесты Vanessa Automation"
   default_prompt: "Используй $lib-1c-dev, чтобы ответить пользователю по документации разработчика 1С и подтвердить технические факты первоисточниками."
 
 dependencies:
   tools:
     - type: "mcp"
       value: "lib-docs"
+      transport: "streamable_http"
+      url: "https://aichat.msgplaut.com/lib-docs/mcp"
       description: "Read-only документация разработчика 1С"
 
 policy:

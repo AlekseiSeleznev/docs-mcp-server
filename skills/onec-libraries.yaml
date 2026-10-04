@@ -1772,3 +1772,37 @@ libraries:
   audiences:
   - developer
   package_sha: d3427a07946f58dda681e780241fea555331dd65f908f6000b9e28931858484c
+- name: onec_dev_vanessa_automation
+  canonical_name: Vanessa Automation — автотестирование 1С
+  versions:
+  - 2026.10.2
+  version_kind: snapshot
+  description: Gherkin, экспортные сценарии, клиенты тестирования, тестовые данные, CI, VAExtension и MCP Vanessa;
+    отдельно обозначенная методика команды
+  aliases:
+  - Vanessa Automation
+  - Vanessa-Automation
+  - VA
+  - VAExtension
+  - MCP Vanessa
+  keywords:
+  - автотестирование 1С
+  - Gherkin
+  - feature-файл
+  - экспортный сценарий Vanessa
+  - клиент тестирования
+  - менеджер тестирования
+  - VAParams
+  - дымовые тесты
+  - Allure
+  - MCP Vanessa
+  category: разработка и тестирование
+  source_kind: curated
+  source_roots:
+  - https://github.com/Pr-Mex/vanessa-automation/tree/a2d584ced20332e7174abf94770c2dd986845a2a/docs
+  - archive://team/vanessa-methodology
+  audiences:
+  - developer
+  package_sha: a2763e70fa0367e8248ea2a750ec96585d9ac85a96bda8145375c1c57bcece07
+  source_commit: a2d584ced20332e7174abf94770c2dd986845a2a
+  documentation_edition: 1.2.043.1

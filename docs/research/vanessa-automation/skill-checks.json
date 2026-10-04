@@ -1,0 +1,192 @@
+[
+  {
+    "label": "paired-baseline-1",
+    "exitCode": 0,
+    "elapsedMs": 47254,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 1,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "paired-baseline-2",
+    "exitCode": 0,
+    "elapsedMs": 40612,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 1,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "paired-baseline-3",
+    "exitCode": 0,
+    "elapsedMs": 43998,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 1,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "compact-platform-1",
+    "exitCode": 0,
+    "elapsedMs": 46848,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 2,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "compact-platform-2",
+    "exitCode": 0,
+    "elapsedMs": 38912,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 1,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "compact-platform-3",
+    "exitCode": 0,
+    "elapsedMs": 53788,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      },
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_platform",
+        "limit": 5
+      }
+    ],
+    "commandCount": 2,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": false,
+      "hasGithubCitation": false,
+      "hasPlatformRoute": true
+    },
+    "failureCategory": null
+  },
+  {
+    "label": "final-vanessa",
+    "exitCode": 0,
+    "elapsedMs": 34148,
+    "tools": [
+      {
+        "server": "lib-docs",
+        "tool": "search_docs",
+        "library": "onec_dev_vanessa_automation",
+        "limit": 5
+      }
+    ],
+    "commandCount": 1,
+    "checks": {
+      "hasFormat": true,
+      "noInternalUrls": true,
+      "hasVanessaRoute": true,
+      "hasGithubCitation": true,
+      "hasPlatformRoute": false
+    },
+    "failureCategory": null
+  }
+]

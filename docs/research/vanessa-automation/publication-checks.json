@@ -1,0 +1,8 @@
+{
+  "public_page_match": true,
+  "downloaded_zip_match": true,
+  "installed_source_zip_equal": true,
+  "skill_files": 3,
+  "page_sha256": "eeae1b4f4b42d365800bcf08af732a6a5ffaa4b0ee5f9f3cd64ff297677ed961",
+  "skill_zip_sha256": "31e6f4cf77749a0631670a4e26536c26aa9d0afb8b04549356ec014bd6afe1f8"
+}

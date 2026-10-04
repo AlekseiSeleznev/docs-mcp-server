@@ -110,7 +110,7 @@ describe("lib-skill-creator", () => {
 
 describe.each([
   ["sap", "developer", "consultant", 13],
-  ["onec", "developer", "user", 79],
+  ["onec", "developer", "user", 80],
 ] as const)("%s library catalog", (family, firstAudience, secondAudience, total) => {
   it("matches the two centralized projections", () => {
     const master = parse(skillFile(`${family}-libraries.yaml`, ""));

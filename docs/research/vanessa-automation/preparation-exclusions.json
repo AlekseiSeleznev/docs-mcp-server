@@ -1,0 +1,34 @@
+[
+  {
+    "path": "docs/FAQ/index.md",
+    "reason": "only-current-corroborated-topics-selected"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/ЗагрузкаСпискаКлиентовТестированияИзФайла.MD",
+    "reason": "insufficient-self-contained-text"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/ЗакладкаСервисОсновныеЯзыкФичаФайлов.MD",
+    "reason": "insufficient-self-contained-text"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/ЗакладкаСервисОтчетыОЗапускеСценариевCucumber.MD",
+    "reason": "insufficient-self-contained-text"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/ЗакладкаСервисОтчетыОЗапускеСценариевВнутреннийФормат.MD",
+    "reason": "insufficient-self-contained-text"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/КнопкиЗапускаСценариевЧастьОдин.MD",
+    "reason": "visual-example-not-recovered"
+  },
+  {
+    "path": "docs/MainHelp/1.2.043.1/Глава02/РекомендуемыеНастройкиПриПервомЗапуске.MD",
+    "reason": "insufficient-self-contained-text"
+  },
+  {
+    "path": "docs/UIAutomation/UIAutomation.md",
+    "reason": "covered-by-current-mainhelp-ui-automation"
+  }
+]

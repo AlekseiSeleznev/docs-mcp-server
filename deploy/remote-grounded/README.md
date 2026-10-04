@@ -111,10 +111,17 @@ enabled local search process exits at startup and reports `VOYAGE_API_KEY` when
 the variable is absent.
 
 The production Compose file supplies
-`DOCS_MCP_SEARCH_RERANKER_ENABLED=true` and the selected
+`DOCS_MCP_SEARCH_RERANKER_ENABLED=true`,
+`DOCS_MCP_SEARCH_RERANKER_MODEL=rerank-3-lite`, and the selected
 `DOCS_MCP_SEARCH_RERANKER_CANDIDATE_LIMIT=30` only to `worker`. The shared
 application configuration remains disabled by default, so credential-free
 proxy processes run only as remote clients of the worker.
+
+Model-only changes reuse the pinned image and existing index. Back up the active
+Compose file, set these worker overrides explicitly, validate with
+`docker compose config --quiet`, and recreate only the worker with
+`docker compose up -d --no-deps worker`. Verify the effective worker environment
+after startup; supplying a Voyage credential alone does not enable reranking.
 
 ## Start and verify
 
