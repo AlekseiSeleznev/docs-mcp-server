@@ -5,7 +5,7 @@ Listen 6282
 <VirtualHost *:6280>
     ServerName grounded-docs-web.local
     ProxyPreserveHost On
-    ProxyPass / http://127.0.0.1:16280/ retry=0 timeout=600
+    ProxyPass / http://127.0.0.1:16280/ retry=0 timeout=600 upgrade=websocket
     ProxyPassReverse / http://127.0.0.1:16280/
 
     <Location />

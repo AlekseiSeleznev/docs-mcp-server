@@ -58,6 +58,14 @@ configuration.
 
 ## Build and pin the image
 
+The Apache web virtual host requires `upgrade=websocket` on its `ProxyPass /`
+directive. Apache 2.4.47 and later handles this with the existing `proxy_http`
+module. The dashboard uses HTTP for data and WebSocket for live events on the
+same `/api` path. Verify authenticated HTTP queries return 200 and a WebSocket
+handshake returns 101 through the public proxy; an ordinary health check does
+not cover this connection. Keep Basic authentication on both transports.
+See the [Apache protocol upgrade documentation](https://httpd.apache.org/docs/2.4/mod/mod_proxy.html#examples).
+
 Build the repository Dockerfile with Node.js 22, push the source-specific tag,
 and record its registry manifest digest before changing the stack:
 
