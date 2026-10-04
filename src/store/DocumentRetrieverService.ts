@@ -8,7 +8,12 @@ import {
 } from "./CircuitBreakingReranker";
 import type { DocumentStore } from "./DocumentStore";
 import type { Reranker } from "./Reranker";
-import type { DbChunkRank, DbPageChunk, StoreSearchResult } from "./types";
+import {
+  type DbChunkRank,
+  type DbPageChunk,
+  normalizeVersionLabel,
+  type StoreSearchResult,
+} from "./types";
 
 type RankedCandidate = DbPageChunk & DbChunkRank & { baselineIndex?: number };
 
@@ -45,8 +50,7 @@ export class DocumentRetrieverService {
     query: string,
     limit?: number,
   ): Promise<StoreSearchResult[]> {
-    // Normalize version: null/undefined becomes empty string, then lowercase
-    const normalizedVersion = (version ?? "").toLowerCase();
+    const normalizedVersion = normalizeVersionLabel(version);
 
     const userLimit = limit ?? 10;
     const activeReranker = this.config.search.reranker.enabled && this.reranker;
@@ -228,6 +232,11 @@ export class DocumentRetrieverService {
       initialChunks.length > 0
         ? parsePublicationMetadata(initialChunks[0].publication_metadata)
         : undefined;
+    // The identity can be one this crawl derived rather than one the site
+    // serves, so a caller linking to the source needs the location that
+    // actually answered. Undefined when the two coincide.
+    const contentUrl =
+      initialChunks.length > 0 ? (initialChunks[0].content_url ?? undefined) : undefined;
 
     // Find the maximum score from the initial results
     const maxScore = Math.max(...initialChunks.map((chunk) => chunk.score));
@@ -247,6 +256,7 @@ export class DocumentRetrieverService {
 
     return {
       url,
+      contentUrl,
       content,
       score: maxScore,
       mimeType,

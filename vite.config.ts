@@ -82,6 +82,9 @@ export default defineConfig({
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
       "test/**/*.test.ts",
+      // The search-eval tooling under tests/ (plural) ships its own logic —
+      // the baseline comparator, the metric aggregator — which is worth
+      // covering even though the benchmark itself is run by hand.
       "tests/**/*.test.ts",
     ],
     // Exclude live e2e tests by default (they can be run manually)

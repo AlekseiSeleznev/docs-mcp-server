@@ -1,3 +1,5 @@
+import { PageOutcome } from "../scraper/types";
+
 // Patch: Move UUID mock to top-level before imports
 vi.mock("uuid", () => {
   let uuidCall = 0;
@@ -93,6 +95,8 @@ describe("PipelineManager", () => {
     depth: 1,
     maxDepth: 3,
     totalDiscovered: 0,
+    pagesIndexed: 0,
+    outcome: PageOutcome.Stored,
     result: {
       url: `https://example.com/page-${pagesScraped}`,
       title: `Page ${pagesScraped}`,
@@ -173,6 +177,38 @@ describe("PipelineManager", () => {
     expect(job?.status).toBe(PipelineJobStatus.QUEUED);
     expect(job?.library).toBe("libA");
     expect(job?.sourceUrl).toBe("http://a.com");
+  });
+
+  it("should normalize version labels so entry points share one bucket", async () => {
+    // " LATEST " and "latest" are the same version; enqueueing the second must
+    // abort the first as a duplicate rather than queue a parallel job.
+    const options = { url: "http://a.com", library: "libN", version: "latest" };
+    const jobId1 = await manager.enqueueScrapeJob("libN", " LATEST ", options);
+    const jobId2 = await manager.enqueueScrapeJob("libN", "latest", options);
+
+    expect(jobId1).not.toBe(jobId2);
+    const job1 = await manager.getJob(jobId1);
+    const job2 = await manager.getJob(jobId2);
+    expect(job1?.version).toBe("latest");
+    expect(job2?.version).toBe("latest");
+    expect(job1?.status).toBe(PipelineJobStatus.CANCELLED);
+  });
+
+  it("should normalize library names so entry points share one bucket", async () => {
+    // The store buckets by folded library name, so "LibN" and "libn" index into
+    // one version. Comparing them exactly here let both jobs run in parallel
+    // against that bucket, where the second one's clean-before-scrape deleted
+    // pages the first had already written — and both reported success.
+    const options = { url: "http://a.com", library: "LibN", version: "1.0" };
+    const jobId1 = await manager.enqueueScrapeJob("LibN", "1.0", options);
+    const jobId2 = await manager.enqueueScrapeJob(" libn ", "1.0", {
+      ...options,
+      library: " libn ",
+    });
+
+    expect(jobId1).not.toBe(jobId2);
+    const job1 = await manager.getJob(jobId1);
+    expect(job1?.status).toBe(PipelineJobStatus.CANCELLED);
   });
 
   it("should start a queued job and transition to RUNNING", async () => {
@@ -303,6 +339,8 @@ describe("PipelineManager", () => {
         maxDepth: 1,
         document: undefined,
         totalDiscovered: 1,
+        pagesIndexed: 0,
+        outcome: PageOutcome.Stored,
       });
     });
     const options = {
@@ -356,7 +394,7 @@ describe("PipelineManager", () => {
       expect(job.updatedAt).toBeInstanceOf(Date);
 
       // Verify database sync
-      expect(mockStore.updateVersionProgress).toHaveBeenCalledWith(456, 50, 300);
+      expect(mockStore.updateVersionProgress).toHaveBeenCalledWith(456, 50, 300, 0);
     });
 
     it("should handle database errors gracefully during progress updates", async () => {
@@ -393,6 +431,7 @@ describe("PipelineManager", () => {
       expect(uiJob).toBeDefined();
       expect(uiJob!.progress).toEqual({
         pages: 75,
+        pagesIndexed: 0,
         totalPages: 200,
         totalDiscovered: 200,
       });

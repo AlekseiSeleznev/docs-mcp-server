@@ -1,3 +1,4 @@
+import matter from "gray-matter";
 import { describe, expect, it } from "vitest";
 import { SemanticMarkdownSplitter } from "./SemanticMarkdownSplitter";
 
@@ -502,6 +503,131 @@ tags: [one, two]
     expect(result[1].content).toBe("# Main Content");
   });
 
+  it("should extract the raw frontmatter even when the content was parsed before", async () => {
+    // Regression for #503: gray-matter caches parsed results and returns a shallow copy
+    // for repeated parses, which drops the non-enumerable `matter` property. The pipeline
+    // parses the same content in MarkdownMetadataExtractorMiddleware before it reaches the
+    // splitter, so the cache is always warm here.
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+url: /guide/ssr.md
+title: Server-Side Rendering
+---
+# Server-Side Rendering (SSR)`;
+
+    matter(markdown); // warm gray-matter's cache, as the middleware does
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result[0].types).toEqual(["frontmatter"]);
+    expect(result[0].content).toBe(
+      "---\nurl: /guide/ssr.md\ntitle: Server-Side Rendering\n---",
+    );
+    expect(result[0].content).not.toContain("undefined");
+  });
+
+  it("should preserve the original frontmatter formatting and comments", async () => {
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+# A YAML comment
+title:   Spaced Out
+---
+# Main Content`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result[0].types).toEqual(["frontmatter"]);
+    expect(result[0].content).toBe("---\n# A YAML comment\ntitle:   Spaced Out\n---");
+  });
+
+  it("should not treat a leading thematic break as frontmatter", async () => {
+    // A document opening with `---` has its whole body parsed as YAML by gray-matter,
+    // which can yield a bare string. Only a mapping is real frontmatter; otherwise the
+    // entire page would collapse into a single frontmatter chunk and lose its structure.
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+
+# Hello
+
+Body text.`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.filter((c) => c.types.includes("frontmatter"))).toHaveLength(0);
+    expect(result.some((c) => c.types.includes("heading"))).toBe(true);
+    expect(result.map((c) => c.content).join("\n")).toContain("Body text.");
+  });
+
+  it("should not treat an unclosed leading break as frontmatter when the body is a mapping", async () => {
+    // The half the type check missed. With no closing delimiter gray-matter
+    // consumes the whole document as YAML, and a body of `Key: value` prose
+    // parses as a mapping — so it looks exactly like real frontmatter and the
+    // page collapses into one chunk with no headings. Turndown renders `<hr>`
+    // as `---`, so HTML pages reach this too.
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+
+## Deprecation notice
+
+Replacement: use the createClient helper instead.`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.filter((c) => c.types.includes("frontmatter"))).toHaveLength(0);
+    expect(result.some((c) => c.types.includes("heading"))).toBe(true);
+    expect(result.map((c) => c.content).join("\n")).toContain("createClient");
+  });
+
+  it("should keep the frontmatter chunk within the size limit", async () => {
+    // It is prepended after splitting, so nothing else bounds it.
+    const splitter = new SemanticMarkdownSplitter(1000, 5000);
+    const markdown = `---\ntitle: T\nsummary: ${"word ".repeat(2000)}\n---\n\n# Head\n\nBody.`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.some((c) => c.types.includes("frontmatter"))).toBe(true);
+    expect(Math.max(...result.map((c) => c.content.length))).toBeLessThanOrEqual(5000);
+  });
+
+  it("should keep an indivisible frontmatter block rather than failing the page", async () => {
+    // One unbroken token longer than the limit cannot be divided. That is the
+    // behaviour bounding replaced, so it degrades to it instead of throwing.
+    const splitter = new SemanticMarkdownSplitter(1000, 5000);
+    const markdown = `---\ntoken: ${"x".repeat(10000)}\n---\n\n# Head\n\nBody.`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.some((c) => c.types.includes("frontmatter"))).toBe(true);
+    expect(result.some((c) => c.types.includes("heading"))).toBe(true);
+  });
+
+  it("should not treat scalar frontmatter as frontmatter", async () => {
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+just a bare string
+---
+# Main Content`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.filter((c) => c.types.includes("frontmatter"))).toHaveLength(0);
+    expect(result.map((c) => c.content).join("\n")).toContain("Main Content");
+  });
+
+  it("should not treat a frontmatter list as frontmatter", async () => {
+    const splitter = new SemanticMarkdownSplitter(100, 5000);
+    const markdown = `---
+- one
+- two
+---
+# Main Content`;
+
+    const result = await splitter.splitText(markdown);
+
+    expect(result.filter((c) => c.types.includes("frontmatter"))).toHaveLength(0);
+    expect(result.map((c) => c.content).join("\n")).toContain("Main Content");
+  });
+
   it("should ignore malformed frontmatter and treat it as text", async () => {
     const splitter = new SemanticMarkdownSplitter(100, 5000);
     // Malformed because no closing delimiter or invalid yaml structure that gray-matter rejects?
@@ -766,5 +892,50 @@ Text paragraph.
       const result = await splitter.splitText(html);
       expectAllBalanced(result);
     });
+  });
+});
+
+describe("heading anchor annotations", () => {
+  /** Returns every section path and heading line the splitter produced. */
+  const split = async (markdown: string) => {
+    const chunks = await new SemanticMarkdownSplitter(100, 5000).splitText(markdown);
+    return {
+      paths: chunks.flatMap((c) => c.section.path),
+      content: chunks.map((c) => c.content).join("\n"),
+    };
+  };
+
+  it("drops an MDX anchor comment from the heading and its path", async () => {
+    // react.dev pins heading ids this way; the annotation is an instruction to
+    // the renderer, so indexing it puts noise in both the embedding and the
+    // section path a reader sees.
+    const { paths, content } = await split(
+      "## Adding styles {/*adding-styles*/}\n\nUse className.",
+    );
+
+    expect(paths).toContain("Adding styles");
+    expect(content).toContain("## Adding styles");
+    expect(content).not.toContain("{/*");
+  });
+
+  it("drops a hash-style anchor", async () => {
+    const { paths, content } = await split("## Adding styles {#adding-styles}\n\nBody.");
+
+    expect(paths).toContain("Adding styles");
+    expect(content).not.toContain("{#adding-styles}");
+  });
+
+  it("keeps braces that are part of the heading", async () => {
+    // Only a trailing annotation is an anchor. A heading about JSX or object
+    // literals has to survive intact.
+    const { paths } = await split("## Use {count} in JSX\n\nBody.");
+
+    expect(paths).toContain("Use {count} in JSX");
+  });
+
+  it("leaves a heading without an annotation alone", async () => {
+    const { paths } = await split("## Plain heading\n\nBody.");
+
+    expect(paths).toContain("Plain heading");
   });
 });

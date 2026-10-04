@@ -269,8 +269,10 @@ describe("HtmlSanitizerMiddleware", () => {
         <ol itemscope itemtype="https://schema.org/BreadcrumbList">
           <li>Crumb</li>
         </ol>
-        <span class="sr-only">Search</span>
-        <main><h1>Page Title</h1></main>
+        <main>
+          <h1>Page Title</h1>
+          <span class="sr-only">Search</span>
+        </main>
       </body></html>`;
     const context = createMockContext(html);
     const next = vi.fn().mockResolvedValue(undefined);
@@ -282,6 +284,7 @@ describe("HtmlSanitizerMiddleware", () => {
     expect(context.dom("a.skip-link").length).toBe(0);
     expect(context.dom('[aria-label="breadcrumb"]').length).toBe(0);
     expect(context.dom('[itemtype*="BreadcrumbList"]').length).toBe(0);
+    // The sr-only rule is scoped to <a>, so an icon-button's label survives.
     expect(context.dom("span.sr-only").length).toBe(1);
     expect(context.dom("h1").text()).toBe("Page Title");
   });
@@ -310,6 +313,208 @@ describe("HtmlSanitizerMiddleware", () => {
     expect(context.dom("p").text()).toContain("srv.carbonads.net");
     expect(context.dom("p").text()).toContain("bidr.io");
     expect(context.dom("pre code").text()).toContain("srv.carbonads.net");
+  });
+
+  it("should drop promo chrome that sits outside the main content region", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Mirrors VitePress: the promo banner lives in a plain <div class="aside">
+    // that no selector in the deny list matches, and renders before <main>.
+    const html = `
+      <html><body>
+        <div class="aside">
+          <a class="viteconf" href="https://example.com/conf">
+            <img src="/conf.svg" alt="Conf Logo"><span>Conference 2025 View the replays</span>
+          </a>
+        </div>
+        <main>
+          <h1>Server-Side Rendering</h1>
+          <p>SSR specifically refers to front-end frameworks that support running the same application in Node.js, pre-rendering it to HTML, and finally hydrating it on the client.</p>
+        </main>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($).toBeDefined();
+    expect($?.("body").text()).not.toContain("Conference 2025");
+    expect($?.("a.viteconf").length).toBe(0);
+    expect($?.("h1").text()).toBe("Server-Side Rendering");
+    expect($?.("body").text()).toContain("SSR specifically refers");
+  });
+
+  it("should keep every declared region when a page declares several", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Multiple <main> elements are invalid but common in generated markup —
+    // a stub from a layout template beside the real one. Keeping only the
+    // richest costs a few characters of chrome here, but on a page whose
+    // second region is a real section it silently dropped the whole thing,
+    // so both are kept and the chrome is tolerated.
+    const html = `
+      <html><body>
+        <main class="stub"><p>Menu</p></main>
+        <main class="real">
+          <h1>Deployment</h1>
+          <p>Build the site, upload the output directory to your host, and point the domain at it. The generated files are fully static and need no runtime.</p>
+        </main>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($?.("main.real").length).toBe(1);
+    expect($?.("body").text()).toContain("Build the site");
+    // Everything outside the declared regions is still gone.
+    expect($?.("body").children().toArray()).toHaveLength(2);
+  });
+
+  it("should not drop a second content region of comparable size", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Two co-equal regions score exactly at the ratio floor when only the
+    // winner is measured, so the guard could not catch this: one whole region
+    // was discarded with nothing above debug logging to say so.
+    const html = `
+      <html><body>
+        <main id="guide"><p>Guide prose about configuring the widget factory properly.</p></main>
+        <main id="api"><p>API reference prose listing every exported helper function.</p></main>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const text = context.dom?.("body").text() ?? "";
+    expect(text).toContain("widget factory");
+    expect(text).toContain("exported helper");
+  });
+
+  it("should not duplicate a region nested inside another region", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Nested <main> elements, not <main> around role=main: the candidate set is
+    // `$("main")` whenever any exists, so a nested role=main is never a
+    // candidate and would not exercise the guard at all.
+    const html = `
+      <html><body>
+        <main><main><p>Configure the deployment target before building the site output.</p></main></main>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const text = context.dom?.("body").text() ?? "";
+    expect(text.split("Configure the deployment target")).toHaveLength(2);
+  });
+
+  it("should fall back to role=main when the page has no main element", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    const html = `
+      <html><body>
+        <div class="fork-ribbon"><a href="https://example.com/repo">Fork me on GitHub</a></div>
+        <div role="main">
+          <h1>Quickstart</h1>
+          <p>Eager to get started? This page gives a good introduction to the library and how to install it before diving into the rest of the documentation.</p>
+        </div>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($?.("body").text()).not.toContain("Fork me on GitHub");
+    expect($?.("body").text()).toContain("Eager to get started");
+  });
+
+  it("should keep the full body when the main region holds little of the text", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Some pages mark a small shell as <main> while the prose lives beside it.
+    const html = `
+      <html><body>
+        <main><p>Loading…</p></main>
+        <div class="content">
+          <h1>Configuration</h1>
+          <p>Every option below can be set from the command line, from the environment, or from a configuration file, and the precedence between those three sources is fixed.</p>
+        </div>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($?.("body").text()).toContain("Every option below");
+    expect($?.("body").text()).toContain("Loading");
+  });
+
+  it("should leave content untouched when the page declares no main region", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    const html = `
+      <html><body>
+        <div class="doc"><h1>Title</h1><p>Body text that has no declared main region around it.</p></div>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($?.("div.doc").length).toBe(1);
+    expect($?.("body").text()).toContain("no declared main region");
+  });
+
+  it("should scope a pretty-printed page whose indentation outnumbers its text", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // Generated markup is often deeply indented, and removing a chrome element
+    // leaves its surrounding whitespace node behind — outside <main>. Counting
+    // that raw whitespace as content deflates the region's share and can push
+    // a dominant <main> under the floor, so the banner survives.
+    const gap = "\n          ".repeat(20);
+    const html = `
+      <html><body>
+        <div class="aside">${gap}
+          <a class="sponsor" href="https://example.com/sponsor">Sponsor</a>${gap}
+        </div>${gap}
+        <main>
+          <h1>Configuration reference</h1>
+        </main>${gap}
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    const $ = context.dom;
+    expect($?.("body").text()).not.toContain("Sponsor");
+    expect($?.("h1").text()).toBe("Configuration reference");
+  });
+
+  it("should preserve text rather than emptying a page when exclusions remove everything", async () => {
+    const middleware = new HtmlSanitizerMiddleware();
+    // The caller's selector matches the only element carrying visible text.
+    // Emptying the page here would index a blank document; the extractor is
+    // expected to fall back to the pre-sanitization body instead.
+    const html = `
+      <html><body>
+        <div class="everything">
+          <h1>Installation</h1>
+          <p>Install the package with your package manager of choice, then add the plugin to your configuration file.</p>
+        </div>
+      </body></html>`;
+    const context = createMockContext(html, "http://example.com", {
+      excludeSelectors: [".everything"],
+    });
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const $ = context.dom;
+    expect($?.("body").text().trim()).not.toBe("");
+    expect($?.("body").text()).toContain("Install the package");
   });
 
   it("should skip processing if content type is not HTML", async () => {

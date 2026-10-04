@@ -12,6 +12,18 @@ export type QueueItem = {
   etag?: string | null; // Last known ETag for conditional requests during refresh
   /** True when the queue item was seeded from a discovered llms.txt file. */
   fromLlmsTxt?: boolean;
+  /**
+   * The page's own URL, when `url` is the location a representation of it was
+   * retrieved from rather than the page itself.
+   *
+   * A refresh asks for the representation, because that is what produced the
+   * stored content and what issued the stored validator. But a 404 there is a
+   * statement about the representation, not about the page: a site that
+   * withdraws its published Markdown files still serves the pages they
+   * described. This is the address to fall back to before concluding the page
+   * is gone.
+   */
+  identityUrl?: string;
   /** Internal-only allowlist roots for application-managed temporary files. */
   internalAllowedFileRoots?: string[];
 };
@@ -138,6 +150,14 @@ export interface ScraperOptions {
 export interface ScrapeResult {
   /** The URL of the page that was scraped */
   url: string;
+  /**
+   * Where the content was actually retrieved from, when that differs from `url`.
+   *
+   * `url` is the page's identity; this is the location that served its bytes. They
+   * diverge when a representation lives elsewhere — a published Markdown file
+   * recorded under the page it represents. Undefined means the two coincide.
+   */
+  contentUrl?: string;
   /** Page title */
   title: string;
   /** Original MIME type of the fetched resource before pipeline processing */
@@ -158,32 +178,100 @@ export interface ScrapeResult {
   etag?: string | null;
   /** Last-Modified from HTTP response for caching */
   lastModified?: string | null;
+  /**
+   * True when this crawl already stored another representation of `url`.
+   *
+   * A page reachable as both `/guide.md` and `/guide` produces two results with
+   * one identity, and the store keeps whichever representation is stronger. A
+   * first write is not a competition and always lands, so a later crawl's
+   * answer supersedes an earlier crawl's instead of being blocked by it.
+   */
+  isAdditionalRepresentation?: boolean;
 }
 
 /**
- * Progress information during scraping
+ * What happened to a single queued item once it was processed.
+ *
+ * Named explicitly rather than inferred from `result` being null, because a null
+ * result cannot distinguish a page that is unchanged from one that is now empty:
+ * a 304 says "keep what you have", an empty 200 says "here it is, and it is
+ * empty". Those call for opposite handling.
+ */
+export enum PageOutcome {
+  /** Content was produced and should be stored. The only outcome that indexes. */
+  Stored = "stored",
+  /** The resource was unchanged since the last fetch (304). Keep what is stored. */
+  Unchanged = "unchanged",
+  /** The resource is gone (404). During a refresh the stored page is deleted. */
+  Absent = "absent",
+  /** Fetched successfully but yielded no content. The page exists and is empty. */
+  Empty = "empty",
+  /** No pipeline can read this content type, so the body was never downloaded. */
+  Skipped = "skipped",
+  /** Processing failed and the error was ignored under `ignoreErrors`. */
+  Failed = "failed",
+}
+
+/**
+ * Progress information during scraping.
+ *
+ * Counter semantics are defined by the `scrape-progress-reporting` capability.
+ * In short: `pagesScraped` counts work done, `pagesIndexed` counts what came of
+ * it, and `totalPages` is what `pagesScraped` converges on.
  */
 export interface ScraperProgressEvent {
-  /** Number of pages successfully scraped so far */
+  /**
+   * Queued items that have been dequeued and reached an outcome, whatever that
+   * outcome was. The numerator of the progress fraction. Every queued item
+   * eventually advances this exactly once, so it converges on `totalPages`.
+   */
   pagesScraped: number;
   /**
-   * Maximum number of pages to scrape (from maxPages option).
-   * May be undefined if no limit is set.
+   * Items the job expects to process: URLs admitted to the queue, clamped at the
+   * point the crawl will stop, which is `maxPages` plus the number of processed
+   * items that produced no content.
+   *
+   * This is NOT the configured `maxPages` value.
    */
   totalPages: number;
   /**
-   * Total number of URLs discovered during crawling.
-   * This may be higher than totalPages if maxPages limit is reached.
+   * Total number of URLs admitted to the crawl queue, unbounded by `maxPages`.
+   * Exceeds `totalPages` only when the page limit clamps the crawl.
    */
   totalDiscovered: number;
+  /**
+   * Processed items that produced stored content — the number a user means by
+   * "pages added". Bounded by `maxPages`. Not part of the progress fraction.
+   */
+  pagesIndexed: number;
   /** Current URL being processed */
   currentUrl: string;
   /** Current depth in the crawl tree */
   depth: number;
   /** Maximum depth allowed (from maxDepth option) */
   maxDepth: number;
-  /** The result of scraping the current page, if available. This may be null if the page has been deleted or if an error occurred. */
+  /** What happened to this item. Consumers branch on this, not on `result`. */
+  outcome: PageOutcome;
+  /** The processed content. Non-null only when `outcome` is `Stored`. */
   result: ScrapeResult | null;
+  /**
+   * Page identity for an `Empty` outcome, so the store can record that the page
+   * exists and holds nothing. `etag` and `lastModified` are null when the
+   * pipeline failed, which keeps the next refresh unconditional.
+   */
+  emptyPage?: {
+    url: string;
+    /** Where the content was retrieved from, when that differs from `url`. */
+    contentUrl?: string;
+    title: string;
+    sourceContentType: string | null;
+    contentType: string | null;
+    etag: string | null;
+    lastModified: string | null;
+    pipelineFailed: boolean;
+    /** See {@link ScrapeResult.isAdditionalRepresentation}. */
+    isAdditionalRepresentation?: boolean;
+  };
   /** Database page ID (for refresh operations or tracking) */
   pageId?: number;
   /** Indicates this page was deleted (404 during refresh or broken link) */

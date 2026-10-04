@@ -289,7 +289,7 @@ describe("HtmlToMarkdownMiddleware", () => {
     expect(context.errors).toHaveLength(0);
   });
 
-  it("should handle errors during Turndown conversion", async () => {
+  it("should fall back to text when nothing in the document converts", async () => {
     const middleware = new HtmlToMarkdownMiddleware();
     const html = "<html><body><p>Content</p></body></html>";
     const context = createMockContext(html);
@@ -303,15 +303,57 @@ describe("HtmlToMarkdownMiddleware", () => {
         throw new Error(errorMsg);
       });
 
-    await middleware.process(context, next);
+    try {
+      await middleware.process(context, next);
+    } finally {
+      turndownSpy.mockRestore();
+    }
 
     expect(next).toHaveBeenCalledOnce(); // Should still call next
-    expect(context.content).toBe(html); // Content should remain original HTML
+    // Keeping the markup would index HTML as if it were prose, but the words
+    // are still worth having.
+    expect(context.content).toBe("Content");
     expect(context.errors).toHaveLength(1);
     expect(context.errors[0].message).toContain(errorMsg);
+  });
 
-    turndownSpy.mockRestore();
-    // No close needed
+  it("should keep the convertible parts when one subtree fails to convert", async () => {
+    const middleware = new HtmlToMarkdownMiddleware();
+    const html = `
+      <html><body>
+        <h1>Title</h1>
+        <p>Good paragraph.</p>
+        <div class="broken">Broken text</div>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    const realTurndown = TurndownService.prototype.turndown;
+    const turndownSpy = vi
+      .spyOn(TurndownService.prototype, "turndown")
+      .mockImplementation(function (
+        this: TurndownService,
+        input: Parameters<typeof realTurndown>[0],
+      ) {
+        if (typeof input === "string" && input.includes("broken")) {
+          throw new Error("Turndown failed");
+        }
+        return realTurndown.call(this, input);
+      });
+
+    try {
+      await middleware.process(context, next);
+    } finally {
+      turndownSpy.mockRestore();
+    }
+
+    expect(context.errors).toHaveLength(1);
+    expect(context.contentType).toBe("text/markdown");
+    // Headings survive, which is what the semantic splitter chunks on.
+    expect(context.content).toContain("# Title");
+    expect(context.content).toContain("Good paragraph.");
+    // The failing subtree contributes its text rather than nothing.
+    expect(context.content).toContain("Broken text");
   });
 
   it("should apply custom anchor rule to remove empty or invalid links", async () => {
@@ -453,6 +495,26 @@ Mixed: [Another Valid](http://another.com) and bad one.`;
     expect(context.errors).toHaveLength(0);
   });
 
+  it("should convert code blocks containing element names the DOM cannot recreate", async () => {
+    const middleware = new HtmlToMarkdownMiddleware();
+    // Generators that fail to escape `<` in their output leave tags like
+    // `<lt;200 cores/socket>` behind. Browsers park those in the tree as
+    // unknown elements, but their names are invalid for `createElement`.
+    const html = `
+      <html><body>
+        <pre>One <lt;200 cores/socket>gt;200 cores</pre>
+      </body></html>`;
+    const context = createMockContext(html);
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await middleware.process(context, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(context.errors).toHaveLength(0);
+    expect(context.contentType).toBe("text/markdown");
+    expect(context.content).toContain("200 cores");
+  });
+
   it("should still respect existing newlines / <br> in code blocks", async () => {
     const middleware = new HtmlToMarkdownMiddleware();
     const html = `
@@ -468,5 +530,69 @@ line three</code></pre>
     expect(next).toHaveBeenCalledOnce();
     expect(context.content).toContain("line one\nline two\nline three");
     expect(context.errors).toHaveLength(0);
+  });
+
+  it("never leaves markup in the context when the salvage itself fails", async () => {
+    // The salvage runs the same converter over the same document, so whatever
+    // defeated the whole-document pass can defeat it too. An escaping throw
+    // skipped the assignment that replaces the content, leaving the raw HTML
+    // for the splitter to chunk and the embedder to bill for — and, on a
+    // refresh, leaving a zero-chunk result that replaced the stored page.
+    //
+    // The salvage is made to throw directly rather than via the input that
+    // first exposed this (a document nested ~2000 deep, which overflows the
+    // stack in turndown). That input costs tens of seconds to run and is
+    // pathological; the guard has to hold for any throw, which is what this
+    // asserts. The depth bound that made that input affordable is covered
+    // separately below.
+    const html =
+      "<html><body><h1>Title</h1><p>Real prose worth keeping.</p></body></html>";
+    const context = createMockContext(html);
+    const middleware = new HtmlToMarkdownMiddleware();
+
+    // Force the whole-document conversion to fail, then the salvage after it.
+    // Reached through an alias rather than `@ts-expect-error` per line: the
+    // rules are registered in the constructor, so only `turndown` is called
+    // from here and the stub does not have to satisfy the full interface.
+    const internals = middleware as unknown as {
+      turndownService: { turndown: () => string };
+      salvageMarkdown: () => string;
+    };
+    internals.turndownService = {
+      turndown: () => {
+        throw new Error("conversion exploded");
+      },
+    };
+    internals.salvageMarkdown = () => {
+      throw new Error("salvage exploded");
+    };
+
+    await middleware.process(context, async () => {});
+
+    expect(context.content.trimStart().startsWith("<")).toBe(false);
+    expect(context.content).toBe("");
+    expect(context.errors.length).toBeGreaterThan(0);
+  });
+
+  it("stops descending past the salvage depth bound", async () => {
+    // Each level serializes its whole subtree to hand Turndown a string, so an
+    // unbounded descent costs O(depth x size) — minutes on a document built
+    // from thousands of nested wrappers. Past the bound the words are taken
+    // and the walk stops.
+    const middleware = new HtmlToMarkdownMiddleware();
+    const $ = cheerio.load("<div><h1>Heading</h1><p>Body prose.</p></div>");
+    const node = $("div").get(0);
+    const internals = middleware as unknown as {
+      convertNodeWithFallback: (api: typeof $, n: typeof node, depth: number) => string;
+    };
+
+    const withinBound = internals.convertNodeWithFallback($, node, 0);
+    const atBound = internals.convertNodeWithFallback($, node, 100);
+
+    // Within the bound the structure survives; at it, only the text does.
+    expect(withinBound).toContain("# Heading");
+    expect(atBound).not.toContain("#");
+    expect(atBound).toContain("Heading");
+    expect(atBound).toContain("Body prose.");
   });
 });

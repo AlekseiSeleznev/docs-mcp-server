@@ -710,22 +710,33 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(evidence.workerLogs).not.toContain("test-only-worker-key");
     });
 
-    it("adds publication metadata to existing SQLite data without reindexing", () => {
+    it("adds upstream and publication metadata to existing SQLite data without reindexing", () => {
       expect(evidence.before.counts.documents).toBeGreaterThan(0);
       expect(evidence.after.userVersion).toBe(evidence.before.userVersion);
       expect(evidence.after.counts).toEqual(evidence.before.counts);
 
-      const isPagesTable = (entry: string) => entry.startsWith("table:pages:");
-      expect(evidence.after.schema.filter((entry) => !isPagesTable(entry))).toEqual(
-        evidence.before.schema.filter((entry) => !isPagesTable(entry)),
+      const afterPages = evidence.after.schema.find((entry) =>
+        entry.startsWith("table:pages:"),
       );
-      const beforePages = evidence.before.schema.find(isPagesTable);
-      const afterPages = evidence.after.schema.find(isPagesTable);
-      expect(beforePages).toBeDefined();
+      const afterVersions = evidence.after.schema.find((entry) =>
+        entry.startsWith("table:versions:"),
+      );
       expect(afterPages).toMatch(/\bpublication_metadata JSON\b/u);
+      expect(afterPages).toMatch(/\bcontent_url TEXT DEFAULT NULL\b/u);
+      expect(afterVersions).toMatch(/\bprogress_pages_indexed INTEGER DEFAULT NULL\b/u);
       expect(
-        afterPages?.replace(/,\s*publication_metadata JSON\b/u, ""),
-      ).toBe(beforePages);
+        evidence.after.schema.map((entry) => {
+          if (entry.startsWith("table:pages:")) {
+            return entry
+              .replace(/,\s*publication_metadata JSON\b/u, "")
+              .replace(/,\s*content_url TEXT DEFAULT NULL\b/u, "");
+          }
+          if (entry.startsWith("table:versions:")) {
+            return entry.replace(/,\s*progress_pages_indexed INTEGER DEFAULT NULL\b/u, "");
+          }
+          return entry;
+        }),
+      ).toEqual(evidence.before.schema);
     });
   });
   it("runs the entrypoint as a non-root user", async () => {

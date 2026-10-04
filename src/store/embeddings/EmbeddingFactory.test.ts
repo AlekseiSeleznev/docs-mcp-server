@@ -1,4 +1,7 @@
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { BedrockEmbeddings } from "@langchain/aws";
+import { Embeddings } from "@langchain/core/embeddings";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { VertexAIEmbeddings } from "@langchain/google-vertexai";
 import { OpenAIEmbeddings } from "@langchain/openai";
@@ -6,7 +9,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadConfig } from "../../utils/config";
 import { sanitizeEnvironment } from "../../utils/env";
 import { MissingCredentialsError } from "../errors";
-import { createEmbeddingModel, UnsupportedProviderError } from "./EmbeddingFactory";
+import type { EmbeddingProvider } from "./EmbeddingConfig";
+import { createEmbeddingModel } from "./EmbeddingFactory";
 import { FixedDimensionEmbeddings } from "./FixedDimensionEmbeddings";
 
 // Suppress logger output during tests
@@ -84,6 +88,17 @@ describe("createEmbeddingModel", () => {
     });
   });
 
+  test.each([
+    "second-state/jina-embeddings-v3-GGUF:Q4_K_M",
+    "nomic-embed-text:latest",
+    "bge-m3:567m",
+    "jina-embeddings-v3-GGUF:Q4_K_M",
+  ])("should create OpenAI-compatible embeddings for %s", (spec) => {
+    const model = createEmbeddingModel(spec, runtimeConfig);
+    expect(model).toBeInstanceOf(OpenAIEmbeddings);
+    expect(model).toMatchObject({ modelName: spec });
+  });
+
   test("should create Google Vertex AI embeddings", () => {
     const model = createEmbeddingModel("vertex:text-embedding-004", runtimeConfig);
     expect(model).toBeInstanceOf(VertexAIEmbeddings);
@@ -142,10 +157,42 @@ describe("createEmbeddingModel", () => {
     });
   });
 
-  test("should throw UnsupportedProviderError for unknown provider", () => {
-    expect(() => createEmbeddingModel("unknown:model", runtimeConfig)).toThrow(
-      UnsupportedProviderError,
-    );
+  // Typed as a complete record so that adding a provider without adding it here
+  // fails typecheck. This is the testable form of "every supported provider has a
+  // model-creation branch" — the invariant `sagemaker` violated for a year.
+  const PROVIDER_SPECS: Record<EmbeddingProvider, string> = {
+    openai: "openai:text-embedding-3-small",
+    vertex: "vertex:text-embedding-004",
+    gemini: "gemini:embedding-001",
+    aws: "aws:amazon.titan-embed-text-v1",
+    microsoft: "microsoft:test-deployment",
+  };
+
+  test.each(Object.entries(PROVIDER_SPECS))(
+    "should construct a client for the %s provider",
+    (_provider, spec) => {
+      expect(createEmbeddingModel(spec, runtimeConfig)).toBeInstanceOf(Embeddings);
+    },
+  );
+
+  test("should treat the withdrawn sagemaker prefix as an OpenAI-compatible model name", () => {
+    const model = createEmbeddingModel("sagemaker:my-endpoint", runtimeConfig);
+    expect(model).toBeInstanceOf(OpenAIEmbeddings);
+    expect(model).toMatchObject({ modelName: "sagemaker:my-endpoint" });
+  });
+
+  test("should match a provider prefix case-insensitively", () => {
+    const model = createEmbeddingModel("OpenAI:text-embedding-3-small", runtimeConfig);
+    expect(model).toBeInstanceOf(OpenAIEmbeddings);
+    expect(model).toMatchObject({ modelName: "text-embedding-3-small" });
+  });
+
+  test("should treat an unrecognized prefix as an OpenAI-compatible model name", () => {
+    // Only the known provider prefixes claim the segment before the first colon;
+    // everything else is a model name served by an OpenAI-compatible endpoint.
+    const model = createEmbeddingModel("unknown:model", runtimeConfig);
+    expect(model).toBeInstanceOf(OpenAIEmbeddings);
+    expect(model).toMatchObject({ modelName: "unknown:model" });
   });
 
   test("should throw MissingCredentialsError for Azure OpenAI without required env vars", () => {
@@ -188,6 +235,88 @@ describe("createEmbeddingModel", () => {
     expect(model).toBeInstanceOf(BedrockEmbeddings);
     expect(model).toMatchObject({
       model: "amazon.titan-embed-text-v1",
+    });
+  });
+
+  test("should request float encoding for OpenAI-compatible providers", () => {
+    // Regression guard for #469: without an explicit encodingFormat the OpenAI SDK
+    // sends `encoding_format: "base64"` and then base64-decodes the reply. Providers
+    // that ignore the parameter return JSON floats, which decode into an all-zero
+    // vector a quarter of the native length.
+    const model = createEmbeddingModel("openai:mistral-embed", runtimeConfig);
+    expect(model).toBeInstanceOf(OpenAIEmbeddings);
+    expect(model).toMatchObject({ encodingFormat: "float" });
+  });
+
+  describe("providers that ignore encoding_format", () => {
+    /**
+     * Stands in for Mistral / LM Studio / Ollama: accepts `encoding_format` and
+     * then ignores it, always replying with JSON float arrays. Reproduces #469
+     * without needing an API key or a paid provider.
+     */
+    function startProvider(nativeDimension: number) {
+      const received: Array<string | undefined> = [];
+      const server = createServer((req, res) => {
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", () => {
+          received.push(JSON.parse(body || "{}").encoding_format);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              object: "list",
+              model: "mistral-embed",
+              data: [
+                {
+                  object: "embedding",
+                  index: 0,
+                  embedding: Array.from(
+                    { length: nativeDimension },
+                    (_, i) => Math.sin(i + 1) * 0.05,
+                  ),
+                },
+              ],
+              usage: { prompt_tokens: 1, total_tokens: 1 },
+            }),
+          );
+        });
+      });
+      return { server, received };
+    }
+
+    test("should store full-length non-zero vectors from a float-only provider", async () => {
+      const nativeDimension = 1024;
+      const { server, received } = startProvider(nativeDimension);
+      await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", () => resolve()),
+      );
+      const { port } = server.address() as AddressInfo;
+
+      try {
+        vi.stubGlobal("process", {
+          env: {
+            OPENAI_API_KEY: "test-openai-key",
+            OPENAI_API_BASE: `http://127.0.0.1:${port}/v1`,
+          },
+        });
+
+        const model = createEmbeddingModel("openai:mistral-embed", {
+          vectorDimension: nativeDimension,
+        });
+        const vector = await model.embedQuery("test");
+
+        // Pre-fix, the OpenAI SDK sent `encoding_format: "base64"` and then
+        // base64-decoded the JSON floats, yielding 256 zeros instead of 1024
+        // values — silently, with no error raised.
+        expect(received).toEqual(["float"]);
+        expect(vector).toHaveLength(nativeDimension);
+        expect(vector.every((value) => value === 0)).toBe(false);
+        expect(vector.filter((value) => value !== 0)).toHaveLength(nativeDimension);
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
     });
   });
 

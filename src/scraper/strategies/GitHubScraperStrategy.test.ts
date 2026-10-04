@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../../utils/config";
-import { ScraperError } from "../../utils/errors";
+import { ChallengeError, HttpStatusError, ScraperError } from "../../utils/errors";
 import { FetchStatus, HttpFetcher } from "../fetcher";
 import type { ScraperOptions } from "../types";
 import { GitHubScraperStrategy } from "./GitHubScraperStrategy";
@@ -616,9 +616,10 @@ describe("GitHubScraperStrategy", () => {
       httpFetcherInstance.fetch.mockImplementation((url: string) => {
         if (url.includes("api.github.com/repos/")) {
           return Promise.reject(
-            new ScraperError(
+            new HttpStatusError(
               "Failed to fetch https://api.github.com/repos/owner/repo after 1 attempts: Request failed with status code 401",
               true,
+              401,
             ),
           );
         }
@@ -640,14 +641,72 @@ describe("GitHubScraperStrategy", () => {
       );
     });
 
+    it("should translate a Cloudflare-challenged 403 into the access-denied message", async () => {
+      // HttpFetcher raises ChallengeError, not HttpStatusError, for a 403 with
+      // challenge markers — it still carries the status and still deserves the
+      // friendly message.
+      httpFetcherInstance.fetch.mockImplementation((url: string) => {
+        if (url.includes("api.github.com/repos/")) {
+          return Promise.reject(
+            new ChallengeError(
+              "https://api.github.com/repos/owner/repo",
+              403,
+              "cloudflare",
+            ),
+          );
+        }
+        return Promise.resolve({
+          content: "",
+          mimeType: "text/plain",
+          source: url,
+          status: FetchStatus.SUCCESS,
+        });
+      });
+
+      const item = { url: "https://github.com/owner/repo", depth: 0 };
+
+      await expect(strategy.processItem(item, options)).rejects.toThrow(
+        /GitHub access denied/,
+      );
+    });
+
+    it("should not report access denied when only the repo name contains 403", async () => {
+      // The error message embeds the api url, so a message-substring check
+      // would misreport this connection failure as a permissions problem.
+      httpFetcherInstance.fetch.mockImplementation((url: string) => {
+        if (url.includes("api.github.com/repos/")) {
+          return Promise.reject(
+            new ScraperError(
+              "Failed to fetch https://api.github.com/repos/owner/error-403 after 3 attempts: connect ECONNREFUSED",
+              true,
+            ),
+          );
+        }
+        return Promise.resolve({
+          content: "",
+          mimeType: "text/plain",
+          source: url,
+          status: FetchStatus.SUCCESS,
+        });
+      });
+
+      const item = { url: "https://github.com/owner/error-403", depth: 0 };
+
+      await expect(strategy.processItem(item, options)).rejects.toThrow(/ECONNREFUSED/);
+      await expect(strategy.processItem(item, options)).rejects.not.toThrow(
+        /access denied/,
+      );
+    });
+
     it("should throw user-friendly error when access is denied (403)", async () => {
       // Mock repo info API throwing 403 error (forbidden/rate-limited)
       httpFetcherInstance.fetch.mockImplementation((url: string) => {
         if (url.includes("api.github.com/repos/")) {
           return Promise.reject(
-            new ScraperError(
+            new HttpStatusError(
               "Failed to fetch https://api.github.com/repos/owner/repo after 1 attempts: Request failed with status code 403",
               true,
+              403,
             ),
           );
         }
@@ -668,5 +727,68 @@ describe("GitHubScraperStrategy", () => {
         /permissions|rate-limited/,
       );
     });
+  });
+});
+
+describe("GitHubScraperStrategy progress counters", () => {
+  // This strategy had no maxDepth, maxPages, initialQueue or counter coverage at
+  // all, despite having the most depth-heterogeneous initial queue of any
+  // strategy: a flat list of blobs at depth 1 alongside nested wiki pages.
+  let strategy: GitHubScraperStrategy;
+  const appConfig = loadConfig();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHttpFetcher.mockImplementation(function () {
+      return { fetch: vi.fn() };
+    });
+    strategy = new GitHubScraperStrategy(appConfig);
+  });
+
+  it("satisfies the progress invariant over a refresh queue", async () => {
+    const processItem = vi
+      .spyOn(
+        strategy as unknown as {
+          processItem: (item: { url: string; pageId?: number }) => Promise<unknown>;
+        },
+        "processItem",
+      )
+      .mockImplementation(async (item: { url: string; pageId?: number }) => ({
+        url: item.url,
+        links: [],
+        status: FetchStatus.SUCCESS,
+        content: { textContent: "content", chunks: [], links: [], errors: [] },
+      }));
+
+    const initialQueue = [
+      { url: "https://github.com/owner/repo/blob/main/a.md", depth: 1, pageId: 1 },
+      { url: "https://github.com/owner/repo/blob/main/b.md", depth: 1, pageId: 2 },
+      { url: "https://github.com/owner/repo/wiki/Deep", depth: 3, pageId: 3 },
+    ];
+    const options: ScraperOptions = {
+      url: "https://github.com/owner/repo",
+      library: "test",
+      version: "1.0",
+      maxPages: 100,
+      maxDepth: 3,
+      initialQueue,
+      isRefresh: true,
+      ignoreErrors: true,
+    };
+    const cb = vi.fn();
+
+    await strategy.scrape(options, cb);
+
+    // Four items: the three stored pages plus the root, which is unshifted
+    // because it is absent from the initial queue. The depth-3 wiki page is
+    // processed rather than dropped, and the fraction completes.
+    const final = cb.mock.calls.at(-1)?.[0];
+    expect(final).toMatchObject({
+      pagesScraped: 4,
+      totalPages: 4,
+      totalDiscovered: 4,
+      pagesIndexed: 4,
+    });
+    expect(processItem).toHaveBeenCalledTimes(4);
   });
 });

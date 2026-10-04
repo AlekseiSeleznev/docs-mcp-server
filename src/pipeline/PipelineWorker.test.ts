@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { ScraperService } from "../scraper";
 import type { ScrapeResult, ScraperProgressEvent } from "../scraper/types";
+import { PageOutcome } from "../scraper/types";
 import type { DocumentManagementService } from "../store/DocumentManagementService";
 import { PipelineWorker } from "./PipelineWorker";
 import type { InternalPipelineJob, PipelineManagerCallbacks } from "./types";
@@ -106,6 +107,8 @@ describe("PipelineWorker", () => {
           maxDepth: 1,
           result: mockProcessed1,
           totalDiscovered: 0,
+          pagesIndexed: 0,
+          outcome: PageOutcome.Stored,
         };
         await progressCallback(progress1);
 
@@ -117,6 +120,8 @@ describe("PipelineWorker", () => {
           maxDepth: 1,
           result: mockProcessed2,
           totalDiscovered: 0,
+          pagesIndexed: 0,
+          outcome: PageOutcome.Stored,
         };
         await progressCallback(progress2);
       },
@@ -146,12 +151,14 @@ describe("PipelineWorker", () => {
       mockJob.version,
       1,
       mockProcessed1,
+      undefined,
     );
     expect(mockStore.addScrapeResult).toHaveBeenCalledWith(
       mockJob.library,
       mockJob.version,
       1,
       mockProcessed2,
+      undefined,
     );
 
     // Verify onJobProgress was called
@@ -210,6 +217,8 @@ describe("PipelineWorker", () => {
           maxDepth: 1,
           result: mockProcessed,
           totalDiscovered: 0,
+          pagesIndexed: 0,
+          outcome: PageOutcome.Stored,
         };
         await progressCallback(progress);
       },
@@ -259,6 +268,8 @@ describe("PipelineWorker", () => {
           maxDepth: 1,
           result: mockProcessed,
           totalDiscovered: 0,
+          pagesIndexed: 0,
+          outcome: PageOutcome.Stored,
         };
         // Simulate cancellation happening *before* progress is processed by worker
         abortController.abort();
@@ -329,6 +340,8 @@ describe("PipelineWorker", () => {
           result: null,
           pageId: 123, // Page ID to delete
           totalDiscovered: 0,
+          pagesIndexed: 0,
+          outcome: PageOutcome.Absent,
         };
         await progressCallback(progress);
       },
@@ -369,6 +382,8 @@ describe("PipelineWorker", () => {
             result: null, // No result for 304
             pageId: 123, // Page ID from refresh queue
             totalDiscovered: 0,
+            pagesIndexed: 0,
+            outcome: PageOutcome.Unchanged,
           };
           await progressCallback(progress);
         },
@@ -391,7 +406,7 @@ describe("PipelineWorker", () => {
       );
     });
 
-    it("should DELETE existing documents and INSERT new ones for a 200 OK status on an existing page", async () => {
+    it("should hand the refreshed page's id to the store for a 200 OK status on an existing page", async () => {
       const mockResult: ScrapeResult = {
         textContent: "updated content",
         url: "url1",
@@ -415,6 +430,8 @@ describe("PipelineWorker", () => {
             result: mockResult,
             pageId: 123, // Existing page ID
             totalDiscovered: 0,
+            pagesIndexed: 0,
+            outcome: PageOutcome.Stored,
           };
           await progressCallback(progress);
         },
@@ -422,24 +439,20 @@ describe("PipelineWorker", () => {
 
       await worker.executeJob(mockJob, mockCallbacks);
 
-      // Verify DELETE was called first
-      expect(mockStore.deletePage).toHaveBeenCalledOnce();
-      expect(mockStore.deletePage).toHaveBeenCalledWith(123);
+      // The old row is retired inside the store's write transaction, not here.
+      // Deleting it first hid it from the precedence check, so a refresh that
+      // re-fetched both representations of one page kept whichever finished
+      // last instead of the better one.
+      expect(mockStore.deletePage).not.toHaveBeenCalled();
 
-      // Verify INSERT (addScrapeResult) was called after deletion
       expect(mockStore.addScrapeResult).toHaveBeenCalledOnce();
       expect(mockStore.addScrapeResult).toHaveBeenCalledWith(
         mockJob.library,
         mockJob.version,
         1,
         mockResult,
+        123,
       );
-
-      // Verify call order: delete before add
-      const deleteCallOrder = (mockStore.deletePage as Mock).mock.invocationCallOrder[0];
-      const addCallOrder = (mockStore.addScrapeResult as Mock).mock
-        .invocationCallOrder[0];
-      expect(deleteCallOrder).toBeLessThan(addCallOrder);
 
       // Verify progress was reported
       expect(mockCallbacks.onJobProgress).toHaveBeenCalledOnce();
@@ -469,6 +482,8 @@ describe("PipelineWorker", () => {
             result: mockResult,
             pageId: undefined, // No pageId = new page
             totalDiscovered: 0,
+            pagesIndexed: 0,
+            outcome: PageOutcome.Stored,
           };
           await progressCallback(progress);
         },
@@ -479,13 +494,14 @@ describe("PipelineWorker", () => {
       // Verify NO deletion was performed (new page)
       expect(mockStore.deletePage).not.toHaveBeenCalled();
 
-      // Verify INSERT (addScrapeResult) was called
+      // Verify INSERT (addScrapeResult) was called, with no page to retire
       expect(mockStore.addScrapeResult).toHaveBeenCalledOnce();
       expect(mockStore.addScrapeResult).toHaveBeenCalledWith(
         mockJob.library,
         mockJob.version,
         1,
         mockResult,
+        undefined,
       );
 
       // Verify progress was reported
@@ -506,6 +522,8 @@ describe("PipelineWorker", () => {
             deleted: true, // 404 - page was deleted
             pageId: 123,
             totalDiscovered: 0,
+            pagesIndexed: 0,
+            outcome: PageOutcome.Absent,
           };
           await progressCallback(progress);
         },

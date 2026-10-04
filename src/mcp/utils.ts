@@ -3,7 +3,7 @@ import type { StoreSearchResult } from "../store/types";
 
 /** Formats search results consistently for full and read-only MCP servers. */
 export function formatSearchResults(
-  results: Pick<StoreSearchResult, "url" | "content" | "publication">[],
+  results: Pick<StoreSearchResult, "url" | "contentUrl" | "content" | "publication">[],
 ): string[] {
   return results.map((result, index) => {
     const publicationLines = [
@@ -16,7 +16,7 @@ export function formatSearchResults(
       publicationLines.length > 0 ? `\n${publicationLines.join("\n")}\n` : "";
     return `
 ------------------------------------------------------------
-Result ${index + 1}: ${result.url}
+Result ${index + 1}: ${result.contentUrl ?? result.url}
 ${publication}
 ${result.content}\n`;
   });

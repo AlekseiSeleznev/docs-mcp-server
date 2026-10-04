@@ -9,6 +9,196 @@ export interface ParsedContentType {
 }
 
 /**
+ * Extension-to-MIME overrides for types the `mime` package gets wrong or does
+ * not know. See openspec/changes/refactor-mime-type-detection/design.md.
+ *
+ * Module-level: `detectMimeTypeFromPath` runs once per discovered link, and
+ * rebuilding this per call allocated the whole table to do one lookup.
+ */
+const CUSTOM_MIME_TYPES: Record<string, string> = {
+  // JavaScript/TypeScript family
+  ts: "text/x-typescript",
+  tsx: "text/x-tsx",
+  mts: "text/x-typescript", // TypeScript ES modules
+  cts: "text/x-typescript", // TypeScript CommonJS modules
+  js: "text/javascript",
+  jsx: "text/x-jsx",
+  cjs: "text/javascript", // CommonJS modules
+  mjs: "text/javascript", // ES modules
+
+  // Python family
+  py: "text/x-python",
+  pyw: "text/x-python",
+  pyi: "text/x-python",
+  pyx: "text/x-cython", // Cython
+  pxd: "text/x-cython", // Cython
+
+  // Systems languages
+  go: "text/x-go",
+  rs: "text/x-rust",
+  c: "text/x-csrc",
+  h: "text/x-chdr",
+  cpp: "text/x-c++src",
+  cxx: "text/x-c++src",
+  cc: "text/x-c++src",
+  hpp: "text/x-c++hdr",
+  hxx: "text/x-c++hdr",
+  zig: "text/x-zig",
+  nim: "text/x-nim",
+  v: "text/x-v",
+  cr: "text/x-crystal",
+
+  // JVM languages
+  kt: "text/x-kotlin",
+  kts: "text/x-kotlin", // Kotlin script
+  scala: "text/x-scala",
+  groovy: "text/x-groovy",
+  gradle: "text/x-gradle",
+
+  // Apple/Mobile
+  swift: "text/x-swift",
+  dart: "text/x-dart",
+
+  // Scripting languages
+  rb: "text/x-ruby",
+  rake: "text/x-ruby", // Rakefile
+  php: "text/x-php",
+  lua: "text/x-lua",
+  pl: "text/x-perl",
+  pm: "text/x-perl",
+  r: "text/x-r", // Also handles .R since extension is lowercased
+
+  // Functional languages
+  hs: "text/x-haskell",
+  lhs: "text/x-haskell", // Literate Haskell
+  elm: "text/x-elm",
+  erl: "text/x-erlang",
+  ex: "text/x-elixir",
+  exs: "text/x-elixir",
+  clj: "text/x-clojure",
+  cljs: "text/x-clojure",
+  cljc: "text/x-clojure",
+  scm: "text/x-scheme", // mime package: application/vnd.lotus-screencam
+  ss: "text/x-scheme",
+  tcl: "text/x-tcl", // mime package: application/x-tcl
+  jl: "text/x-julia",
+
+  // .NET
+  cs: "text/x-csharp",
+
+  // Web3/Smart contracts
+  sol: "text/x-solidity",
+  move: "text/x-move",
+  cairo: "text/x-cairo",
+
+  // Modern web frameworks
+  vue: "text/x-vue",
+  svelte: "text/x-svelte",
+  astro: "text/x-astro",
+
+  // Shell scripting
+  sh: "text/x-shellscript",
+  bash: "text/x-shellscript",
+  zsh: "text/x-shellscript",
+  fish: "text/x-shellscript",
+  csh: "text/x-shellscript", // mime package: application/x-csh
+  tcsh: "text/x-shellscript",
+  ksh: "text/x-shellscript",
+  ps1: "text/x-powershell",
+  bat: "text/x-batch", // mime package: application/x-msdownload
+  cmd: "text/x-batch",
+
+  // Documentation formats
+  markdown: "text/markdown",
+  mdx: "text/mdx",
+  gfm: "text/x-gfm",
+  mkd: "text/markdown",
+  mkdn: "text/markdown",
+  mkdown: "text/markdown",
+  mdown: "text/markdown",
+  mdwn: "text/markdown",
+  ronn: "text/markdown",
+  rst: "text/x-rst", // reStructuredText
+  adoc: "text/x-asciidoc",
+  asciidoc: "text/x-asciidoc",
+  textile: "text/x-textile",
+  org: "text/x-org", // Org-mode
+  pod: "text/x-pod", // Perl documentation
+  rdoc: "text/x-rdoc", // Ruby documentation
+  wiki: "text/x-wiki",
+  rmd: "text/x-rmarkdown", // R Markdown
+
+  // Configuration files
+  toml: "text/x-toml",
+  ini: "text/x-ini",
+  cfg: "text/x-ini",
+  conf: "text/x-conf",
+  properties: "text/x-properties",
+  env: "text/x-dotenv",
+
+  // Build systems
+  dockerfile: "text/x-dockerfile",
+  containerfile: "text/x-dockerfile",
+  makefile: "text/x-makefile",
+  cmake: "text/x-cmake",
+  bazel: "text/x-bazel",
+  bzl: "text/x-bazel",
+  buck: "text/x-buck",
+
+  // Infrastructure as Code
+  tf: "text/x-terraform",
+  tfvars: "text/x-terraform",
+  hcl: "text/x-hcl",
+
+  // Data/Query languages
+  sql: "text/x-sql",
+  graphql: "text/x-graphql",
+  gql: "text/x-graphql",
+
+  // Schema/API definitions
+  proto: "text/x-proto",
+  prisma: "text/x-prisma",
+  thrift: "text/x-thrift",
+  avro: "text/x-avro",
+
+  // TeX/LaTeX
+  tex: "text/x-tex",
+  latex: "text/x-latex",
+
+  // Document formats (ensure correct detection for DocumentPipeline)
+  doc: "application/msword",
+  xls: "application/vnd.ms-excel",
+  ppt: "application/vnd.ms-powerpoint",
+  odt: "application/vnd.oasis.opendocument.text",
+  ods: "application/vnd.oasis.opendocument.spreadsheet",
+  odp: "application/vnd.oasis.opendocument.presentation",
+  rtf: "application/rtf",
+  epub: "application/epub+zip",
+  fb2: "application/x-fictionbook+xml",
+};
+
+/**
+ * Corrections for MIME types arriving from outside — chiefly HTTP
+ * `Content-Type` headers. Extensions are matched against
+ * {@link CUSTOM_MIME_TYPES} first, so these mostly cover external sources.
+ */
+const MIME_TYPE_NORMALIZATION: Record<string, string> = {
+  "application/node": "text/javascript", // .cjs files
+  "video/mp2t": "text/x-typescript", // .ts/.mts files (MPEG-2 transport stream conflict)
+  "application/rls-services+xml": "text/x-rust", // .rs files
+  "application/vnd.lotus-organizer": "text/x-org", // .org files (Lotus Organizer conflict)
+  "application/vnd.dart": "text/x-dart", // .dart files
+  "application/x-perl": "text/x-perl", // .pl/.pm files
+  "application/x-tex": "text/x-tex", // .tex files
+  "application/x-latex": "text/x-latex", // .latex files
+  "application/toml": "text/x-toml", // .toml files
+  "application/x-csh": "text/x-shellscript", // .csh/.tcsh files
+  "application/x-tcl": "text/x-tcl", // .tcl files
+  "application/vnd.lotus-screencam": "text/x-scheme", // .scm files (Lotus ScreenCam conflict)
+  "application/x-msdownload": "text/x-batch", // .bat/.cmd files
+};
+
+/**
  * Enhanced MIME type detection and utility functions.
  * Combines standard MIME type operations with enhanced source code detection.
  */
@@ -24,7 +214,11 @@ export class MimeTypeUtils {
       return { mimeType: "application/octet-stream" };
     }
     const parts = contentTypeHeader.split(";").map((part) => part.trim());
-    const mimeType = parts[0].toLowerCase();
+    // Normalized for the same reason path detection is: the `mime` package's
+    // misfilings also arrive from servers, and a header saying
+    // `application/x-tcl` describes a text script just as a `.tcl` path does.
+    const raw = parts[0].toLowerCase();
+    const mimeType = MimeTypeUtils.normalizeMimeType(raw) ?? raw;
     let charset: string | undefined;
 
     for (let i = 1; i < parts.length; i++) {
@@ -213,6 +407,29 @@ export class MimeTypeUtils {
   }
 
   /**
+   * Checks if a MIME type names a binary media family: image, video, audio, or font.
+   *
+   * These are the families whose file extensions are trustworthy enough to act on
+   * before a request is made. Deliberately excludes `application/*`, because the
+   * `mime` package files plain-text scripts there — `.csh`, `.tcl`, `.bat` and
+   * `.scm` all resolve to `application/*` despite being source code that pipelines
+   * read happily.
+   *
+   * @param mimeType The MIME type to classify.
+   * @returns True when the type names binary media.
+   */
+  public static isBinaryMediaType(mimeType: string): boolean {
+    if (!mimeType) return false;
+    const normalized = mimeType.toLowerCase();
+    return (
+      normalized.startsWith("image/") ||
+      normalized.startsWith("video/") ||
+      normalized.startsWith("audio/") ||
+      normalized.startsWith("font/")
+    );
+  }
+
+  /**
    * Checks if content appears to be binary based on the presence of null bytes.
    * This is a reliable heuristic since text files should not contain null bytes.
    * @param content The content to check (string or Buffer)
@@ -243,164 +460,8 @@ export class MimeTypeUtils {
     const cleanPath = filePath.split("?")[0].split("#")[0];
     const extension = cleanPath.toLowerCase().split(".").pop();
 
-    // Handle common source code extensions that mime package gets wrong or doesn't know.
-    // See openspec/changes/refactor-mime-type-detection/design.md for full documentation.
-    const customMimeTypes: Record<string, string> = {
-      // JavaScript/TypeScript family
-      ts: "text/x-typescript",
-      tsx: "text/x-tsx",
-      mts: "text/x-typescript", // TypeScript ES modules
-      cts: "text/x-typescript", // TypeScript CommonJS modules
-      js: "text/javascript",
-      jsx: "text/x-jsx",
-      cjs: "text/javascript", // CommonJS modules
-      mjs: "text/javascript", // ES modules
-
-      // Python family
-      py: "text/x-python",
-      pyw: "text/x-python",
-      pyi: "text/x-python",
-      pyx: "text/x-cython", // Cython
-      pxd: "text/x-cython", // Cython
-
-      // Systems languages
-      go: "text/x-go",
-      rs: "text/x-rust",
-      c: "text/x-csrc",
-      h: "text/x-chdr",
-      cpp: "text/x-c++src",
-      cxx: "text/x-c++src",
-      cc: "text/x-c++src",
-      hpp: "text/x-c++hdr",
-      hxx: "text/x-c++hdr",
-      zig: "text/x-zig",
-      nim: "text/x-nim",
-      v: "text/x-v",
-      cr: "text/x-crystal",
-
-      // JVM languages
-      kt: "text/x-kotlin",
-      kts: "text/x-kotlin", // Kotlin script
-      scala: "text/x-scala",
-      groovy: "text/x-groovy",
-      gradle: "text/x-gradle",
-
-      // Apple/Mobile
-      swift: "text/x-swift",
-      dart: "text/x-dart",
-
-      // Scripting languages
-      rb: "text/x-ruby",
-      rake: "text/x-ruby", // Rakefile
-      php: "text/x-php",
-      lua: "text/x-lua",
-      pl: "text/x-perl",
-      pm: "text/x-perl",
-      r: "text/x-r", // Also handles .R since extension is lowercased
-
-      // Functional languages
-      hs: "text/x-haskell",
-      lhs: "text/x-haskell", // Literate Haskell
-      elm: "text/x-elm",
-      erl: "text/x-erlang",
-      ex: "text/x-elixir",
-      exs: "text/x-elixir",
-      clj: "text/x-clojure",
-      cljs: "text/x-clojure",
-      cljc: "text/x-clojure",
-      jl: "text/x-julia",
-
-      // .NET
-      cs: "text/x-csharp",
-
-      // Web3/Smart contracts
-      sol: "text/x-solidity",
-      move: "text/x-move",
-      cairo: "text/x-cairo",
-
-      // Modern web frameworks
-      vue: "text/x-vue",
-      svelte: "text/x-svelte",
-      astro: "text/x-astro",
-
-      // Shell scripting
-      sh: "text/x-shellscript",
-      bash: "text/x-shellscript",
-      zsh: "text/x-shellscript",
-      fish: "text/x-shellscript",
-      ps1: "text/x-powershell",
-
-      // Documentation formats
-      markdown: "text/markdown",
-      mdx: "text/mdx",
-      gfm: "text/x-gfm",
-      mkd: "text/markdown",
-      mkdn: "text/markdown",
-      mkdown: "text/markdown",
-      mdown: "text/markdown",
-      mdwn: "text/markdown",
-      ronn: "text/markdown",
-      rst: "text/x-rst", // reStructuredText
-      adoc: "text/x-asciidoc",
-      asciidoc: "text/x-asciidoc",
-      textile: "text/x-textile",
-      org: "text/x-org", // Org-mode
-      pod: "text/x-pod", // Perl documentation
-      rdoc: "text/x-rdoc", // Ruby documentation
-      wiki: "text/x-wiki",
-      rmd: "text/x-rmarkdown", // R Markdown
-
-      // Configuration files
-      toml: "text/x-toml",
-      ini: "text/x-ini",
-      cfg: "text/x-ini",
-      conf: "text/x-conf",
-      properties: "text/x-properties",
-      env: "text/x-dotenv",
-
-      // Build systems
-      dockerfile: "text/x-dockerfile",
-      containerfile: "text/x-dockerfile",
-      makefile: "text/x-makefile",
-      cmake: "text/x-cmake",
-      bazel: "text/x-bazel",
-      bzl: "text/x-bazel",
-      buck: "text/x-buck",
-
-      // Infrastructure as Code
-      tf: "text/x-terraform",
-      tfvars: "text/x-terraform",
-      hcl: "text/x-hcl",
-
-      // Data/Query languages
-      sql: "text/x-sql",
-      graphql: "text/x-graphql",
-      gql: "text/x-graphql",
-
-      // Schema/API definitions
-      proto: "text/x-proto",
-      prisma: "text/x-prisma",
-      thrift: "text/x-thrift",
-      avro: "text/x-avro",
-
-      // TeX/LaTeX
-      tex: "text/x-tex",
-      latex: "text/x-latex",
-
-      // Document formats (ensure correct detection for DocumentPipeline)
-      doc: "application/msword",
-      xls: "application/vnd.ms-excel",
-      ppt: "application/vnd.ms-powerpoint",
-      odt: "application/vnd.oasis.opendocument.text",
-      ods: "application/vnd.oasis.opendocument.spreadsheet",
-      odp: "application/vnd.oasis.opendocument.presentation",
-      rtf: "application/rtf",
-      epub: "application/epub+zip",
-      fb2: "application/x-fictionbook+xml",
-    };
-
-    if (extension && customMimeTypes[extension]) {
-      return customMimeTypes[extension];
+    if (extension && CUSTOM_MIME_TYPES[extension]) {
+      return CUSTOM_MIME_TYPES[extension];
     }
 
     // Fall back to the mime package for other types
@@ -422,22 +483,7 @@ export class MimeTypeUtils {
       return null;
     }
 
-    // Map problematic MIME types to correct ones.
-    // These are defense-in-depth for external MIME types (e.g., HTTP Content-Type headers).
-    // Extensions are checked first in customMimeTypes, so these mostly apply to external sources.
-    const mimeTypeNormalization: Record<string, string> = {
-      "application/node": "text/javascript", // .cjs files
-      "video/mp2t": "text/x-typescript", // .ts/.mts files (MPEG-2 transport stream conflict)
-      "application/rls-services+xml": "text/x-rust", // .rs files
-      "application/vnd.lotus-organizer": "text/x-org", // .org files (Lotus Organizer conflict)
-      "application/vnd.dart": "text/x-dart", // .dart files
-      "application/x-perl": "text/x-perl", // .pl/.pm files
-      "application/x-tex": "text/x-tex", // .tex files
-      "application/x-latex": "text/x-latex", // .latex files
-      "application/toml": "text/x-toml", // .toml files
-    };
-
-    return mimeTypeNormalization[mimeType] || mimeType;
+    return MIME_TYPE_NORMALIZATION[mimeType] || mimeType;
   }
 
   /**
@@ -503,6 +549,9 @@ export class MimeTypeUtils {
       "text/x-erlang": "erlang",
       "text/x-elixir": "elixir",
       "text/x-clojure": "clojure",
+      "text/x-scheme": "scheme",
+      "text/x-tcl": "tcl",
+      "text/x-batch": "batch",
       "text/x-julia": "julia",
 
       // Web3/Smart contracts

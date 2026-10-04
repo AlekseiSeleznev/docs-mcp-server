@@ -10,21 +10,45 @@ import type { ProgressCallback } from "../../types";
 import type { AppConfig } from "../../utils/config";
 import { logger } from "../../utils/logger";
 import { MimeTypeUtils } from "../../utils/mimeTypeUtils";
-import type { UrlNormalizerOptions } from "../../utils/url";
+import {
+  normalizeUrl,
+  stripMarkdownExtension,
+  type UrlNormalizerOptions,
+} from "../../utils/url";
 import { AutoDetectFetcher } from "../fetcher";
 import { FetchStatus, type RawContent } from "../fetcher/types";
+import {
+  createMimeTypeCapabilityPredicate,
+  type MimeTypeCapabilityPredicate,
+} from "../pipelines/capability";
 import { PipelineFactory } from "../pipelines/PipelineFactory";
 import type { ContentPipeline, PipelineResult } from "../pipelines/types";
 import type { QueueItem, ScraperOptions, ScraperProgressEvent } from "../types";
 import { convertToString } from "../utils/buffer";
 import { isLlmsTxtUrl, type LlmsTxtResult, parseLlmsTxt } from "../utils/llmsTxtParser";
-import { isPathDescendant } from "../utils/scope";
+import { isFileLikePath, isPathDescendant } from "../utils/scope";
 import { BaseScraperStrategy, type ProcessItemResult } from "./BaseScraperStrategy";
 import { LocalFileStrategy } from "./LocalFileStrategy";
 
 export interface WebScraperStrategyOptions {
   urlNormalizerOptions?: UrlNormalizerOptions;
   shouldFollowLink?: (baseUrl: URL, targetUrl: URL) => boolean;
+}
+
+/**
+ * Matches paths naming an archive we know how to unpack.
+ *
+ * This is a policy statement, not a capability one, which is why it is not
+ * expressed through the pipeline capability predicate: archives are readable —
+ * `processRootArchive` unpacks one when it is the start URL — but following them
+ * mid-crawl is deliberately declined. The two call sites act on the same test in
+ * opposite directions, so they share this helper rather than the literal.
+ *
+ * @param pathname The URL pathname to test.
+ * @returns True when the path names a supported archive.
+ */
+function isArchivePath(pathname: string): boolean {
+  return /\.(zip|tar|gz|tgz)$/i.test(pathname);
 }
 
 interface LlmsTxtProbeResult {
@@ -36,6 +60,7 @@ export class WebScraperStrategy extends BaseScraperStrategy {
   private readonly fetcher: AutoDetectFetcher;
   private readonly shouldFollowLinkFn?: (baseUrl: URL, targetUrl: URL) => boolean;
   private readonly pipelines: ContentPipeline[];
+  private readonly canProcessMimeType: MimeTypeCapabilityPredicate;
   private readonly localFileStrategy: LocalFileStrategy;
   private tempFiles: string[] = [];
   private siblingwiseRedirectWarned = false;
@@ -46,6 +71,7 @@ export class WebScraperStrategy extends BaseScraperStrategy {
     this.shouldFollowLinkFn = options.shouldFollowLink;
     this.fetcher = new AutoDetectFetcher(config.scraper);
     this.pipelines = PipelineFactory.createStandardPipelines(config);
+    this.canProcessMimeType = createMimeTypeCapabilityPredicate(this.pipelines);
     this.localFileStrategy = new LocalFileStrategy(config);
   }
 
@@ -95,6 +121,9 @@ export class WebScraperStrategy extends BaseScraperStrategy {
       followRedirects: options.followRedirects,
       headers: options.headers,
       etag: item.etag,
+      // Fetch-time gate. The fetcher stays ignorant of pipelines; it is simply
+      // told what this strategy is able to read.
+      acceptsMimeType: this.canProcessMimeType,
       ...(item.internalAllowedFileRoots
         ? { internalAllowedFileRoots: item.internalAllowedFileRoots }
         : {}),
@@ -118,14 +147,126 @@ export class WebScraperStrategy extends BaseScraperStrategy {
     return variant.toString();
   }
 
+  /**
+   * Records a web page under its canonical URL.
+   *
+   * Web URLs are the case the shared normaliser was written for: a server
+   * returns the same bytes for `/config` and `/config/`, and for a directory and
+   * its index file, so those spellings name one page.
+   */
+  protected override canonicalizeStoredUrl(
+    url: string,
+    scrapeOptions: ScraperOptions,
+  ): string {
+    return normalizeUrl(url, this.getUrlNormalizerOptions(scrapeOptions));
+  }
+
+  /**
+   * Restates an accepted Markdown variant's content type as Markdown.
+   *
+   * Sites disagree on how to serve a `.md` file: vite.dev sends `text/markdown`,
+   * react.dev sends `text/plain`. Both are Markdown documents, so both are
+   * parsed and recorded as Markdown — the extension is the author's statement
+   * about the format, and the plain-text pipeline would throw away every
+   * heading. Markdown is close enough to a superset of plain text that a file
+   * using none of its syntax still comes through intact.
+   *
+   * `text/plain` is not treated as a weaker signal than HTML. It was, briefly,
+   * to stop a plain-text soft error page outranking the page it folds onto —
+   * but the hosts that soft-404 a `.md` URL answer `200 text/markdown` with a
+   * `# Page Not Found` body (ai-sdk.dev, nextjs.org), so that rule caught none
+   * of them, while react.dev — the `text/plain` host — returns a real 404.
+   * It cost the published Markdown of every such site and bought nothing.
+   * Soft-error detection needs to read the body, and belongs elsewhere.
+   */
+  private asMarkdownRepresentation(url: string, rawContent: RawContent): RawContent {
+    if (!this.isMarkdownUrl(url) || !this.isAcceptableMarkdownVariant(rawContent)) {
+      return rawContent;
+    }
+    return MimeTypeUtils.isMarkdown(rawContent.mimeType)
+      ? rawContent
+      : { ...rawContent, mimeType: "text/markdown" };
+  }
+
   private isAcceptableMarkdownVariant(rawContent: RawContent): boolean {
     const mimeType = rawContent.mimeType.toLowerCase();
     return MimeTypeUtils.isMarkdown(mimeType) || mimeType === "text/plain";
   }
 
   private isMarkdownUrl(url: string): boolean {
-    const mimeType = MimeTypeUtils.detectMimeTypeFromPath(url);
+    // Pathname only, for the reason `canProcessDiscoveredLink` documents: given a
+    // whole URL the detector reads the host's suffix as an extension, and `.md`
+    // is Moldova's ccTLD, so `https://example.md/` would report as Markdown.
+    let pathname: string;
+    try {
+      pathname = new URL(url).pathname;
+    } catch {
+      return false;
+    }
+    const mimeType = MimeTypeUtils.detectMimeTypeFromPath(pathname);
     return mimeType ? MimeTypeUtils.isMarkdown(mimeType) : false;
+  }
+
+  /**
+   * Resolves the page identity for a fetched resource.
+   *
+   * A published Markdown file is a representation of a page rather than a page of
+   * its own, so `guide.md` is recorded as `guide`. Both signals are required and
+   * they answer different questions: the extension states what the author meant
+   * the URL to be, the response states what the server actually returned. The
+   * extension alone would fold a soft 404 or an HTML page onto an identity it
+   * does not serve; the response alone would rewrite the identity of a document
+   * that is legitimately its own resource.
+   *
+   * Being a property of the response, the rule needs no knowledge of how the URL
+   * was discovered or of what else the crawl has seen — which is what lets an
+   * `llms.txt` entry and a crawled link converge without ordering guarantees.
+   *
+   * @param url The URL the content was fetched from, after redirects.
+   * @param rawContent The response, consulted for its resolved MIME type.
+   * @returns The canonical page URL.
+   */
+  private resolvePageIdentity(url: string, rawContent: RawContent): string {
+    if (!this.isMarkdownUrl(url) || !this.isAcceptableMarkdownVariant(rawContent)) {
+      return url;
+    }
+    const canonical = stripMarkdownExtension(url);
+    if (canonical !== url) {
+      logger.debug(`Markdown variant ${url} recorded as ${canonical}`);
+    }
+    return canonical;
+  }
+
+  /**
+   * Queue-time gate: rejects a discovered link whose path extension names binary
+   * media that no configured pipeline can process, before any request is made.
+   *
+   * Two conditions must both hold, and they answer different questions. The binary
+   * media check decides how far to trust an extension; the capability predicate
+   * decides what can be processed. Keeping them separate means adding an image
+   * pipeline still widens this gate automatically, while a `.csh` or `.tcl` file the
+   * `mime` package files under `application/*` is never rejected on its name alone.
+   *
+   * A null detection means "no opinion" — the link is admitted so the fetch-time
+   * gate can decide against the server's actual `Content-Type`. That covers
+   * extensionless URLs, unknown extensions, and paths whose only dots sit in a
+   * directory segment.
+   *
+   * @param targetUrl The resolved absolute URL of the discovered link.
+   * @returns True when the link should continue through the remaining filters.
+   */
+  private canProcessDiscoveredLink(targetUrl: URL): boolean {
+    const mimeType = MimeTypeUtils.detectMimeTypeFromPath(targetUrl.pathname);
+    const isUnreadableMedia =
+      !!mimeType &&
+      MimeTypeUtils.isBinaryMediaType(mimeType) &&
+      !this.canProcessMimeType(mimeType);
+
+    if (!isUnreadableMedia) {
+      return true;
+    }
+    logger.debug(`Skipping ${targetUrl.href}: ${mimeType} is not processable`);
+    return false;
   }
 
   private async fetchItemContent(
@@ -136,7 +277,7 @@ export class WebScraperStrategy extends BaseScraperStrategy {
     const fetchOptions = this.createFetchOptions(item, options, signal);
 
     if (!item.fromLlmsTxt || this.isMarkdownUrl(item.url)) {
-      return this.fetcher.fetch(item.url, fetchOptions);
+      return await this.fetcher.fetch(item.url, fetchOptions);
     }
 
     const markdownVariantUrl = this.buildMarkdownVariantUrl(item.url);
@@ -149,9 +290,7 @@ export class WebScraperStrategy extends BaseScraperStrategy {
         logger.debug(
           `llms.txt Markdown URL preference succeeded: ${item.url} -> ${markdownVariantUrl}`,
         );
-        return MimeTypeUtils.isMarkdown(markdownContent.mimeType)
-          ? markdownContent
-          : { ...markdownContent, mimeType: "text/markdown" };
+        return markdownContent;
       }
 
       logger.debug(
@@ -167,20 +306,35 @@ export class WebScraperStrategy extends BaseScraperStrategy {
   }
 
   private getLlmsTxtCandidates(baseUrl: string, inputUrl: string): string[] {
-    const input = new URL(inputUrl);
-    const parentPath = input.pathname.endsWith("/")
-      ? input.pathname
-      : input.pathname.slice(0, input.pathname.lastIndexOf("/") + 1);
-    input.pathname = `${parentPath}llms.txt`.replace(/\/+/g, "/");
-    input.search = "";
-    input.hash = "";
+    const llmsTxtAt = (base: string, pathname: string): string => {
+      const url = new URL(base);
+      url.pathname = pathname.replace(/\/+/g, "/");
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    };
 
-    const root = new URL(baseUrl);
-    root.pathname = "/llms.txt";
-    root.search = "";
-    root.hash = "";
+    const { pathname } = new URL(inputUrl);
+    // Direct subpath candidate (e.g. /paymob-docs -> /paymob-docs/llms.txt).
+    // Only for directory-like paths: appending to a file name (/docs/page.html)
+    // would probe /docs/page.html/llms.txt, which is a guaranteed 404.
+    // Appending to a file name (/docs/page.html, /docs/index) would probe a
+    // guaranteed 404, so only directory-like paths get the subpath candidate.
+    const isDirectoryLike = !isFileLikePath(pathname);
+    // Parent path candidate (e.g. /docs/v1/page.html -> /docs/v1/llms.txt)
+    const parentPath = pathname.endsWith("/")
+      ? pathname
+      : pathname.slice(0, pathname.lastIndexOf("/") + 1);
 
-    return [...new Set([input.toString(), root.toString()])];
+    return [
+      ...new Set([
+        ...(isDirectoryLike
+          ? [llmsTxtAt(inputUrl, `${pathname.replace(/\/+$/, "")}/llms.txt`)]
+          : []),
+        llmsTxtAt(inputUrl, `${parentPath}llms.txt`),
+        llmsTxtAt(baseUrl, "/llms.txt"),
+      ]),
+    ];
   }
 
   /**
@@ -199,10 +353,12 @@ export class WebScraperStrategy extends BaseScraperStrategy {
   ): Promise<LlmsTxtProbeResult | null> {
     for (const candidate of this.getLlmsTxtCandidates(baseUrl, inputUrl)) {
       try {
-        const rawContent = await this.fetcher.fetch(
-          candidate,
-          this.createFetchOptions({ url: candidate, depth: 0 }, options, signal),
+        const { acceptsMimeType: _gate, ...probeOptions } = this.createFetchOptions(
+          { url: candidate, depth: 0 },
+          options,
+          signal,
         );
+        const rawContent = await this.fetcher.fetch(candidate, probeOptions);
         if (rawContent.status !== FetchStatus.SUCCESS) {
           logger.debug(`llms.txt probe failed for ${candidate}: ${rawContent.status}`);
           continue;
@@ -238,6 +394,15 @@ export class WebScraperStrategy extends BaseScraperStrategy {
       try {
         const targetUrl = new URL(link.url, probe.url);
         if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
+          continue;
+        }
+        // Seeds go through the same admission checks as discovered links: an
+        // image or archive listed in llms.txt should be rejected at queue time
+        // rather than fetched and then discarded.
+        if (isArchivePath(targetUrl.pathname)) {
+          continue;
+        }
+        if (!this.canProcessDiscoveredLink(targetUrl)) {
           continue;
         }
         if (!this.shouldProcessUrl(targetUrl.href, options)) {
@@ -316,20 +481,28 @@ export class WebScraperStrategy extends BaseScraperStrategy {
         logger.debug(`Processing ${url} with stored ETag: ${item.etag}`);
       }
 
-      // Check for Archive Root URL (only if depth 0)
-      if (item.depth === 0) {
-        const isArchive = /\.(zip|tar|gz|tgz)$/i.test(new URL(url).pathname);
-        if (isArchive) {
+      // Check for Archive Root URL (only the user's actual requested root)
+      if (this.isRequestedRoot(item, options)) {
+        if (isArchivePath(new URL(url).pathname)) {
           return this.processRootArchive(item, options, signal);
         }
       }
 
       // Use AutoDetectFetcher which handles fallbacks automatically
-      const rawContent = await this.fetchItemContent(item, options, signal);
-      const effectiveSource = options.preserveHashes
-        ? this.restorePreservedHash(url, rawContent.source)
-        : rawContent.source;
-      if (item.depth === 0) {
+      const fetched = await this.fetchItemContent(item, options, signal);
+      const fetchedSource = options.preserveHashes
+        ? this.restorePreservedHash(url, fetched.source)
+        : fetched.source;
+      // Judged on where the bytes came from, not on where we asked: a redirect
+      // from an extensionless URL to a `.md` resource is still a published
+      // Markdown representation, and the queued URL would hide that. Applied
+      // here rather than per fetch path so every route reaching this point —
+      // including the llms.txt variant fallback — is covered by one rule.
+      const rawContent = this.asMarkdownRepresentation(fetchedSource, fetched);
+      // A Markdown variant is recorded under the page it represents, so a `.md`
+      // URL and its canonical form resolve to one identity however each was found.
+      const effectiveSource = this.resolvePageIdentity(fetchedSource, rawContent);
+      if (this.isRequestedRoot(item, options)) {
         this.updateCanonicalBaseUrl(effectiveSource, options);
       }
       const llmsTxtQueueItems = this.consumePendingLlmsTxtQueueItems(item, options);
@@ -346,6 +519,9 @@ export class WebScraperStrategy extends BaseScraperStrategy {
           url: effectiveSource,
           links: [],
           queueItems: llmsTxtQueueItems,
+          // Carried so a fatal skip at the requested root can name the type that
+          // caused it. Null for 304 and 404, whose MIME type describes nothing.
+          sourceContentType: rawContent.mimeType ?? null,
           status: rawContent.status,
         };
       }
@@ -384,7 +560,10 @@ export class WebScraperStrategy extends BaseScraperStrategy {
           url: effectiveSource,
           links: [],
           queueItems: llmsTxtQueueItems,
-          status: FetchStatus.SUCCESS,
+          sourceContentType: rawContent.mimeType ?? null,
+          // Skipped, not empty: nothing read the body, so we cannot claim the
+          // page has no content — and a refresh must not erase what is stored.
+          status: FetchStatus.SKIPPED,
         };
       }
 
@@ -395,13 +574,30 @@ export class WebScraperStrategy extends BaseScraperStrategy {
 
       // Check if content processing resulted in usable content
       if (!processed.textContent?.trim()) {
+        const pipelineFailed = (processed.errors?.length ?? 0) > 0;
         logger.warn(
           `⚠️  No processable content found for ${url} after pipeline execution.`,
         );
         return {
           url: effectiveSource,
+          // Recorded here as well as on the non-empty return: an empty page
+          // still has a retrieval location, and the base strategy's fallback
+          // cannot recover it once the identity has moved — it compares the
+          // identity with itself and finds no divergence. Without this the row
+          // stores NULL and the next refresh asks the identity while sending
+          // the validator the Markdown file issued.
+          contentUrl: effectiveSource === fetchedSource ? undefined : fetchedSource,
+          title: processed.title ?? null,
+          sourceContentType: rawContent.mimeType,
+          contentType: processed.contentType || rawContent.mimeType,
+          etag: rawContent.etag,
+          lastModified: rawContent.lastModified,
           links: processed.links,
           queueItems: llmsTxtQueueItems,
+          // A clean run that extracted nothing means the page is empty. An errored
+          // run means we learned nothing about it, which is a different fact and
+          // gets different handling downstream.
+          pipelineFailed,
           status: FetchStatus.SUCCESS,
         };
       }
@@ -411,8 +607,17 @@ export class WebScraperStrategy extends BaseScraperStrategy {
           try {
             const targetUrl = new URL(link, effectiveSource);
 
-            // Check for archive links during crawl - ignore them
-            if (/\.(zip|tar|gz|tgz)$/i.test(targetUrl.pathname)) {
+            // Archives are readable but deliberately not followed mid-crawl.
+            // This is policy, so it stays separate from the capability gate below.
+            if (isArchivePath(targetUrl.pathname)) {
+              return [];
+            }
+
+            // Reject links whose extension names content no pipeline can read, before
+            // any request is issued. Detection is deliberately given the pathname only:
+            // passing the href would let a host like `example.zip` or `example.mov`
+            // resolve to an archive or video MIME type off its TLD.
+            if (!this.canProcessDiscoveredLink(targetUrl)) {
               return [];
             }
 
@@ -433,6 +638,11 @@ export class WebScraperStrategy extends BaseScraperStrategy {
 
       return {
         url: effectiveSource,
+        // Recorded only when the bytes came from somewhere other than the
+        // page's identity, so a later refresh requests that representation and
+        // the validator below goes back to the resource that issued it. Equal
+        // values would claim a divergence that does not exist.
+        contentUrl: effectiveSource === fetchedSource ? undefined : fetchedSource,
         etag: rawContent.etag,
         lastModified: rawContent.lastModified,
         sourceContentType: rawContent.mimeType,

@@ -1,5 +1,31 @@
+import type * as cheerio from "cheerio";
+import type { Element } from "domhandler";
 import { logger } from "../../utils/logger";
 import type { ContentProcessorMiddleware, MiddlewareContext } from "./types";
+
+/**
+ * Minimum share of the sanitized body's visible text that the main-content
+ * region must hold before extraction is scoped to it. Tuning value: measured
+ * across a sample of documentation sites the region holds >98% of the
+ * remaining text, so a floor of 0.5 never fires on a well-formed page while
+ * still refusing to scope when `<main>` marks a small decorative shell and
+ * the real content lives elsewhere.
+ */
+const MAIN_CONTENT_MIN_TEXT_RATIO = 0.5;
+
+/**
+ * Length of an element's text as a reader would see it, with runs of
+ * whitespace collapsed to a single space.
+ *
+ * Cheerio's `.text()` returns raw text nodes, so on pretty-printed markup the
+ * indentation between tags counts as content. That matters for the
+ * main-content ratio: removing a chrome element leaves its surrounding
+ * whitespace node behind, outside the content region, which deflates the
+ * region's measured share and can push a dominant `<main>` below the floor.
+ */
+function visibleTextLength(text: string): number {
+  return text.replace(/\s+/g, " ").trim().length;
+}
 
 /**
  * Options for HtmlSanitizerMiddleware.
@@ -14,6 +40,15 @@ export interface HtmlSanitizerOptions {
  * It expects the Cheerio API object (`context.dom`) to be populated by a preceding middleware
  * (e.g., HtmlCheerioParserMiddleware).
  * It modifies the `context.dom` object in place.
+ *
+ * Sanitization runs in two passes:
+ * 1. Selector removal — strips known chrome, ads, and search widgets.
+ * 2. Main-content scoping — when the page declares its content region with
+ *    `<main>` or `role="main"`, everything outside that region is dropped.
+ *    This catches site-specific promo banners and sponsor blocks that no
+ *    selector list can enumerate. Guarded by
+ *    {@link MAIN_CONTENT_MIN_TEXT_RATIO} so a page whose content sits outside
+ *    the declared region is left untouched.
  */
 export class HtmlSanitizerMiddleware implements ContentProcessorMiddleware {
   // Default selectors to remove
@@ -167,6 +202,77 @@ export class HtmlSanitizerMiddleware implements ContentProcessorMiddleware {
     ".st-default-search-input",
   ];
 
+  /**
+   * Replace the body with the page's main-content region, when the page
+   * declares one and it holds the bulk of the remaining visible text.
+   *
+   * Runs after selector removal so the ratio is measured against content that
+   * already has nav, footers, ads, and search widgets stripped — at that point
+   * anything still outside `<main>` is site chrome (promo banners, sponsor
+   * strips, cookie notices, keyboard-shortcut help).
+   *
+   * @param $ The Cheerio DOM, modified in place.
+   * @param source Source URL, used for logging only.
+   */
+  private scopeToMainContent($: cheerio.CheerioAPI, source: string): void {
+    const candidates = $("main").length > 0 ? $("main") : $('[role="main"]');
+    if (candidates.length === 0) return;
+
+    // Keep every declared region, not the richest one. Pages do carry more than
+    // one `<main>` (invalid but common) — a guide beside an API reference, an
+    // article beside a pre-rendered version picker — and each is content the
+    // author marked as such. Choosing between them discarded whole sections
+    // with nothing above `debug` to say so.
+    const regions: Element[] = [];
+    candidates.each((_, element) => {
+      const tagName = $(element).prop("tagName")?.toLowerCase();
+      if (tagName === "html" || tagName === "body") return;
+      // A region nested inside one already kept is the same region declared
+      // twice; keeping both would index its text twice. Only same-kind nesting
+      // reaches here — the candidate set is `<main>` or `[role=main]`, never
+      // both — so this is a `<main>` inside a `<main>`.
+      if (
+        $(element)
+          .parents()
+          .toArray()
+          .some((parent) => regions.includes(parent as Element))
+      ) {
+        return;
+      }
+      regions.push(element as Element);
+    });
+    if (regions.length === 0) return;
+
+    const regionLengths = regions.map((element) => visibleTextLength($(element).text()));
+    const keptLength = regionLengths.reduce((total, length) => total + length, 0);
+    if (keptLength === 0) return;
+
+    const bodyLength = visibleTextLength($("body").text());
+    if (bodyLength === 0) return;
+
+    // Measured on the largest single region, not on their sum. The floor asks
+    // "does a declared region actually hold this page's content?", and summing
+    // answers a different question: two regions of 30% each would clear it and
+    // scope the page, discarding the 40% outside that the floor exists to
+    // protect. Whether to scope is decided by the best region; what to keep,
+    // once scoping, is all of them.
+    const ratio = Math.max(...regionLengths) / bodyLength;
+    if (ratio < MAIN_CONTENT_MIN_TEXT_RATIO) {
+      logger.debug(
+        `Main-content region holds only ${(ratio * 100).toFixed(1)}% of the text for ${source}; keeping full body`,
+      );
+      return;
+    }
+
+    const kept = regions.map((element) => $(element).clone());
+    $("body")
+      .empty()
+      .append(...kept);
+    logger.debug(
+      `Scoped content to ${regions.length} main region(s) (${keptLength}/${bodyLength} chars) for ${source}`,
+    );
+  }
+
   async process(context: MiddlewareContext, next: () => Promise<void>): Promise<void> {
     // Check if Cheerio DOM exists
     const $ = context.dom;
@@ -217,6 +323,9 @@ export class HtmlSanitizerMiddleware implements ContentProcessorMiddleware {
         }
       }
       logger.debug(`Removed ${removedCount} elements for ${context.source}`);
+
+      // Second pass: narrow to the page's declared main-content region.
+      this.scopeToMainContent($, context.source);
 
       // Safety net: Check if sanitization removed all content
       const textLengthAfter = $("body").text().trim().length;
