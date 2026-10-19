@@ -50,6 +50,8 @@ listener остаются защищены Apache, встроенный auth н�
 Claude OAuth gateway сохраняет свою конфигурацию и хранилище. Имена внешнего
 reverse proxy должны быть разрешены через существующий public origin/URL
 или явный `server.allowedOrigins`; запрещено отключать проверку для всех hosts.
+Переменная `DOCS_MCP_SERVER_ALLOWED_ORIGINS` содержит JSON-массив строк,
+например `["https://docs.example.com"]`. Список через запятую не принимается.
 
 ## Откат
 
