@@ -56,6 +56,26 @@ and Related Artifacts while exact reads stay on the read-only nested mount. The
 worker, web UI, and administrative MCP keep their existing storage and search
 configuration.
 
+## Direct web access and firewall ordering
+
+The Apache web listener uses TCP 6280; its backend remains loopback-only on
+16280. Keep Basic authentication on HTTP and WebSocket. Permit TCP 6280 only
+from the approved client addresses before a broader deny rule that covers it.
+A rule for `6100:6999/tcp` also covers 6280, 6281 and 6282. UFW uses the first
+matching rule: a later source allow rule does not override an earlier deny.
+
+Before a change, save the effective rules and UFW files in a protected rollback
+directory. Add a narrow, commented source exception and verify the other rules
+retain their order. Check both `ufw status numbered` and live `iptables-save`:
+UFW stores its comments in its own configuration; the comments need not appear
+in the kernel rules. A dry-run rollback must identify exactly the added rule.
+
+Acceptance uses the actual client network without SSH forwarding: an
+unauthenticated request returns 401, an authenticated system-health request
+returns the expected version and a connected worker, the browser loads without
+errors, and the WebSocket receives a frame. TCP connect alone is insufficient:
+a local VPN TUN can accept the client socket while the remote SYN is dropped.
+
 ## Build and pin the image
 
 The Apache web virtual host requires `upgrade=websocket` on its `ProxyPass /`
