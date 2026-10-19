@@ -1,6 +1,8 @@
 import type { ReadOnlyDocumentManagement } from "../store/ReadOnlyDocumentManagementService";
 import { FindVersionTool } from "../tools/FindVersionTool";
 import { ListLibrariesTool } from "../tools/ListLibrariesTool";
+import { ListPagesTool } from "../tools/ListPagesTool";
+import { ReadPageTool } from "../tools/ReadPageTool";
 import { SearchTool } from "../tools/SearchTool";
 import type { ReadOnlyMcpTools } from "./tools";
 
@@ -12,5 +14,7 @@ export function initializeReadOnlyTools(
     listLibraries: new ListLibrariesTool(documentService),
     findVersion: new FindVersionTool(documentService),
     search: new SearchTool(documentService),
+    listPages: new ListPagesTool(documentService),
+    readPage: new ReadPageTool(documentService),
   };
 }

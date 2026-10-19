@@ -15,6 +15,7 @@ import { ToolError } from "../tools/errors";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { buildDefaultInstructions } from "./defaultInstructions";
+import { formatPageContent, formatPageList } from "./pageResponses";
 import type { McpServerTools } from "./tools";
 import { createError, createResponse, formatSearchResults } from "./utils";
 
@@ -592,20 +593,7 @@ function createMcpServerInstance(
           maxChars,
         });
 
-        if (result.startChunk >= result.totalChunks && result.totalChunks > 0) {
-          return createResponse(
-            `startChunk ${result.startChunk} is past the end of ${result.url}, which has ${result.totalChunks} chunks.`,
-          );
-        }
-
-        const end = result.nextChunk ?? result.totalChunks;
-        const notice =
-          result.nextChunk !== null
-            ? `\n\n> Showing chunks ${result.startChunk + 1}-${end} of ${result.totalChunks}. ` +
-              `To continue, call read_page again with startChunk: ${result.nextChunk}.`
-            : "";
-
-        return createResponse(`> Source: ${result.url}\n\n${result.content}${notice}`);
+        return createResponse(formatPageContent(result));
       } catch (error) {
         return createError(error);
       }
@@ -645,26 +633,7 @@ function createMcpServerInstance(
           offset,
         });
 
-        if (result.pages.length === 0) {
-          return createResponse(
-            `No pages found for '${library}'${result.version ? `@${result.version}` : ""}${contains ? ` with URLs containing '${contains}'` : ""}.`,
-          );
-        }
-
-        const lines = result.pages.map((p) => {
-          const safeTitle = (p.title || p.url)
-            .replace(/\[/g, "\\[")
-            .replace(/\]/g, "\\]");
-          return `- [${safeTitle}](<${p.url}>)${p.depth !== null ? ` (depth: ${p.depth})` : ""}`;
-        });
-
-        let responseText = `Indexed pages for ${result.library}${result.version ? `@${result.version}` : ""} (${result.total} total pages, showing ${result.offset + 1}-${result.offset + result.pages.length}):\n\n${lines.join("\n")}`;
-
-        if (result.hasMore) {
-          responseText += `\n\nUse offset: ${result.offset + result.pages.length} to see the next batch of pages.`;
-        }
-
-        return createResponse(responseText);
+        return createResponse(formatPageList(result, library, contains));
       } catch (error) {
         return createError(error);
       }

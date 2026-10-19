@@ -1155,7 +1155,7 @@ describe("MCP Server Read-Only Mode", () => {
     }
   });
 
-  it("creates the packaged extension server with exactly three local read tools", async () => {
+  it("creates the packaged extension server with exactly five local read tools", async () => {
     const server = createReadOnlyMcpServer(mockTools);
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "mcpb-server-test", version: "1.0.0" });
@@ -1171,12 +1171,60 @@ describe("MCP Server Read-Only Mode", () => {
     expect(result.tools.map((tool) => tool.name).sort()).toEqual([
       "find_version",
       "list_libraries",
+      "list_pages",
+      "read_page",
       "search_docs",
     ]);
     expect(result.tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
     expect(result.tools.every((tool) => tool.annotations?.openWorldHint === false)).toBe(
       true,
     );
+  });
+
+  it("keeps full-page publication metadata and continuation identical across transports", async () => {
+    const texts: string[] = [];
+    for (const server of [
+      createMcpServerInstance(mockTools, mockConfig),
+      createReadOnlyMcpServer(mockTools),
+    ]) {
+      vi.mocked(mockTools.readPage.execute).mockResolvedValueOnce({
+        url: "https://example.com/book",
+        title: "Book",
+        contentType: "text/markdown",
+        content: "Whole stored chunk",
+        startChunk: 1,
+        totalChunks: 3,
+        nextChunk: 2,
+        publication: { authors: ["Jane Doe"], year: 2024 },
+      });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      const client = new Client({ name: "page-publication-test", version: "1.0.0" });
+      try {
+        await server.connect(serverTransport);
+        await client.connect(clientTransport);
+        const result = CallToolResultSchema.parse(
+          await client.callTool({
+            name: "read_page",
+            arguments: {
+              library: "books",
+              pathOrUrl: "book",
+              startChunk: 1,
+              maxChars: 100,
+            },
+          }),
+        );
+        if (result.content[0]?.type === "text") texts.push(result.content[0].text);
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    }
+    expect(texts).toHaveLength(2);
+    expect(texts[0]).toBe(texts[1]);
+    expect(texts[0]).toContain("Publication authors: Jane Doe");
+    expect(texts[0]).toContain("Publication year: 2024");
+    expect(texts[0]).toContain("Whole stored chunk");
+    expect(texts[0]).toContain("startChunk: 2");
   });
 
   it("formats retrieval links and publication metadata identically in full and packaged servers", async () => {

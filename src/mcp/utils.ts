@@ -1,17 +1,23 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { PublicationMetadata } from "../publicationMetadata";
 import type { StoreSearchResult } from "../store/types";
+
+/** Formats recorded authors and year for search excerpts and full-page reads. */
+export function formatPublicationMetadata(publication?: PublicationMetadata): string[] {
+  return [
+    publication?.authors?.length
+      ? `Publication authors: ${publication.authors.join("; ")}`
+      : null,
+    publication?.year ? `Publication year: ${publication.year}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
 
 /** Formats search results consistently for full and read-only MCP servers. */
 export function formatSearchResults(
   results: Pick<StoreSearchResult, "url" | "contentUrl" | "content" | "publication">[],
 ): string[] {
   return results.map((result, index) => {
-    const publicationLines = [
-      result.publication?.authors?.length
-        ? `Publication authors: ${result.publication.authors.join("; ")}`
-        : null,
-      result.publication?.year ? `Publication year: ${result.publication.year}` : null,
-    ].filter((line): line is string => Boolean(line));
+    const publicationLines = formatPublicationMetadata(result.publication);
     const publication =
       publicationLines.length > 0 ? `\n${publicationLines.join("\n")}\n` : "";
     return `

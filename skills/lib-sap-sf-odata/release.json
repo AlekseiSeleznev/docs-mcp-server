@@ -1,9 +1,10 @@
 {
   "name": "lib-sap-sf-odata",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "files": {
-    "SKILL.md": "7d1eb0c9779fed0c28624abba258882e2cfc38c735284df10f3864f91943ea76",
+    "SKILL.md": "924f1c2da14b3b90bbcde1df9b1bb8f9533064bcc903224fccbb2c6a25e53ea1",
     "agents/openai.yaml": "5d7dcfef00c1f6bfa06e0538bb1949b5f5fc913fe47366fbab046825c966c4e2",
+    "references/indexed-pages.md": "0a4ad37a7e03d771cf5e940efe837738e159ccf801ac6b7360b389e176642066",
     "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
     "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
   }

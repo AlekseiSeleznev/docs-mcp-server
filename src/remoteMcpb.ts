@@ -4,8 +4,23 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+
+import { REMOTE_MCPB_VERSION } from "./build/remoteMcpb";
+
+const READ_ONLY_TOOLS = new Set([
+  "find_version",
+  "list_libraries",
+  "search_docs",
+  "list_pages",
+  "read_page",
+  "list_source_artifacts",
+  "get_source_artifact",
+]);
 
 const DEFAULT_MCP_URL = "https://aichat.msgplaut.com/lib-docs/mcp";
 
@@ -23,23 +38,47 @@ export async function startRemoteMcpb(): Promise<void> {
     throw new Error("The lib-docs endpoint must use HTTPS.");
   }
 
-  const upstream = new Client({ name: "lib-docs-desktop", version: "4.0.0" });
+  const upstream = new Client({ name: "lib-docs-desktop", version: REMOTE_MCPB_VERSION });
   await upstream.connect(
     new StreamableHTTPClientTransport(endpoint, {
       requestInit: { headers: { Authorization: `Bearer ${token}` } },
     }),
   );
 
+  const hasResources = Boolean(upstream.getServerCapabilities()?.resources);
   const server = new Server(
-    { name: "lib-docs", version: "4.0.0" },
-    { capabilities: { tools: {} } },
+    { name: "lib-docs", version: REMOTE_MCPB_VERSION },
+    { capabilities: { tools: {}, ...(hasResources ? { resources: {} } : {}) } },
   );
-  server.setRequestHandler(ListToolsRequestSchema, async (request) =>
-    upstream.listTools(request.params),
-  );
-  server.setRequestHandler(CallToolRequestSchema, async (request) =>
-    upstream.callTool(request.params),
-  );
+  server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+    const result = await upstream.listTools(request.params);
+    return {
+      ...result,
+      tools: result.tools.filter((tool) => READ_ONLY_TOOLS.has(tool.name)),
+    };
+  });
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    if (!READ_ONLY_TOOLS.has(request.params.name)) {
+      return {
+        isError: true,
+        content: [
+          { type: "text", text: "Tool unavailable in the read-only library bridge." },
+        ],
+      };
+    }
+    return upstream.callTool(request.params);
+  });
+  if (hasResources) {
+    server.setRequestHandler(ListResourcesRequestSchema, async (request) =>
+      upstream.listResources(request.params),
+    );
+    server.setRequestHandler(ListResourceTemplatesRequestSchema, async (request) =>
+      upstream.listResourceTemplates(request.params),
+    );
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) =>
+      upstream.readResource(request.params),
+    );
+  }
   await server.connect(new StdioServerTransport());
 
   const shutdown = async () => {

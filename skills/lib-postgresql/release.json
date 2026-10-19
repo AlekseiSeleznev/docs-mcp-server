@@ -1,9 +1,10 @@
 {
   "name": "lib-postgresql",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "files": {
-    "SKILL.md": "6050a5583cd5acdd0842775940b4a23528b84e19708b2c8f73a51b70f111778d",
+    "SKILL.md": "c2cdb6f9514b59d3483996c2fb04bb1c432e7e394ea73542163dc2488f0c1963",
     "agents/openai.yaml": "f946534391787e99c43796c30dd2ed3e07637b80c7b62877270eb2501e787a8f",
+    "references/indexed-pages.md": "0a4ad37a7e03d771cf5e940efe837738e159ccf801ac6b7360b389e176642066",
     "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
     "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
   }

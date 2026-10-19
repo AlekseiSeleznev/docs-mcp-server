@@ -16,9 +16,9 @@ export type ListPagesToolResult = ListPagesResult;
  * Tool for listing indexed pages and documentation sitemap for a library version.
  */
 export class ListPagesTool {
-  private docService: IDocumentManagement;
+  private docService: Pick<IDocumentManagement, "listPages">;
 
-  constructor(docService: IDocumentManagement) {
+  constructor(docService: Pick<IDocumentManagement, "listPages">) {
     this.docService = docService;
   }
 

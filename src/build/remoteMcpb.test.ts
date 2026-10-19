@@ -16,7 +16,7 @@ describe("remote MCPB release contract", () => {
     for (const target of Object.keys(REMOTE_MCPB_TARGETS) as Array<
       keyof typeof REMOTE_MCPB_TARGETS
     >) {
-      expect(remoteMcpbArtifactName(target)).toBe(`lib-docs-4.0.0-${target}.mcpb`);
+      expect(remoteMcpbArtifactName(target)).toBe(`lib-docs-4.0.1-${target}.mcpb`);
       expect(createRemoteMcpbManifest(target).compatibility.platforms).toEqual([
         REMOTE_MCPB_TARGETS[target].platform,
       ]);
@@ -26,7 +26,7 @@ describe("remote MCPB release contract", () => {
   it("requests a sensitive token without embedding credentials or a local store", () => {
     const manifest = createRemoteMcpbManifest("linux-x64");
     expect(manifest.name).toBe("lib-docs");
-    expect(manifest.version).toBe("4.0.0");
+    expect(manifest.version).toBe("4.0.1");
     expect(manifest.server.mcp_config.env.LIB_DOCS_BEARER_TOKEN).toBe(
       `\${user_config.bearer_token}`,
     );

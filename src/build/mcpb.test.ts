@@ -25,7 +25,7 @@ describe("MCPB build contract", () => {
       manifest_version: "0.3",
       name: "lib-docs",
       display_name: "lib-docs",
-      version: "3.0.0",
+      version: "3.3.1",
       server: {
         type: "node",
         entry_point: "mcpb-dist/index.js",
@@ -43,6 +43,8 @@ describe("MCPB build contract", () => {
       "search_docs",
       "list_libraries",
       "find_version",
+      "list_pages",
+      "read_page",
     ]);
   });
 

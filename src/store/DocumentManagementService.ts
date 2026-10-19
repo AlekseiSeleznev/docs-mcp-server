@@ -1,6 +1,5 @@
 import path from "node:path";
 import Fuse from "fuse.js";
-import semver from "semver";
 import type { EventBusService } from "../events";
 import { EventType } from "../events";
 import { PipelineFactory } from "../scraper/pipelines/PipelineFactory";
@@ -11,31 +10,24 @@ import { telemetry } from "../telemetry";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { formatBytes } from "../utils/string";
-import { normalizeUrl } from "../utils/url";
 import {
-  isSemanticVersion,
-  type SemanticVersionCandidate,
+  resolveStoredVersion,
   sortVersionsDescending,
   toVersionCandidates,
-  VERSION_REQUEST_PATTERN,
-  type VersionCandidate,
 } from "../utils/version";
-import { createContentAssemblyStrategy } from "./assembly/ContentAssemblyStrategyFactory";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { DocumentStore } from "./DocumentStore";
 import type { EmbeddingModelConfig } from "./embeddings/EmbeddingConfig";
 import {
-  AmbiguousPageInStoreError,
   LibraryNotFoundInStoreError,
-  PageNotFoundInStoreError,
   StoreError,
   VersionNotFoundInStoreError,
 } from "./errors";
 import type { Reranker } from "./Reranker";
+import { StoredPageReader } from "./StoredPageReader";
 import type {
   ActivityHistory,
   CompactResult,
-  DbPageChunk,
   DbVersionWithLibrary,
   EmbeddingConfigInfo,
   FindVersionResult,
@@ -61,43 +53,6 @@ import {
   normalizeVersionRef,
 } from "./types";
 
-/** Upper bound on the pages listed when a path matches more than one. */
-const MAX_AMBIGUOUS_PAGE_MATCHES = 10;
-
-/**
- * Returns the distinct spellings a stored URL may use for `value`: as given,
- * encoded, and percent-decoded.
- */
-function spellingsOf(value: string, encode: (value: string) => string): string[] {
-  let decoded = value;
-  try {
-    decoded = decodeURIComponent(value);
-  } catch {
-    // Not valid percent-encoding; the other spellings still apply.
-  }
-  return [...new Set([value, encode(value), decoded])];
-}
-
-/**
- * Percent-encodes a path the way URL parsing does when the scraper stores a URL.
- * Hash-only routes are left alone because they carry no path.
- */
-function encodePath(path: string): string {
-  if (!path.startsWith("/")) return path;
-  const url = new URL(path, "http://placeholder");
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
-/**
- * Turns a page path into the URL ending to match: rooted at `/` (hash routes
- * excepted), without trailing slashes. Empty for the root path.
- */
-function toPathSuffix(path: string): string {
-  const trimmed = path.replace(/\/+$/, "");
-  if (!trimmed) return "";
-  return trimmed.startsWith("/") || trimmed.startsWith("#") ? trimmed : `/${trimmed}`;
-}
-
 /**
  * Provides semantic search capabilities across different versions of library documentation.
  * Uses content-type-specific pipelines for processing and splitting content.
@@ -105,6 +60,7 @@ function toPathSuffix(path: string): string {
 export class DocumentManagementService {
   private readonly appConfig: AppConfig;
   private readonly store: DocumentStore;
+  private readonly pageReader: StoredPageReader;
   private readonly documentRetriever: DocumentRetrieverService;
   private readonly pipelines: ContentPipeline[];
   private readonly eventBus: EventBusService;
@@ -125,6 +81,15 @@ export class DocumentManagementService {
     // Directory creation is handled by the centralized path resolution
 
     this.store = new DocumentStore(dbPath, this.appConfig);
+    this.pageReader = new StoredPageReader(
+      this.store,
+      appConfig,
+      async (library, version) => {
+        const { displayName } = await this.requireLibrary(library);
+        const { bestMatch } = await this.findBestVersion(library, version ?? undefined);
+        return { library: displayName, version: bestMatch ?? "" };
+      },
+    );
     this.documentRetriever = new DocumentRetrieverService(
       this.store,
       this.appConfig,
@@ -431,105 +396,9 @@ export class DocumentManagementService {
   }
 
   /**
-   * Resolves a requested version against a library's stored labels.
-   *
-   * The ladder is ordered so that the most specific answer wins:
-   *
-   * 1. A literal match on a stored label, so any indexed bucket is always
-   *    reachable by the name it was indexed under — including an opaque tag.
-   * 2. Semantic version matching over the version-tier labels, ranking
-   *    prereleases as ordinary versions.
-   * 3. A library's single opaque tag, when it has no semantic versions at all.
-   *
-   * @param candidates Classified labels stored for the library.
-   * @param targetVersion The version the caller requested, if any.
-   * @returns The stored label to use, or `null` when nothing resolves.
-   * @throws {VersionNotFoundInStoreError} When only tags exist and several are
-   *   available, so no single one can be called newest.
-   */
-  private resolveVersionLabel(
-    candidates: VersionCandidate[],
-    targetVersion?: string,
-  ): string | null {
-    const requested = normalizeVersionLabel(targetVersion);
-
-    // Rung 1: literal match.
-    if (requested !== "") {
-      const literal = candidates.find((c) => c.stored === requested);
-      if (literal) {
-        return literal.stored;
-      }
-    }
-
-    // Rung 2: semantic version matching.
-    const versions = candidates.filter(isSemanticVersion);
-    if (versions.length > 0) {
-      const matched = this.matchSemanticVersion(versions, requested);
-      if (matched) {
-        return matched;
-      }
-    }
-
-    // Rung 3: a lone opaque tag, only when the caller expressed no preference
-    // and there is no semantic version to rank ahead of it. With no semantic
-    // versions every candidate is a tag, so one candidate means one tag.
-    if (requested === "" && versions.length === 0 && candidates.length === 1) {
-      return candidates[0].stored;
-    }
-
-    return null;
-  }
-
-  /**
-   * Matches a request against semantic-version labels.
-   *
-   * A request naming a specific version matches that version or the highest one
-   * below it, because older documentation is more useful than none. Prereleases
-   * are ranked as ordinary versions: `includePrerelease` keeps semver from
-   * skipping a prerelease that is the closest available match, which matters for
-   * documentation in a way it does not for installing packages.
-   *
-   * @param versions Semantic-version candidates for the library.
-   * @param requested Normalized request; empty means no preference.
-   * @returns The stored label of the best match, or `null` when none matches.
-   */
-  private matchSemanticVersion(
-    versions: SemanticVersionCandidate[],
-    requested: string,
-  ): string | null {
-    const normalizedCandidates = versions.map((c) => c.normalized);
-    const options: semver.RangeOptions = { includePrerelease: true };
-
-    let range: string;
-    if (requested === "" || requested === "latest") {
-      range = "*";
-    } else if (semver.valid(requested)) {
-      // An exact version: allow matching it OR any older version
-      range = `${requested} || <=${requested}`;
-    } else if (VERSION_REQUEST_PATTERN.test(requested)) {
-      // A partial version or X-range ("1", "1.2", "1.x"): already a valid range
-      range = requested;
-    } else {
-      logger.warn(`⚠️  Invalid target version format: ${requested}`);
-      return null;
-    }
-
-    const best = semver.maxSatisfying(normalizedCandidates, range, options);
-    if (!best) {
-      return null;
-    }
-
-    // Map the winning normalized version back to a stored label. Several labels
-    // can normalize to the same version ("1.20" and "1.20.0"); rung 1 already
-    // handled a caller asking for one by name, so prefer the strict spelling.
-    const matches = versions.filter((c) => c.normalized === best);
-    return (matches.find((c) => c.strict) ?? matches[0]).stored;
-  }
-
-  /**
    * Finds the most appropriate stored label for a requested version.
    *
-   * Resolution itself lives in {@link resolveVersionLabel}; this adds the
+   * Resolution itself lives in {@link resolveStoredVersion}; this adds the
    * unversioned bucket, which a resolved label always outranks, and the error
    * raised when neither produces anything.
    *
@@ -565,7 +434,7 @@ export class DocumentManagementService {
     }
 
     const candidates = toVersionCandidates(labels);
-    const bestMatch = this.resolveVersionLabel(candidates, targetVersion);
+    const bestMatch = resolveStoredVersion(candidates, targetVersion);
 
     if (bestMatch) {
       logger.info(`✅ Found best match version ${bestMatch} for ${libraryAndVersion}`);
@@ -833,175 +702,23 @@ export class DocumentManagementService {
     return this.documentRetriever.search(library, normalizedVersion, query, limit);
   }
 
-  /**
-   * Reads consecutive chunks of a stored page, assembled for the page's content type.
-   *
-   * The page is identified by its URL, the URL its content was fetched from, or a
-   * path matching the end of exactly one page URL. Only whole chunks are returned,
-   * so the content never ends inside a code block; `nextChunk` tells the caller
-   * where to continue.
-   *
-   * @param library Library name.
-   * @param version Version or version range; resolved like `searchStore`.
-   * @param pathOrUrl Page URL or path.
-   * @param options `startChunk` to continue reading, `maxChars` to bound the size.
-   * @returns The assembled window and its position within the page.
-   * @throws PageNotFoundInStoreError when no page matches, with similar pages as suggestions.
-   * @throws AmbiguousPageInStoreError when a path matches more than one page.
-   */
+  /** Reads stored page content with whole-chunk continuation. */
   async getPageContent(
     library: string,
     version: string | null | undefined,
     pathOrUrl: string,
     options: PageContentOptions = {},
   ): Promise<PageContentResult> {
-    const resolved = await this.resolvePageVersion(library, version);
-    const url = await this.findPageUrl(resolved.library, resolved.version, pathOrUrl);
-    const chunks = await this.store.findChunksByUrl(library, resolved.version, url);
-    const contentType = chunks[0]?.content_type ?? null;
-    const strategy = createContentAssemblyStrategy(contentType, this.appConfig);
-
-    const startChunk = options.startChunk ?? 0;
-    const maxChars = options.maxChars ?? Number.POSITIVE_INFINITY;
-    const window: DbPageChunk[] = [];
-    for (const chunk of chunks.slice(startChunk)) {
-      // The first chunk is always included so every call makes progress.
-      if (
-        window.length > 0 &&
-        strategy.assembleContent([...window, chunk]).length > maxChars
-      ) {
-        break;
-      }
-      window.push(chunk);
-    }
-    const end = startChunk + window.length;
-
-    return {
-      url,
-      title: chunks[0]?.title ?? null,
-      contentType,
-      content: strategy.assembleContent(window),
-      startChunk,
-      totalChunks: chunks.length,
-      nextChunk: end < chunks.length ? end : null,
-    };
+    return this.pageReader.getPageContent(library, version, pathOrUrl, options);
   }
 
-  /**
-   * Lists the stored pages of a library version.
-   *
-   * @param library Library name.
-   * @param version Version or version range; resolved like `searchStore`.
-   * @param options `contains` filters URLs; `limit` (default 50) and `offset` paginate.
-   * @returns One page of results and whether more follow.
-   */
+  /** Lists stored pages with URL filtering and pagination. */
   async listPages(
     library: string,
     version: string | null | undefined,
     options: ListPagesOptions = {},
   ): Promise<ListPagesResult> {
-    const resolved = await this.resolvePageVersion(library, version);
-    const limit = options.limit ?? 50;
-    const offset = options.offset ?? 0;
-    const { total, pages } = await this.store.listPages(library, resolved.version, {
-      contains: options.contains,
-      limit,
-      offset,
-    });
-    return {
-      library: resolved.library,
-      version: resolved.version,
-      total,
-      pages,
-      limit,
-      offset,
-      hasMore: offset + pages.length < total,
-    };
-  }
-
-  /**
-   * Validates the library and resolves the version label whose pages to read.
-   * @returns The library's stored display name and the resolved version label.
-   * @throws {LibraryNotFoundInStoreError} When the library does not exist (with suggestions).
-   */
-  private async resolvePageVersion(
-    library: string,
-    version: string | null | undefined,
-  ): Promise<{ library: string; version: string }> {
-    const { displayName } = await this.requireLibrary(library);
-    const { bestMatch } = await this.findBestVersion(library, version ?? undefined);
-    return { library: displayName, version: bestMatch ?? "" };
-  }
-
-  /**
-   * Resolves a page URL or path to the URL of exactly one stored page.
-   * `library` is the stored display name, which the not-found and ambiguous
-   * errors repeat.
-   *
-   * An absolute URL must equal a stored URL; a path must match the end of one.
-   * Each is tried as given, spelled the way the scraper stores URLs, and decoded,
-   * and then again without its fragment and query.
-   */
-  private async findPageUrl(
-    library: string,
-    version: string,
-    pathOrUrl: string,
-  ): Promise<string> {
-    const isAbsolute = /^[a-z][a-z\d+.-]*:\/\//i.test(pathOrUrl);
-    const withoutAnchor = pathOrUrl.replace(/[?#].*$/, "");
-
-    for (const input of new Set([pathOrUrl, withoutAnchor])) {
-      if (isAbsolute) {
-        const [url] = await this.store.findPageUrls(
-          library,
-          version,
-          spellingsOf(input, (value) => normalizeUrl(value, { removeHash: false })),
-        );
-        if (url) return url;
-        continue;
-      }
-
-      const suffix = toPathSuffix(input);
-      if (!suffix) continue;
-      const urls = await this.store.findPageUrlsBySuffix(
-        library,
-        version,
-        spellingsOf(suffix, encodePath),
-        MAX_AMBIGUOUS_PAGE_MATCHES,
-      );
-      if (urls.length === 1) return urls[0];
-      if (urls.length > 1) {
-        throw new AmbiguousPageInStoreError(library, version, pathOrUrl, urls);
-      }
-    }
-
-    throw new PageNotFoundInStoreError(
-      library,
-      version,
-      pathOrUrl,
-      await this.suggestPages(library, version, withoutAnchor),
-    );
-  }
-
-  /**
-   * Suggests up to three pages for input that matched none: pages whose URL
-   * contains its last path segment, or else the top-level pages.
-   */
-  private async suggestPages(
-    library: string,
-    version: string,
-    input: string,
-  ): Promise<string[]> {
-    const keyword = input.split("/").filter(Boolean).pop() ?? "";
-    if (keyword.length >= 2) {
-      const { pages } = await this.store.listPages(library, version, {
-        contains: keyword,
-        limit: 3,
-      });
-      if (pages.length > 0) return pages.map((page) => page.url);
-    }
-    const { pages } = await this.store.listPages(library, version, { limit: 3 });
-    return pages.map((page) => page.url);
+    return this.pageReader.listPages(library, version, options);
   }
 
   // Deprecated simple listing removed: enriched listLibraries() is canonical

@@ -175,3 +175,74 @@ export function compareVersionsDescending(
 export function sortVersionsDescending(versions: string[]): string[] {
   return [...versions].sort(compareVersionsDescending);
 }
+
+/**
+ * Resolves stored labels literally, then by semantic range, then a lone opaque tag.
+ * @param candidates Classified non-empty labels in the index.
+ * @param targetVersion Requested label or supported version range.
+ * @returns The stored label, or null when no candidate matches.
+ */
+export function resolveStoredVersion(
+  candidates: VersionCandidate[],
+  targetVersion?: string,
+): string | null {
+  const requested = (targetVersion ?? "").trim().toLowerCase();
+
+  // Rung 1: literal match.
+  if (requested !== "") {
+    const literal = candidates.find((c) => c.stored === requested);
+    if (literal) {
+      return literal.stored;
+    }
+  }
+
+  // Rung 2: semantic version matching.
+  const versions = candidates.filter(isSemanticVersion);
+  if (versions.length > 0) {
+    const matched = matchSemanticVersion(versions, requested);
+    if (matched) {
+      return matched;
+    }
+  }
+
+  // Rung 3: a lone opaque tag, only when the caller expressed no preference
+  // and there is no semantic version to rank ahead of it. With no semantic
+  // versions every candidate is a tag, so one candidate means one tag.
+  if (requested === "" && versions.length === 0 && candidates.length === 1) {
+    return candidates[0].stored;
+  }
+
+  return null;
+}
+
+function matchSemanticVersion(
+  versions: SemanticVersionCandidate[],
+  requested: string,
+): string | null {
+  const normalizedCandidates = versions.map((c) => c.normalized);
+  const options: semver.RangeOptions = { includePrerelease: true };
+
+  let range: string;
+  if (requested === "" || requested === "latest") {
+    range = "*";
+  } else if (semver.valid(requested)) {
+    // An exact version: allow matching it OR any older version
+    range = `${requested} || <=${requested}`;
+  } else if (VERSION_REQUEST_PATTERN.test(requested)) {
+    // A partial version or X-range ("1", "1.2", "1.x"): already a valid range
+    range = requested;
+  } else {
+    return null;
+  }
+
+  const best = semver.maxSatisfying(normalizedCandidates, range, options);
+  if (!best) {
+    return null;
+  }
+
+  // Map the winning normalized version back to a stored label. Several labels
+  // can normalize to the same version ("1.20" and "1.20.0"); rung 1 already
+  // handled a caller asking for one by name, so prefer the strict spelling.
+  const matches = versions.filter((c) => c.normalized === best);
+  return (matches.find((c) => c.strict) ?? matches[0]).stored;
+}

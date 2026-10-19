@@ -45,10 +45,16 @@ description: >-
   маршрутизатором.
 - Artifact-профиль сохраняет свой поисковый бюджет и весь прежний tool surface.
 
+- Для списка страниц, известного URL или неполного контекста используй
+  [`references/indexed-pages.md`](references/indexed-pages.md): `list_pages`
+  и `read_page` вместо лишнего поиска. Включай эту ссылку и автономную копию
+  справки в каждый применяемый навык и его ZIP. Проверяй продолжение страницы,
+  границы версии и footer также для ответов без `search_docs`.
+
 ## Проверить
 
 1. Запусти системный `quick_validate.py` и
-   `scripts/validate_library_skill.py PATH`.
+   `skills/lib-skill-creator/scripts/validate_library_skill.py PATH`.
 2. Повтори baseline и профильную матрицу в свежих контекстах с теми же моделью,
    effort, сервером и prompt.
 3. Прими изменение только если старые PASS сохранены, существенные положения и

@@ -1,5 +1,5 @@
 /** Version of the hosted-library Claude Desktop extension. */
-export const REMOTE_MCPB_VERSION = "4.0.0";
+export const REMOTE_MCPB_VERSION = "4.0.1";
 
 /** Supported native desktop targets. The bundled bridge has no native dependencies. */
 export const REMOTE_MCPB_TARGETS = {

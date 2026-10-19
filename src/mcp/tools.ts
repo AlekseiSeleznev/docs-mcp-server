@@ -31,11 +31,11 @@ export interface ReadOnlyMcpTools {
   listLibraries: ListLibrariesTool;
   findVersion: FindVersionTool;
   search: SearchTool;
+  listPages: ListPagesTool;
+  readPage: ReadPageTool;
 }
 
 export interface McpServerTools extends ReadOnlyMcpTools {
-  listPages: ListPagesTool;
-  readPage: ReadPageTool;
   scrape: ScrapeTool;
   refresh: RefreshVersionTool;
   listJobs: ListJobsTool;

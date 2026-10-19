@@ -27,6 +27,12 @@ def validate(skill_dir: Path) -> list[str]:
     if 'value: "lib-docs"' not in agent:
         errors.append("openai.yaml must declare the lib-docs MCP dependency")
 
+    guide = skill_dir / "references" / "indexed-pages.md"
+    if "references/indexed-pages.md" not in text or not guide.is_file():
+        errors.append("page-reading route must link a bundled indexed-pages.md")
+    elif not all(word in guide.read_text() for word in ("list_pages", "read_page", "nextChunk", "startChunk", "find_version")):
+        errors.append("page-reading guide must cover navigation, continuation and versions")
+
     artifact = "get_source_artifact" in text or "list_source_artifacts" in text
     catalog = (skill_dir / "references" / "libraries.yaml").is_file()
     if artifact:

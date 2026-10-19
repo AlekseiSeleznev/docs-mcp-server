@@ -70,6 +70,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: lib-docs-4.0.0-${{ matrix.target }}
-          path: artifacts/lib-docs-4.0.0-${{ matrix.target }}.mcpb
+          name: lib-docs-4.0.1-${{ matrix.target }}
+          path: artifacts/lib-docs-4.0.1-${{ matrix.target }}.mcpb
           if-no-files-found: error

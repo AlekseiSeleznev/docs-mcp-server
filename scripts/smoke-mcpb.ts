@@ -16,23 +16,28 @@ function findArtifact(input: string): string {
     .filter((entry) => entry.endsWith(".mcpb"))
     .map((entry) => path.join(resolved, entry));
   if (artifacts.length !== 1) {
-    throw new Error(`Expected exactly one .mcpb in ${resolved}, found ${artifacts.length}.`);
+    throw new Error(
+      `Expected exactly one .mcpb in ${resolved}, found ${artifacts.length}.`,
+    );
   }
   return artifacts[0];
 }
 
 async function main(): Promise<void> {
-  const artifact = findArtifact(process.argv[2] ?? "artifacts");
+  const bundleOnly = process.argv[2] === "--bundle";
+  const artifact = bundleOnly
+    ? path.resolve("mcpb-dist/index.js")
+    : findArtifact(process.argv[2] ?? "artifacts");
   const temporaryRoot = mkdtempSync(path.join(tmpdir(), "grounded-docs-mcpb-smoke-"));
   const unpacked = path.join(temporaryRoot, "unpacked");
   const storePath = path.join(temporaryRoot, "store");
 
   try {
-    execFileSync(
-      "npx",
-      ["-y", MCPB_CLI, "unpack", artifact, unpacked],
-      { shell: process.platform === "win32", stdio: "inherit" },
-    );
+    if (!bundleOnly)
+      execFileSync("npx", ["-y", MCPB_CLI, "unpack", artifact, unpacked], {
+        shell: process.platform === "win32",
+        stdio: "inherit",
+      });
 
     const config: AppConfig = {
       ...defaults,
@@ -41,12 +46,27 @@ async function main(): Promise<void> {
     mkdirSync(storePath, { recursive: true });
     const writableStore = new DocumentStore(path.join(storePath, "documents.db"), config);
     await writableStore.initialize();
+    await writableStore.addDocuments("fixture", "stable", 0, {
+      url: "https://example.com/guide",
+      title: "Fixture guide",
+      sourceContentType: "text/markdown",
+      contentType: "text/markdown",
+      textContent: "First fixture chunk. Second fixture chunk.",
+      links: [],
+      errors: [],
+      chunks: ["First fixture chunk.", "Second fixture chunk."].map((content) => ({
+        content,
+        types: ["text"],
+        section: { level: 0, path: [] },
+      })),
+      publication: { authors: ["Jane Doe"], year: 2024 },
+    });
     await writableStore.shutdown();
 
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [path.join(unpacked, "mcpb-dist", "index.js")],
-      cwd: unpacked,
+      args: [bundleOnly ? artifact : path.join(unpacked, "mcpb-dist", "index.js")],
+      cwd: bundleOnly ? process.cwd() : unpacked,
       env: {
         ...process.env,
         DOCS_MCP_STORE_PATH: storePath,
@@ -63,16 +83,55 @@ async function main(): Promise<void> {
     try {
       await client.connect(transport);
       tools = await client.listTools();
+      const listing = await client.callTool({
+        name: "list_pages",
+        arguments: { library: "fixture", limit: 1 },
+      });
+      if (
+        listing.isError ||
+        !JSON.stringify(listing).includes("https://example.com/guide")
+      ) {
+        throw new Error("Packaged page listing failed");
+      }
+      const first = await client.callTool({
+        name: "read_page",
+        arguments: { library: "fixture", pathOrUrl: "guide", maxChars: 1 },
+      });
+      if (
+        first.isError ||
+        ![
+          "First fixture chunk.",
+          "startChunk: 1",
+          "Publication authors: Jane Doe",
+          "Publication year: 2024",
+        ].every((value) => JSON.stringify(first).includes(value))
+      ) {
+        throw new Error("Packaged page read or continuation failed");
+      }
+      const next = await client.callTool({
+        name: "read_page",
+        arguments: { library: "fixture", pathOrUrl: "guide", startChunk: 1 },
+      });
+      if (next.isError || !JSON.stringify(next).includes("Second fixture chunk."))
+        throw new Error("Packaged page continuation failed");
       await client.close();
     } catch (error) {
       const details = serverStderr.trim();
       throw new Error(
-        details.length > 0 ? `${error}\nPackaged server stderr:\n${details}` : String(error),
+        details.length > 0
+          ? `${error}\nPackaged server stderr:\n${details}`
+          : String(error),
       );
     }
 
     const names = tools.tools.map((tool) => tool.name).sort();
-    const expected = ["find_version", "list_libraries", "search_docs"];
+    const expected = [
+      "find_version",
+      "list_libraries",
+      "list_pages",
+      "read_page",
+      "search_docs",
+    ];
     if (JSON.stringify(names) !== JSON.stringify(expected)) {
       throw new Error(`Unexpected MCPB tools: ${names.join(", ")}.`);
     }

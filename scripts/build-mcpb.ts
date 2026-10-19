@@ -1,4 +1,11 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +16,7 @@ import {
   createMcpbManifest,
   type McpbPackageMetadata,
   MCPB_TARGETS,
+  MCPB_VERSION,
 } from "../src/build/mcpb";
 
 const MCPB_CLI = "@anthropic-ai/mcpb@2.1.2";
@@ -83,9 +91,7 @@ function createRuntimePackage(
 function main(): void {
   const targetLabel = readOption("--target");
   if (!targetLabel || !Object.hasOwn(MCPB_TARGETS, targetLabel)) {
-    throw new Error(
-      `Use --target with one of: ${Object.keys(MCPB_TARGETS).join(", ")}.`,
-    );
+    throw new Error(`Use --target with one of: ${Object.keys(MCPB_TARGETS).join(", ")}.`);
   }
 
   const target = MCPB_TARGETS[targetLabel as keyof typeof MCPB_TARGETS];
@@ -100,7 +106,7 @@ function main(): void {
   );
   const artifactPath = path.join(
     outputDirectory,
-    createMcpbArtifactName(packageMetadata.version, target),
+    createMcpbArtifactName(MCPB_VERSION, target),
   );
   const temporaryRoot = path.join(tmpdir(), `grounded-docs-mcpb-${process.pid}`);
   const stageDirectory = path.join(temporaryRoot, "bundle");

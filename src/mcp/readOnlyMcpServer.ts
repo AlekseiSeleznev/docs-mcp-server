@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
+import { MCPB_VERSION } from "../build/mcpb";
+import { formatPageContent, formatPageList } from "./pageResponses";
 import type { ReadOnlyMcpTools } from "./tools";
 import { createError, createResponse, formatSearchResults } from "./utils";
 
@@ -8,7 +10,7 @@ export function createReadOnlyMcpServer(tools: ReadOnlyMcpTools): McpServer {
   const server = new McpServer(
     {
       name: "lib-docs",
-      version: "0.1.0",
+      version: MCPB_VERSION,
     },
     {
       capabilities: { tools: {} },
@@ -102,6 +104,99 @@ export function createReadOnlyMcpServer(tools: ReadOnlyMcpTools): McpServer {
       try {
         const result = await tools.findVersion.execute({ library, targetVersion });
         return createResponse(result.message);
+      } catch (error) {
+        return createError(error);
+      }
+    },
+  );
+
+  server.tool(
+    "list_pages",
+    "List indexed pages of a library version, with optional URL filtering and pagination.",
+    {
+      library: z.string().trim().describe("Library name."),
+      version: z
+        .string()
+        .trim()
+        .optional()
+        .describe("Library version or range (optional)."),
+      contains: z
+        .string()
+        .trim()
+        .optional()
+        .describe("Filter URLs containing this text."),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(200)
+        .optional()
+        .default(50)
+        .describe("Maximum pages (default 50, max 200)."),
+      offset: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .default(0)
+        .describe("Number of pages to skip."),
+    },
+    {
+      title: "List Library Pages",
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+    async (options) => {
+      try {
+        const result = await tools.listPages.execute(options);
+        return createResponse(formatPageList(result, options.library, options.contains));
+      } catch (error) {
+        return createError(error);
+      }
+    },
+  );
+
+  server.tool(
+    "read_page",
+    "Read an indexed documentation page returned by search_docs or list_pages. Continue long pages using startChunk from the response.",
+    {
+      library: z.string().trim().describe("Library name."),
+      pathOrUrl: z
+        .string()
+        .trim()
+        .min(1)
+        .describe("Indexed page URL or an unambiguous suffix of its path."),
+      version: z
+        .string()
+        .trim()
+        .optional()
+        .describe("Library version or range (optional)."),
+      startChunk: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .default(0)
+        .describe("Chunk index to start from."),
+      maxChars: z
+        .number()
+        .positive()
+        .optional()
+        .default(30000)
+        .describe(
+          "Maximum characters (whole chunks only; a single longer chunk is returned on its own).",
+        ),
+    },
+    {
+      title: "Read Documentation Page",
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+    async (options) => {
+      try {
+        return createResponse(formatPageContent(await tools.readPage.execute(options)));
       } catch (error) {
         return createError(error);
       }

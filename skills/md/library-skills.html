@@ -1528,7 +1528,9 @@
     <div class="dialog-header">
       <h2 id="skills-dialog-title">Как подключить скилы</h2>
       <p>Выберите скил и подходящий способ установки.</p>
-      <p>Новые пакеты проверяют обновление перед поиском и перечитывают инструкцию после установки новой версии. Автоматическая установка доступна, если ИИ-клиент разрешает изменять файлы скила; иначе обновите его через интерфейс клиента.</p>
+      <p>Версия скилов 1.1.0 поддерживает поиск, список индексированных страниц и чтение выбранной страницы целиком. Для обычного вопроса достаточно поиска; чтение страницы помогает проверить полный пример, таблицу или условие.</p>
+      <p>Пакеты проверяют обновление перед обращением к документации и перечитывают инструкцию после установки новой версии. Автоматическая установка доступна, если ИИ-клиент разрешает изменять файлы скила; иначе повторно загрузите ZIP через интерфейс клиента. Настройки клиента сохраняются.</p>
+      <p>В Claude используйте подключённый коннектор <code>lib</code>, в других клиентах — <code>lib-docs</code>. Если <code>list_pages</code> и <code>read_page</code> ещё не появились в списке инструментов, переподключите MCP, чтобы обновить его список.</p>
       <button class="dialog-close" type="button" data-close-dialog aria-label="Закрыть">×</button>
     </div>
     <div class="dialog-body">
@@ -1561,7 +1563,7 @@
         <section class="install-method" aria-labelledby="agent-install-title">
           <h3 id="agent-install-title">Для вашего ИИ, кроме Claude Desktop</h3>
           <p>Скопируйте промт и отправьте его вашему ИИ-агенту.</p>
-          <div class="prompt-box"><code id="skill-install-prompt">Установи или обнови глобально скил из архива https://aichat.msgplaut.com/ai-library/downloads/lib-1c-cons.zip</code></div>
+          <div class="prompt-box"><code id="skill-install-prompt">Установи или обнови глобально скил из архива https://aichat.msgplaut.com/ai-library/downloads/lib-1c-cons.zip. Сохрани локальные настройки клиента, проверь версию пакета по каталогу skill-versions.json на том же сайте и перечитай SKILL.md после обновления. Проверь доступность search_docs, list_pages и read_page в подключении lib-docs.</code></div>
           <div class="dialog-actions">
             <button class="dialog-action copy-action" type="button" data-copy-target="skill-install-prompt">Скопировать промт</button>
           </div>
@@ -1780,7 +1782,7 @@
       });
     }
 
-    const skillPrompt = (url) => `Установи или обнови глобально скил из архива ${url}`;
+    const skillPrompt = (url) => `Установи или обнови глобально скил из архива ${url}. Сохрани локальные настройки клиента, проверь версию пакета по каталогу skill-versions.json на том же сайте и перечитай SKILL.md после обновления. Проверь доступность search_docs, list_pages и read_page в подключении lib-docs.`;
 
     const selectedSkillName = () => {
       const filename = new URL(skillInstallSelect.value).pathname.split('/').pop();

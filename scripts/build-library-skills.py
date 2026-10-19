@@ -38,6 +38,7 @@ def build() -> None:
         (directory / "references").mkdir(exist_ok=True)
         shutil.copyfile(ROOT / "scripts/update-library-skill.py", directory / "scripts/update-skill.py")
         shutil.copyfile(SKILLS / "lib-skill-creator/references/skill-update.md", directory / "references/skill-update.md")
+        shutil.copyfile(SKILLS / "lib-skill-creator/references/indexed-pages.md", directory / "references/indexed-pages.md")
         files = {
             path.relative_to(directory).as_posix(): path.read_bytes()
             for path in sorted(directory.rglob("*"))

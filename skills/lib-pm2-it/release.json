@@ -1,9 +1,10 @@
 {
   "name": "lib-pm2-it",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "files": {
-    "SKILL.md": "bc30aba21a8b108cd201c3a598876f5f5f54a93e0719c9860bc95c7d8c63d68a",
+    "SKILL.md": "efdea1632d780beeb1a85476693cd0a227c3f8c273434901fa4c0487cda1b821",
     "agents/openai.yaml": "1a4e9da2eb14e2d32ba7ead925c6da87d1a53ace63c62bd5644212c2a8c62be6",
+    "references/indexed-pages.md": "0a4ad37a7e03d771cf5e940efe837738e159ccf801ac6b7360b389e176642066",
     "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
     "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
   }

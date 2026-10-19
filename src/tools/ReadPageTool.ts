@@ -34,9 +34,9 @@ function cleanPageInput(input: string): string {
  * Long pages are read in windows of whole chunks, continued with `startChunk`.
  */
 export class ReadPageTool {
-  private docService: IDocumentManagement;
+  private docService: Pick<IDocumentManagement, "getPageContent">;
 
-  constructor(docService: IDocumentManagement) {
+  constructor(docService: Pick<IDocumentManagement, "getPageContent">) {
     this.docService = docService;
   }
 

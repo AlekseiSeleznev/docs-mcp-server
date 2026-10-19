@@ -1,3 +1,6 @@
+/** Version of the local read-only Claude Desktop extension. */
+export const MCPB_VERSION = "3.3.1";
+
 /** Supported platform and CPU pair for a native MCPB artifact. */
 export interface McpbTarget {
   label: string;
@@ -85,7 +88,7 @@ export function createMcpbManifest(
     manifest_version: "0.3",
     name: "lib-docs",
     display_name: "lib-docs",
-    version: packageMetadata.version,
+    version: MCPB_VERSION,
     description:
       "Search and read a local Grounded Docs index without exposing modification tools.",
     author: { name: authorName },
@@ -117,6 +120,14 @@ export function createMcpbManifest(
       {
         name: "find_version",
         description: "Find the best matching indexed version for a library.",
+      },
+      {
+        name: "list_pages",
+        description: "List indexed pages with URL filtering and pagination.",
+      },
+      {
+        name: "read_page",
+        description: "Read an indexed page with whole-chunk continuation.",
       },
     ],
     tools_generated: false,

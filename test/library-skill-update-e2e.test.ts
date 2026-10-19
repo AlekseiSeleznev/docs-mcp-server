@@ -134,7 +134,10 @@ describe("library skill update over HTTP", () => {
     writeFileSync(join(directory, "agents/openai.yaml"), "local client configuration\n");
     writeFileSync(join(directory, "notes.txt"), "local notes\n");
     await publication(
-      archive("1.1.0", { "references/rules.md": "new rules\n" }),
+      archive("1.1.0", {
+        "references/rules.md": "new rules\n",
+        "references/indexed-pages.md": "list_pages → read_page; nextChunk → startChunk\n",
+      }),
       async (url, requests) => {
         expect(await run(directory, url)).toEqual({
           status: "updated",
@@ -145,6 +148,9 @@ describe("library skill update over HTTP", () => {
         expect(readFileSync(join(directory, "SKILL.md"), "utf8")).toBe(skill("1.1.0"));
         expect(readFileSync(join(directory, "references/rules.md"), "utf8")).toBe(
           "new rules\n",
+        );
+        expect(readFileSync(join(directory, "references/indexed-pages.md"), "utf8")).toContain(
+          "nextChunk → startChunk",
         );
         expect(readFileSync(join(directory, "agents/openai.yaml"), "utf8")).toBe(
           "local client configuration\n",
@@ -231,7 +237,10 @@ describe("library skill update over HTTP", () => {
     writeFileSync(join(external, "rules.md"), "local external rules\n");
     symlinkSync(external, join(directory, "references"), "dir");
     await publication(
-      archive("1.1.0", { "references/rules.md": "new rules\n" }),
+      archive("1.1.0", {
+        "references/rules.md": "new rules\n",
+        "references/indexed-pages.md": "list_pages → read_page; nextChunk → startChunk\n",
+      }),
       async (url) => {
         expect(await run(directory, url)).toMatchObject({
           status: "unavailable",

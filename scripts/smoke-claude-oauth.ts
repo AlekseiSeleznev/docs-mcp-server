@@ -127,4 +127,30 @@ if (
 ) {
   throw new Error(`MCP search_docs failed (${search.status})`);
 }
-process.stdout.write("Claude OAuth live smoke: PASS (login, PKCE, MCP initialize, read-only tools, search_docs)\n");
+for (const name of ["list_pages", "read_page"]) {
+  if (!body.includes(`"${name}"`)) throw new Error(`MCP ${name} is missing`);
+}
+
+async function callPageTool(id: number, name: string, args: Record<string, unknown>) {
+  const response = await fetch(`${base}/mcp`, {
+    method: "POST",
+    headers: { ...mcpHeaders, ...(sessionId ? { "mcp-session-id": sessionId } : {}) },
+    body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } }),
+  });
+  const text = await response.text();
+  if (response.status !== 200) throw new Error(`MCP ${name} failed (${response.status})`);
+  const payload = text.startsWith("{") ? text : text.split("\n").find((line) => line.startsWith("data: "))?.slice(6);
+  if (!payload) throw new Error(`MCP ${name} returned no result`);
+  const envelope = JSON.parse(payload) as {
+    error?: unknown;
+    result?: { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+  };
+  if (envelope.error || !envelope.result || envelope.result.isError) throw new Error(`MCP ${name} returned an error`);
+  return (envelope.result.content ?? []).map((item) => item.text ?? "").join("\n");
+}
+const pages = await callPageTool(4, "list_pages", { library: "postgresql", contains: "sql-vacuum", limit: 1 });
+const pageUrl = /\]\(<(https?:[^>]+)>\)/.exec(pages)?.[1];
+if (!pageUrl) throw new Error("MCP list_pages did not return an indexed URL");
+const pageText = await callPageTool(5, "read_page", { library: "postgresql", pathOrUrl: pageUrl, maxChars: 3000 });
+if (!pageText.includes("VACUUM") || !pageText.includes("> Source:")) throw new Error("MCP read_page returned no page text");
+process.stdout.write("Claude OAuth live smoke: PASS (login, PKCE, MCP initialize, read-only tools, search_docs, list_pages, read_page)\n");

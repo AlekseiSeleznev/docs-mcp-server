@@ -21,7 +21,7 @@ Platform-specific `.mcpb` artifacts install from **Settings → Extensions → A
 - `lib-docs-<version>-macos-x64.mcpb`
 - `lib-docs-<version>-macos-arm64.mcpb`
 
-The extension appears in Claude Desktop as `lib-docs`. It reads the existing system Grounded Docs index and exposes only `search_docs`, `list_libraries`, and `find_version`. It does not expose indexing, refresh, removal, job, or URL-fetching tools. Populate the local index through the CLI or Web UI before using the extension.
+The extension appears in Claude Desktop as `lib-docs`. It reads the existing system Grounded Docs index and exposes only `search_docs`, `list_libraries`, `find_version`, `list_pages`, and `read_page`. It does not expose indexing, refresh, removal, job, or URL-fetching tools. Populate the local index through the CLI or Web UI before using the extension.
 
 Maintainers build the native artifacts from **Actions → MCPB Extensions → Run workflow**. Each artifact is built on its matching Windows or macOS runner because the server includes native Node.js dependencies.
 
@@ -246,7 +246,7 @@ A client can start the Docker image as a stdio server. The image serves HTTP unl
 
 The server also offers the resources `docs://libraries` and `docs://libraries/{library}/versions`, plus `docs://jobs` and `docs://jobs/{jobId}`.
 
-In read-only mode (`--read-only` or `DOCS_MCP_READ_ONLY=true`), the server registers only `search_docs`, `read_page`, `list_pages`, `list_libraries`, `find_version` and `fetch_url`, and leaves out the job resources.
+In read-only mode (`--read-only` or `DOCS_MCP_READ_ONLY=true`), the server registers only `search_docs`, `read_page`, `list_pages`, `list_libraries`, `find_version`, `list_source_artifacts`, and `get_source_artifact`, and leaves out the job resources.
 
 ## Legacy SSE Transport (Deprecated)
 

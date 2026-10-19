@@ -1,12 +1,13 @@
 import path from "node:path";
 import Fuse from "fuse.js";
-import semver from "semver";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
-import { sortVersionsDescending } from "../utils/version";
+import { resolveStoredVersion, toVersionCandidates } from "../utils/version";
 import { DocumentRetrieverService } from "./DocumentRetrieverService";
 import { DocumentStore } from "./DocumentStore";
 import { LibraryNotFoundInStoreError, VersionNotFoundInStoreError } from "./errors";
+import { StoredPageReader } from "./StoredPageReader";
+import type { IDocumentManagement } from "./trpc/interfaces";
 import type {
   FindVersionResult,
   LibrarySummary,
@@ -16,7 +17,8 @@ import type {
 } from "./types";
 
 /** Read operations required by the read-only MCP extension. */
-export interface ReadOnlyDocumentManagement {
+export interface ReadOnlyDocumentManagement
+  extends Pick<IDocumentManagement, "listPages" | "getPageContent"> {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
   listLibraries(): Promise<LibrarySummary[]>;
@@ -36,6 +38,7 @@ export interface ReadOnlyDocumentManagement {
  */
 export class ReadOnlyDocumentManagementService implements ReadOnlyDocumentManagement {
   private readonly store: DocumentStore;
+  private readonly pageReader: StoredPageReader;
   private readonly retriever: DocumentRetrieverService;
 
   constructor(appConfig: AppConfig) {
@@ -46,6 +49,16 @@ export class ReadOnlyDocumentManagementService implements ReadOnlyDocumentManage
     const dbPath = path.join(storePath, "documents.db");
     this.store = new DocumentStore(dbPath, appConfig, { readOnly: true });
     this.retriever = new DocumentRetrieverService(this.store, appConfig);
+    this.pageReader = new StoredPageReader(
+      this.store,
+      appConfig,
+      async (library, version) => {
+        await this.validateLibraryExists(library);
+        const stored = await this.store.getLibrary(library);
+        const { bestMatch } = await this.findBestVersion(library, version ?? undefined);
+        return { library: stored?.displayName ?? library, version: bestMatch ?? "" };
+      },
+    );
   }
 
   async initialize(): Promise<void> {
@@ -106,31 +119,14 @@ export class ReadOnlyDocumentManagementService implements ReadOnlyDocumentManage
     targetVersion?: string,
   ): Promise<FindVersionResult> {
     const hasUnversioned = await this.store.checkDocumentExists(library, "");
-    const versions = sortVersionsDescending(
-      (await this.store.queryUniqueVersions(library)).filter((version) =>
-        semver.valid(version),
-      ),
-    );
-
+    const versions = await this.store.queryUniqueVersions(library);
     if (versions.length === 0) {
       if (hasUnversioned) return { bestMatch: null, hasUnversioned: true };
       await this.validateLibraryExists(library);
       throw new LibraryNotFoundInStoreError(library, []);
     }
 
-    let bestMatch: string | null = null;
-    if (!targetVersion || targetVersion === "latest") {
-      bestMatch = semver.maxSatisfying(versions, "*");
-    } else {
-      const versionRegex = /^(\d+)(?:\.(?:x(?:\.x)?|\d+(?:\.(?:x|\d+))?))?$|^$/;
-      if (semver.valid(targetVersion) || versionRegex.test(targetVersion)) {
-        let range = targetVersion;
-        if (!semver.validRange(targetVersion)) range = `~${targetVersion}`;
-        else if (semver.valid(targetVersion)) range = `${range} || <=${targetVersion}`;
-        bestMatch = semver.maxSatisfying(versions, range);
-      }
-    }
-
+    const bestMatch = resolveStoredVersion(toVersionCandidates(versions), targetVersion);
     if (!bestMatch && !hasUnversioned) {
       const details = (await this.store.queryLibraryVersions()).get(library) ?? [];
       throw new VersionNotFoundInStoreError(
@@ -141,6 +137,16 @@ export class ReadOnlyDocumentManagementService implements ReadOnlyDocumentManage
     }
 
     return { bestMatch, hasUnversioned };
+  }
+
+  /** Lists indexed pages without opening the database for writes. */
+  async listPages(...args: Parameters<IDocumentManagement["listPages"]>) {
+    return this.pageReader.listPages(...args);
+  }
+
+  /** Reads a stored page using the shared URL and whole-chunk rules. */
+  async getPageContent(...args: Parameters<IDocumentManagement["getPageContent"]>) {
+    return this.pageReader.getPageContent(...args);
   }
 
   async searchStore(

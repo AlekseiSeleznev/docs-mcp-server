@@ -620,6 +620,8 @@ export interface PageContentOptions {
  * A window of consecutive chunks of a stored page, assembled for its content type.
  */
 export interface PageContentResult {
+  /** Bibliographic metadata retained on the indexed page. */
+  publication?: PublicationMetadata;
   url: string;
   title: string | null;
   contentType: string | null;

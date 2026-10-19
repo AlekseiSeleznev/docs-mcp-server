@@ -1,9 +1,10 @@
 {
   "name": "lib-sap-process-navigator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "files": {
-    "SKILL.md": "52d097e423caf965d26a35d4449712566ccf4ab8b5459dad1f99c65e0c4c00bd",
+    "SKILL.md": "e713b6b2c0c43c5e43684619930d7602137fc9c5ebe1dc25a8dae7e8d251845b",
     "agents/openai.yaml": "82b7bf2a706b0ec3fcd84b97d159f2c51e855a334a2cf65b67180be77d67f165",
+    "references/indexed-pages.md": "0a4ad37a7e03d771cf5e940efe837738e159ccf801ac6b7360b389e176642066",
     "references/skill-update.md": "bc7d22a65b442c12665bd10fc600b584493f628a5352a0fe3fbefa1585de55d0",
     "scripts/save-source-artifacts.mjs": "235aac06d958774e43dee17f4e913975d2902736e2aa4acc89356546989e3aae",
     "scripts/update-skill.py": "3566067523dab16be1d647445d4454b695fd27ba2957465f6d7e2298f88a2d65"
