@@ -14,6 +14,7 @@ import {
   assertNativeTarget,
   createMcpbArtifactName,
   createMcpbManifest,
+  createMcpbRuntimePackage,
   type McpbPackageMetadata,
   MCPB_TARGETS,
   MCPB_VERSION,
@@ -53,41 +54,6 @@ function readPackageMetadata(): McpbPackageMetadata & Record<string, unknown> {
   ) as McpbPackageMetadata & Record<string, unknown>;
 }
 
-function createRuntimePackage(
-  packageMetadata: McpbPackageMetadata & Record<string, unknown>,
-  lockfile: { packages?: Record<string, { version?: string }> },
-): Record<string, unknown> {
-  const dependencyVersion = (name: string): string => {
-    const version = lockfile.packages?.[`node_modules/${name}`]?.version;
-    if (!version) throw new Error(`Missing locked version for ${name}`);
-    return version;
-  };
-  return {
-    name: packageMetadata.name,
-    version: packageMetadata.version,
-    private: true,
-    type: "module",
-    license: packageMetadata.license,
-    engines: packageMetadata.engines,
-    dependencies: {
-      "@langchain/aws": dependencyVersion("@langchain/aws"),
-      "@langchain/core": dependencyVersion("@langchain/core"),
-      "@langchain/google-genai": dependencyVersion("@langchain/google-genai"),
-      "@langchain/google-vertexai": dependencyVersion("@langchain/google-vertexai"),
-      "@langchain/openai": dependencyVersion("@langchain/openai"),
-      "@modelcontextprotocol/sdk": dependencyVersion("@modelcontextprotocol/sdk"),
-      "better-sqlite3": dependencyVersion("better-sqlite3"),
-      "env-paths": dependencyVersion("env-paths"),
-      "fuse.js": dependencyVersion("fuse.js"),
-      mime: dependencyVersion("mime"),
-      semver: dependencyVersion("semver"),
-      "sqlite-vec": dependencyVersion("sqlite-vec"),
-      yaml: dependencyVersion("yaml"),
-      zod: dependencyVersion("zod"),
-    },
-  };
-}
-
 function main(): void {
   const targetLabel = readOption("--target");
   if (!targetLabel || !Object.hasOwn(MCPB_TARGETS, targetLabel)) {
@@ -122,7 +88,7 @@ function main(): void {
 
     writeFileSync(
       path.join(stageDirectory, "package.json"),
-      `${JSON.stringify(createRuntimePackage(packageMetadata, lockfile), null, 2)}\n`,
+      `${JSON.stringify(createMcpbRuntimePackage(packageMetadata, lockfile), null, 2)}\n`,
     );
     writeFileSync(
       path.join(stageDirectory, "manifest.json"),

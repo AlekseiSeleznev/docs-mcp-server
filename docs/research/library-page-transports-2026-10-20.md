@@ -40,3 +40,13 @@ Focused test command:
 ```sh
 npx vitest run src/mcp/readOnlyMcpServer.test.ts src/mcp/mcpServer.test.ts src/build/mcpb.test.ts src/build/remoteMcpb.test.ts test/version-resolution-e2e.test.ts src/store/DocumentManagementService.test.ts src/tools/ListPagesTool.test.ts src/tools/ReadPageTool.test.ts src/utils/version.test.ts
 ```
+
+## Native CI findings and corrections
+
+The first native run on application revision `434539e` exposed two packaging/test-launch defects. All three local native packages built but failed the unpacked runtime smoke because the page-reader URL helper left an external `psl` import, while the extension's runtime package omitted that dependency. The remote Windows job failed in Vitest global setup before running tests: Windows distributes npm through a `.cmd` shim, and `execFileSync("npm")` without the Windows shell could not launch it. The remote Linux and both macOS jobs passed in that run.
+
+The local runtime package now includes `psl` at the application's locked version. Its package-generation function is shared between the native packager and a new `smoke:mcpb -- --isolated-bundle` mode. That smoke installs the same runtime dependencies into a temporary directory outside the repository, then runs the built stdio server against a seeded SQLite store. The repository's `node_modules` can no longer mask an omitted runtime dependency in this check. This isolated Linux smoke passes, including actual page listing, whole-chunk continuation and publication metadata.
+
+Vitest global setup now uses the command shell on Windows to launch the npm shim; Unix execution remains direct. No test or native packaging check is disabled.
+
+Correction checks: three focused suites / 13 tests PASS, TypeScript PASS, `git diff --check` PASS. Native reruns on the corrected revision remain required before claiming Windows/macOS acceptance.

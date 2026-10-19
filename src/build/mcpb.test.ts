@@ -6,6 +6,7 @@ import {
   assertNativeTarget,
   createMcpbArtifactName,
   createMcpbManifest,
+  createMcpbRuntimePackage,
   MCPB_TARGETS,
 } from "./mcpb";
 
@@ -46,6 +47,21 @@ describe("MCPB build contract", () => {
       "list_pages",
       "read_page",
     ]);
+  });
+
+  it("ships the page reader URL dependency at its locked version", () => {
+    const packageMetadata = JSON.parse(
+      readFileSync(path.resolve("package.json"), "utf8"),
+    );
+    const lockfile = JSON.parse(readFileSync(path.resolve("package-lock.json"), "utf8"));
+    const runtime = createMcpbRuntimePackage(packageMetadata, lockfile);
+    expect(runtime).toMatchObject({
+      dependencies: { psl: lockfile.packages["node_modules/psl"].version },
+    });
+    delete lockfile.packages["node_modules/psl"];
+    expect(() => createMcpbRuntimePackage(packageMetadata, lockfile)).toThrow(
+      "Missing locked version for psl",
+    );
   });
 
   it("defines the three requested native build targets", () => {

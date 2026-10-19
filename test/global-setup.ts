@@ -38,7 +38,12 @@ function entriesUnder(dir: string): string[] {
 
 /** Run an npm script in the project root, with its output shown. */
 function runScript(projectRoot: string, script: string): void {
-  execFileSync("npm", ["run", script], { cwd: projectRoot, stdio: "inherit" });
+  execFileSync("npm", ["run", script], {
+    cwd: projectRoot,
+    stdio: "inherit",
+    // Windows distributes npm as a .cmd shim, which needs the command shell.
+    shell: process.platform === "win32",
+  });
 }
 
 /**

@@ -1,5 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createMcpbRuntimePackage, type McpbPackageMetadata } from "../src/build/mcpb";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -25,19 +34,41 @@ function findArtifact(input: string): string {
 
 async function main(): Promise<void> {
   const bundleOnly = process.argv[2] === "--bundle";
-  const artifact = bundleOnly
-    ? path.resolve("mcpb-dist/index.js")
-    : findArtifact(process.argv[2] ?? "artifacts");
+  const isolatedBundle = process.argv[2] === "--isolated-bundle";
+  const artifact =
+    bundleOnly || isolatedBundle
+      ? path.resolve("mcpb-dist/index.js")
+      : findArtifact(process.argv[2] ?? "artifacts");
   const temporaryRoot = mkdtempSync(path.join(tmpdir(), "grounded-docs-mcpb-smoke-"));
   const unpacked = path.join(temporaryRoot, "unpacked");
   const storePath = path.join(temporaryRoot, "store");
 
   try {
-    if (!bundleOnly)
+    if (!bundleOnly && !isolatedBundle)
       execFileSync("npx", ["-y", MCPB_CLI, "unpack", artifact, unpacked], {
         shell: process.platform === "win32",
         stdio: "inherit",
       });
+
+    if (isolatedBundle) {
+      mkdirSync(unpacked, { recursive: true });
+      cpSync(path.resolve("mcpb-dist"), path.join(unpacked, "mcpb-dist"), {
+        recursive: true,
+      });
+      const packageMetadata = JSON.parse(
+        readFileSync("package.json", "utf8"),
+      ) as McpbPackageMetadata & Record<string, unknown>;
+      const lockfile = JSON.parse(readFileSync("package-lock.json", "utf8"));
+      writeFileSync(
+        path.join(unpacked, "package.json"),
+        JSON.stringify(createMcpbRuntimePackage(packageMetadata, lockfile)),
+      );
+      execFileSync(
+        "npm",
+        ["install", "--omit=dev", "--no-audit", "--no-fund", "--package-lock=false"],
+        { cwd: unpacked, shell: process.platform === "win32", stdio: "inherit" },
+      );
+    }
 
     const config: AppConfig = {
       ...defaults,
