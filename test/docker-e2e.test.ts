@@ -21,7 +21,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/client";
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -30,6 +30,7 @@ import path from "node:path";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import Database from "better-sqlite3";
+import * as sqliteVec from "sqlite-vec";
 import { ZipArchive } from "archiver";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -89,6 +90,7 @@ interface DockerResult {
 }
 
 interface DatabaseSnapshot {
+  originalDataSha256: string;
   userVersion: number;
   schema: string[];
   counts: { documents: number; libraries: number; pages: number; versions: number };
@@ -234,6 +236,17 @@ function listIndexedUrls(dbPath: string): string[] {
 function snapshotDatabase(dbPath: string): DatabaseSnapshot {
   const db = new Database(dbPath, { readonly: true });
   try {
+    sqliteVec.load(db);
+    const dataHash = createHash("sha256");
+    for (const sql of [
+      "SELECT id,name,created_at FROM libraries ORDER BY id",
+      "SELECT id,library_id,name,created_at FROM versions ORDER BY id",
+      "SELECT id,version_id,url,title,created_at FROM pages ORDER BY id",
+      "SELECT id,page_id,content,metadata,sort_order,vec_f32(embedding) embedding,created_at FROM documents ORDER BY id",
+    ]) {
+      for (const row of db.prepare(sql).iterate()) dataHash.update(JSON.stringify(row) + "\n");
+    }
+
     const userVersion = db.pragma("user_version", { simple: true }) as number;
     const schema = db
       .prepare(
@@ -245,6 +258,7 @@ function snapshotDatabase(dbPath: string): DatabaseSnapshot {
       (db.prepare(`SELECT COUNT(*) AS value FROM ${table}`).get() as { value: number })
         .value;
     return {
+      originalDataSha256: dataHash.digest("hex"),
       userVersion,
       schema,
       counts: {
@@ -767,6 +781,7 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(evidence.before.counts.documents).toBeGreaterThan(0);
       expect(evidence.after.userVersion).toBe(evidence.before.userVersion);
       expect(evidence.after.counts).toEqual(evidence.before.counts);
+      expect(evidence.after.originalDataSha256).toBe(evidence.before.originalDataSha256);
 
       const afterPages = evidence.after.schema.find((entry) =>
         entry.startsWith("table:pages:"),
@@ -777,19 +792,25 @@ describe.skipIf(!DOCKER_AVAILABLE)("Docker image", () => {
       expect(afterPages).toMatch(/\bpublication_metadata JSON\b/u);
       expect(afterPages).toMatch(/\bcontent_url TEXT DEFAULT NULL\b/u);
       expect(afterVersions).toMatch(/\bprogress_pages_indexed INTEGER DEFAULT NULL\b/u);
-      expect(
-        evidence.after.schema.map((entry) => {
-          if (entry.startsWith("table:pages:")) {
-            return entry
-              .replace(/,\s*publication_metadata JSON\b/u, "")
-              .replace(/,\s*content_url TEXT DEFAULT NULL\b/u, "");
-          }
-          if (entry.startsWith("table:versions:")) {
-            return entry.replace(/,\s*progress_pages_indexed INTEGER DEFAULT NULL\b/u, "");
-          }
-          return entry;
-        }),
-      ).toEqual(evidence.before.schema);
+      const libraries = evidence.after.schema.find((entry) => entry.startsWith("table:libraries:"));
+      expect(libraries).toMatch(/display_name TEXT NOT NULL/u);
+      expect(evidence.after.schema.some((entry) => entry.startsWith("index:idx_pages_created_at:"))).toBe(true);
+      // Migrations 017-019 intentionally rebuild libraries, vector triggers,
+      // and the FTS update trigger, and replace redundant indexes.
+      const evolved = new Set([
+        "libraries", "idx_pages_created_at", "documents_fts_after_update",
+        "documents_vec_after_insert", "documents_vec_after_update",
+        "idx_documents_page_id", "idx_pages_version_id", "idx_versions_library_id",
+        "idx_pages_url", "idx_pages_etag", "idx_versions_library_status",
+        "idx_versions_started_at", "idx_versions_scraper_options_scope",
+      ]);
+      const stableSchema = (entries: string[]) => entries
+        .filter((entry) => !evolved.has(entry.split(":")[1]))
+        .map((entry) => entry
+          .replace(/,\s*publication_metadata JSON\b/u, "")
+          .replace(/,\s*content_url TEXT DEFAULT NULL\b/u, "")
+          .replace(/,\s*progress_pages_indexed INTEGER DEFAULT NULL\b/u, ""));
+      expect(stableSchema(evidence.after.schema)).toEqual(stableSchema(evidence.before.schema));
     });
   });
   it("runs the entrypoint as a non-root user", async () => {
