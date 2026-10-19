@@ -242,7 +242,7 @@ function snapshotDatabase(dbPath: string): DatabaseSnapshot {
       "SELECT id,name,created_at FROM libraries ORDER BY id",
       "SELECT id,library_id,name,created_at FROM versions ORDER BY id",
       "SELECT id,version_id,url,title,created_at FROM pages ORDER BY id",
-      "SELECT id,page_id,content,metadata,sort_order,vec_f32(embedding) embedding,created_at FROM documents ORDER BY id",
+      "SELECT id,page_id,content,metadata,sort_order,CASE WHEN embedding IS NULL THEN NULL ELSE vec_f32(embedding) END embedding,created_at FROM documents ORDER BY id",
     ]) {
       for (const row of db.prepare(sql).iterate()) dataHash.update(JSON.stringify(row) + "\n");
     }
