@@ -3,10 +3,26 @@
  * Tests that commands accept the correct arguments according to the CLI Commands and Arguments Matrix.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DocumentManagementService } from "../store";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from "vitest";
+import type { Argv } from "yargs";
+import { Parser } from "yargs/helpers";
+import { openBackend } from "../services/backend";
+import { getConfigMappedCliKeys } from "../utils/config";
 import { resolveStorePath } from "../utils/paths";
-import { createCli } from "./index";
+import {
+  CliUsageError,
+  COMMAND_FACTORIES,
+  createCli,
+  registerGlobalOptions,
+} from "./index";
 import { resolveProtocol, validatePort, validateResumeFlag } from "./utils";
 
 // Mocks for execution tests will be defined below in dedicated describe block
@@ -36,11 +52,6 @@ vi.mock("../telemetry", async () => {
   return {
     initTelemetry: vi.fn(),
     shouldEnableTelemetry: vi.fn().mockReturnValue(false),
-    TelemetryService: vi.fn().mockImplementation(function () {
-      return {
-        shutdown: vi.fn(),
-      };
-    }),
     telemetry: {
       isEnabled: vi.fn().mockReturnValue(false),
       setGlobalContext: vi.fn(),
@@ -58,17 +69,6 @@ vi.mock("../telemetry", async () => {
     },
   };
 });
-
-// --- Additional mocks for createPipelineWithCallbacks behavior tests ---
-vi.mock("../pipeline/PipelineFactory", () => ({
-  PipelineFactory: {
-    createPipeline: vi.fn().mockResolvedValue({
-      setCallbacks: vi.fn(),
-      shutdown: vi.fn(),
-      start: vi.fn(),
-    }),
-  },
-}));
 
 // --- Mocks & state for handler wiring regression (formerly commandHandlers.test.ts) ---
 let capturedCreateArgs: any[] = [];
@@ -118,36 +118,58 @@ describe("CLI command handler parameters", () => {
   });
 });
 
+describe("CLI failure reporting", () => {
+  let consoleErrorSpy: MockInstance<typeof console.error>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  const printed = () =>
+    consoleErrorSpy.mock.calls.map((args) => args.join(" ")).join("\n");
+
+  it("prints the help and the reason for a command line it cannot parse", () => {
+    // yargs validates before any command runs, so the error is thrown, not rejected
+    expect(() => createCli([]).parseAsync(["list", "--unknown-flag"])).toThrow(
+      CliUsageError,
+    );
+
+    expect(printed()).toContain("Options:");
+    expect(printed()).toContain("Unknown argument");
+  });
+
+  it("passes a failing command's error on without the help", async () => {
+    vi.mocked(openBackend).mockResolvedValueOnce({
+      docService: {
+        validateLibraryExists: vi
+          .fn()
+          .mockRejectedValue(new Error("Library nolib not found in store.")),
+      },
+      close: vi.fn(),
+    } as unknown as Awaited<ReturnType<typeof openBackend>>);
+
+    await expect(createCli([]).parseAsync(["remove", "nolib"])).rejects.toThrow(
+      "Library nolib not found in store.",
+    );
+    expect(printed()).not.toContain("Options:");
+  });
+});
+
 // Global mocks for the propagation tests - declared at module level
 vi.mock("../utils/paths", () => ({
   resolveStorePath: vi.fn().mockReturnValue("/mocked/resolved/path"),
   getProjectRoot: vi.fn().mockReturnValue("/mocked/project/root"),
 }));
 
-vi.mock("../store", async () => {
-  const actual = await vi.importActual<any>("../store");
-  const DocumentManagementService = vi.fn().mockImplementation(function () {
-    return {
-      initialize: vi.fn().mockResolvedValue(undefined),
-      shutdown: vi.fn(),
-    };
-  });
-  return {
-    ...actual,
-    createDocumentManagement: vi.fn(async (opts: any) => {
-      capturedCreateArgs.push(opts);
-      return { shutdown: vi.fn() } as any;
-    }),
-    DocumentManagementService,
-    createLocalDocumentManagementService: vi.fn(
-      (eventBus, appConfig) => new DocumentManagementService(eventBus, appConfig),
-    ),
-  };
-});
-vi.mock("../store/errors", () => ({
-  EmbeddingModelChangedError: class EmbeddingModelChangedError extends Error {
-    name = "EmbeddingModelChangedError";
-  },
+vi.mock("../services/backend", () => ({
+  openBackend: vi.fn(async (opts: any) => {
+    capturedCreateArgs.push(opts);
+    return { docService: {}, close: vi.fn() } as any;
+  }),
 }));
 
 vi.mock("../app", () => ({
@@ -166,14 +188,12 @@ vi.mock("../mcp/startStdioServer", () => ({
 
 describe("Global option propagation", () => {
   let mockResolveStorePath: any;
-  let mockDocumentManagementService: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
     // Get references to the mocked functions
     mockResolveStorePath = vi.mocked(resolveStorePath);
-    mockDocumentManagementService = vi.mocked(DocumentManagementService);
   });
 
   it("should pass --store-path through preAction hook to default command", async () => {
@@ -200,13 +220,13 @@ describe("Global option propagation", () => {
     // Verify that resolveStorePath was called with the CLI option
     expect(mockResolveStorePath).toHaveBeenCalledWith(customStorePath);
 
-    // Verify that DocumentManagementService was constructed with the resolved path
-    expect(mockDocumentManagementService).toHaveBeenCalledWith(
+    // Verify that the backend opens with the resolved path
+    expect(openBackend).toHaveBeenCalledWith(
       expect.objectContaining({
-        emitter: expect.any(Object),
-      }), // EventBusService instance
-      expect.objectContaining({
-        app: expect.objectContaining({ storePath: resolvedStorePath }),
+        eventBus: expect.objectContaining({ emitter: expect.any(Object) }),
+        appConfig: expect.objectContaining({
+          app: expect.objectContaining({ storePath: resolvedStorePath }),
+        }),
       }),
     );
 
@@ -236,13 +256,13 @@ describe("Global option propagation", () => {
     // Verify that resolveStorePath was called with the env var value
     expect(mockResolveStorePath).toHaveBeenCalledWith(envStorePath);
 
-    // Verify that DocumentManagementService was constructed with the resolved path
-    expect(mockDocumentManagementService).toHaveBeenCalledWith(
+    // Verify that the backend opens with the resolved path
+    expect(openBackend).toHaveBeenCalledWith(
       expect.objectContaining({
-        emitter: expect.any(Object),
-      }), // EventBusService instance
-      expect.objectContaining({
-        app: expect.objectContaining({ storePath: resolvedStorePath }),
+        eventBus: expect.objectContaining({ emitter: expect.any(Object) }),
+        appConfig: expect.objectContaining({
+          app: expect.objectContaining({ storePath: resolvedStorePath }),
+        }),
       }),
     );
 
@@ -267,12 +287,14 @@ describe("Global option propagation", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    expect(mockDocumentManagementService).toHaveBeenCalledWith(
-      expect.any(Object),
+    expect(openBackend).toHaveBeenCalledWith(
       expect.objectContaining({
-        app: expect.objectContaining({
-          storePath: resolvedStorePath,
-          embeddingModel,
+        eventBus: expect.objectContaining({ emitter: expect.any(Object) }),
+        appConfig: expect.objectContaining({
+          app: expect.objectContaining({
+            storePath: resolvedStorePath,
+            embeddingModel,
+          }),
         }),
       }),
     );
@@ -291,12 +313,14 @@ describe("Global option propagation", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    expect(mockDocumentManagementService).toHaveBeenCalledWith(
-      expect.any(Object),
+    expect(openBackend).toHaveBeenCalledWith(
       expect.objectContaining({
-        app: expect.objectContaining({
-          storePath: resolvedStorePath,
-          embeddingModel: envModel,
+        eventBus: expect.objectContaining({ emitter: expect.any(Object) }),
+        appConfig: expect.objectContaining({
+          app: expect.objectContaining({
+            storePath: resolvedStorePath,
+            embeddingModel: envModel,
+          }),
         }),
       }),
     );
@@ -377,5 +401,82 @@ describe("CLI Validation Logic", () => {
         "--resume flag is incompatible with --server-url. External workers handle their own job recovery.",
       );
     });
+  });
+});
+
+describe("CLI options mapped to settings", () => {
+  interface Declaration {
+    command: string;
+    name: string;
+    options: Record<string, unknown>;
+  }
+
+  /**
+   * A yargs stand-in that records option and positional declarations, runs
+   * command builders against itself, and returns itself for every other call.
+   */
+  function createRecorder(command: string, declarations: Declaration[]): Argv {
+    const record = (name: string, options: Record<string, unknown> = {}) => {
+      declarations.push({ command, name, options });
+    };
+    const recorder: Argv = new Proxy({} as Argv, {
+      get(_target, property) {
+        if (property === "then") {
+          return undefined;
+        }
+        return (...args: unknown[]) => {
+          if (property === "option" || property === "positional") {
+            record(args[0] as string, args[1] as Record<string, unknown>);
+          } else if (property === "options") {
+            for (const [name, options] of Object.entries(args[0] as object)) {
+              record(name, options);
+            }
+          } else if (property === "command") {
+            const [names, , builder] = args;
+            const commandName = [names].flat()[0] as string;
+            if (typeof builder === "function") {
+              builder(createRecorder(commandName, declarations));
+            } else if (builder && typeof builder === "object") {
+              for (const [name, options] of Object.entries(builder)) {
+                declarations.push({ command: commandName, name, options });
+              }
+            }
+          }
+          return recorder;
+        };
+      },
+    });
+    return recorder;
+  }
+
+  it("declares no built-in value on an option that maps onto a setting", () => {
+    const declarations: Declaration[] = [];
+    registerGlobalOptions(createRecorder("(global)", declarations));
+    for (const registerCommand of COMMAND_FACTORIES) {
+      registerCommand(createRecorder("(root)", declarations));
+    }
+    const mapped = getConfigMappedCliKeys();
+
+    const offenders = declarations
+      .filter(({ name, options }) => {
+        // The same conversion yargs applies to argv keys.
+        const keys = [name, ...[options.alias ?? []].flat()].map((key) =>
+          Parser.camelCase(String(key)),
+        );
+        return keys.some((key) => mapped.has(key)) && options.default !== undefined;
+      })
+      .map(({ command, name }) => `${command} --${name}`);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it.each(
+    COMMAND_FACTORIES.map((registerCommand) => [registerCommand.name, registerCommand]),
+  )("records the declarations of %s", (_name, registerCommand) => {
+    const declarations: Declaration[] = [];
+
+    registerCommand(createRecorder("(root)", declarations));
+
+    expect(declarations.length).toBeGreaterThan(0);
   });
 });

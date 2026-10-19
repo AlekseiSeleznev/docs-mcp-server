@@ -19,3 +19,5 @@ public/index.html
 .opencode/package-lock.json
 skills/md/downloads/lib-docs-3.0.0-all-platforms.zip
 skills/md/downloads/lib-docs-4.0.0-*.mcpb
+.cache/search-accuracy/
+tests/search-accuracy/results/

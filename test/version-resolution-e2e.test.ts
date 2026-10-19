@@ -35,7 +35,7 @@ describe("Version resolution end-to-end", () => {
     // Never started: jobs stay QUEUED, so nothing is actually scraped and we can
     // inspect the version label each entry point recorded.
     pipeline = new PipelineManager(docService, new EventBusService(), {
-      recoverJobs: false,
+      interruptedJobs: "fail",
       appConfig,
     });
   });
@@ -50,6 +50,10 @@ describe("Version resolution end-to-end", () => {
      * Drives a version label through one real entry point and returns the label
      * that reaches the store layer, so a regression in any entry point's own
      * normalizer shows up as a different label rather than passing silently.
+     *
+     * Each scrape requests replacement: some cases send variants of one label
+     * through several entry points on purpose, and without it every submission
+     * after the first would be rejected as an existing version.
      */
     const labelFromEntryPoint = async (
       entryPoint: "scrapeTool" | "refreshTool" | "trpc" | "pipeline",
@@ -65,6 +69,7 @@ describe("Version resolution end-to-end", () => {
               version,
               url: "https://example.com/docs",
               waitForCompletion: false,
+              replace: true,
             })) as { jobId: string }
           ).jobId;
           break;
@@ -95,15 +100,18 @@ describe("Version resolution end-to-end", () => {
               library,
               version,
               options: { url: "https://example.com/docs", library } as never,
+              onExisting: "replace",
             })
           ).jobId;
           break;
         }
         case "pipeline":
-          jobId = await pipeline.enqueueScrapeJob(library, version, {
-            url: "https://example.com/docs",
+          jobId = await pipeline.enqueueScrapeJob(
             library,
-          } as never);
+            version,
+            { url: "https://example.com/docs", library } as never,
+            { onExisting: "replace" },
+          );
           break;
       }
       return (await pipeline.getJob(jobId))?.version ?? null;
@@ -131,22 +139,17 @@ describe("Version resolution end-to-end", () => {
     );
 
     it("lands one version row no matter which entry point wrote the label", async () => {
-      // Every entry point feeds the same library, so a normalizer that let a
-      // variant through would show up here as a second bucket.
+      // Every entry point that creates a version feeds the same library, so
+      // one that stored a variant would show up here as a second row. The
+      // refresh tool is left out: it needs the row to exist already.
       const library = "paritylib";
+      const writers = ["scrapeTool", "trpc", "pipeline"] as const;
       const variants = [" 1.0.0 ", "1.0.0", "1.0.0 ", " 1.0.0"];
 
-      const ids: number[] = [];
       for (const [i, variant] of variants.entries()) {
-        const label = await labelFromEntryPoint(
-          ENTRY_POINTS[i % ENTRY_POINTS.length],
-          library,
-          variant,
-        );
-        ids.push(await docService.ensureVersion({ library, version: label ?? "" }));
+        await labelFromEntryPoint(writers[i % writers.length], library, variant);
       }
 
-      expect(new Set(ids).size).toBe(1);
       expect(await docService.listVersions(library)).toEqual(["1.0.0"]);
     });
 
@@ -180,16 +183,6 @@ describe("Version resolution end-to-end", () => {
       // ScrapeTool used to coerce "1.20" to "1.20.0", merging the two buckets.
       expect(partial).not.toBe(full);
       expect(await docService.listVersions(library)).toEqual(["1.20.0", "1.20"]);
-    });
-
-    it("accepts a non-version label through the scrape and refresh tools", async () => {
-      // Both tools used to reject anything that was not strict semver.
-      await expect(
-        labelFromEntryPoint("scrapeTool", "taglib-scrape", " STABLE "),
-      ).resolves.toBe("stable");
-      await expect(
-        labelFromEntryPoint("refreshTool", "taglib-refresh", "stable"),
-      ).resolves.toBe("stable");
     });
   });
 

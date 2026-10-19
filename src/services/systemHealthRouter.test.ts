@@ -11,7 +11,7 @@ function baseSystemInfo(overrides: Partial<SystemInfo> = {}): SystemInfo {
     telemetryEnabled: true,
     services: { web: true, mcp: true, api: true, worker: true },
     worker: { mode: "embedded", maxConcurrency: 3 },
-    mcp: { enabled: true, endpoints: ["/mcp", "/sse"] },
+    mcp: { enabled: true, endpoints: ["/mcp", "/sse"], url: "http://127.0.0.1:6280/mcp" },
     auth: { enabled: false },
     scraper: { maxPages: 1000, maxDepth: 3 },
     ...overrides,
@@ -80,6 +80,24 @@ describe("systemHealthRouter.getSystemHealth", () => {
     });
   });
 
+  it("still reports a remote worker as disconnected when it cannot be asked for its embeddings", async () => {
+    const ctx = buildContext({
+      systemInfo: baseSystemInfo({
+        worker: { mode: "remote", url: "http://worker.example.com" },
+      }),
+      isWorkerConnected: vi.fn().mockReturnValue(false),
+    });
+    vi.mocked(ctx.docService.getEmbeddingConfigInfo).mockRejectedValue(
+      new Error("fetch failed"),
+    );
+    const caller = systemHealthRouter.createCaller(ctx);
+
+    const health = await caller.getSystemHealth();
+
+    expect(health.worker).toMatchObject({ mode: "remote", connected: false });
+    expect(health.embeddings).toBeNull();
+  });
+
   it("returns embeddings: null when running in full-text-search-only mode", async () => {
     const ctx = buildContext();
     const caller = systemHealthRouter.createCaller(ctx);
@@ -135,7 +153,11 @@ describe("systemHealthRouter.getSystemHealth", () => {
       readOnly: true,
       telemetryEnabled: false,
       services: { web: false, mcp: true, api: true, worker: false },
-      mcp: { enabled: true, endpoints: ["/mcp", "/sse"] },
+      mcp: {
+        enabled: true,
+        endpoints: ["/mcp", "/sse"],
+        url: "http://127.0.0.1:6280/mcp",
+      },
       auth: { enabled: true, issuer: "https://auth.example.com" },
       scraper: { maxPages: 250, maxDepth: 0 },
     });
@@ -148,7 +170,11 @@ describe("systemHealthRouter.getSystemHealth", () => {
     expect(health.readOnly).toBe(true);
     expect(health.telemetryEnabled).toBe(false);
     expect(health.services).toEqual({ web: false, mcp: true, api: true, worker: false });
-    expect(health.mcp).toEqual({ enabled: true, endpoints: ["/mcp", "/sse"] });
+    expect(health.mcp).toEqual({
+      enabled: true,
+      endpoints: ["/mcp", "/sse"],
+      url: "http://127.0.0.1:6280/mcp",
+    });
     expect(health.auth).toEqual({ enabled: true, issuer: "https://auth.example.com" });
     expect(health.scraper).toEqual({ maxPages: 250, maxDepth: 0 });
   });

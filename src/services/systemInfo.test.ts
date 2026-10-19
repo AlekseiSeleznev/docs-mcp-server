@@ -12,17 +12,18 @@ function baseServerConfig(overrides: Partial<AppServerConfig> = {}): AppServerCo
     enableWebInterface: false,
     enableMcpServer: false,
     enableApiServer: true,
-    enableWorker: false,
     port: 6280,
     ...overrides,
   };
 }
 
+const MCP_URL = "https://docs.example.com/tools/mcp";
+
 describe("buildSystemInfo", () => {
   const appConfig: AppConfig = loadConfig();
 
-  it("reports embedded worker mode with no url when externalWorkerUrl is unset", () => {
-    const info = buildSystemInfo(baseServerConfig({ enableWorker: true }), appConfig);
+  it("reports embedded worker mode with no url when there is no worker URL", () => {
+    const info = buildSystemInfo(baseServerConfig(), appConfig, MCP_URL, undefined);
 
     expect(info.worker).toEqual({
       mode: "embedded",
@@ -30,10 +31,12 @@ describe("buildSystemInfo", () => {
     });
   });
 
-  it("reports remote worker mode with the configured url when externalWorkerUrl is set", () => {
+  it("reports remote worker mode with the worker URL when there is one", () => {
     const info = buildSystemInfo(
-      baseServerConfig({ externalWorkerUrl: "http://worker.example.com" }),
+      baseServerConfig(),
       appConfig,
+      MCP_URL,
+      "http://worker.example.com",
     );
 
     expect(info.worker).toEqual({
@@ -48,9 +51,10 @@ describe("buildSystemInfo", () => {
         enableWebInterface: true,
         enableMcpServer: true,
         enableApiServer: true,
-        enableWorker: true,
       }),
       appConfig,
+      MCP_URL,
+      undefined,
     );
 
     expect(info.services).toEqual({
@@ -66,31 +70,60 @@ describe("buildSystemInfo", () => {
     customConfig.scraper.maxPages = 250;
     customConfig.scraper.maxDepth = 0;
 
-    const info = buildSystemInfo(baseServerConfig(), customConfig);
+    const info = buildSystemInfo(baseServerConfig(), customConfig, MCP_URL, undefined);
 
     expect(info.scraper).toEqual({ maxPages: 250, maxDepth: 0 });
   });
 
-  it("includes MCP endpoints only when the MCP server is enabled", () => {
+  it("advertises the MCP endpoint URL only when the MCP server is enabled", () => {
     const enabled = buildSystemInfo(
       baseServerConfig({ enableMcpServer: true }),
       appConfig,
+      MCP_URL,
+      undefined,
     );
-    expect(enabled.mcp).toEqual({ enabled: true, endpoints: ["/mcp", "/sse"] });
+    expect(enabled.mcp).toMatchObject({ enabled: true, url: MCP_URL });
 
     const disabled = buildSystemInfo(
       baseServerConfig({ enableMcpServer: false }),
       appConfig,
+      MCP_URL,
+      undefined,
     );
     expect(disabled.mcp).toEqual({ enabled: false, endpoints: [] });
   });
+
+  it.each([
+    [false, ["/mcp", "/sse"]],
+    [true, ["/mcp"]],
+  ])(
+    "lists the relative paths served with auth enabled = %s",
+    (authEnabled, endpoints) => {
+      const config: AppConfig = JSON.parse(JSON.stringify(appConfig));
+      config.auth.enabled = authEnabled;
+
+      const info = buildSystemInfo(
+        baseServerConfig({ enableMcpServer: true }),
+        config,
+        MCP_URL,
+        undefined,
+      );
+
+      expect(info.mcp.endpoints).toEqual(endpoints);
+    },
+  );
 
   it("omits the issuer when auth is disabled", () => {
     const disabledAuthConfig: AppConfig = JSON.parse(JSON.stringify(appConfig));
     disabledAuthConfig.auth.enabled = false;
     disabledAuthConfig.auth.issuerUrl = "https://auth.example.com";
 
-    const info = buildSystemInfo(baseServerConfig(), disabledAuthConfig);
+    const info = buildSystemInfo(
+      baseServerConfig(),
+      disabledAuthConfig,
+      MCP_URL,
+      undefined,
+    );
 
     expect(info.auth).toEqual({ enabled: false, issuer: undefined });
   });
@@ -100,7 +133,12 @@ describe("buildSystemInfo", () => {
     enabledAuthConfig.auth.enabled = true;
     enabledAuthConfig.auth.issuerUrl = "https://auth.example.com";
 
-    const info = buildSystemInfo(baseServerConfig(), enabledAuthConfig);
+    const info = buildSystemInfo(
+      baseServerConfig(),
+      enabledAuthConfig,
+      MCP_URL,
+      undefined,
+    );
 
     expect(info.auth).toEqual({
       enabled: true,
@@ -113,7 +151,7 @@ describe("buildSystemInfo", () => {
     customConfig.app.readOnly = true;
     customConfig.app.telemetryEnabled = false;
 
-    const info = buildSystemInfo(baseServerConfig(), customConfig);
+    const info = buildSystemInfo(baseServerConfig(), customConfig, MCP_URL, undefined);
 
     expect(info.readOnly).toBe(true);
     expect(info.telemetryEnabled).toBe(false);

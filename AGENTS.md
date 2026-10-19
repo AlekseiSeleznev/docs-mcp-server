@@ -1,4 +1,3 @@
-
 # Agent Instructions for docs-mcp-server
 
 ## Repository Context
@@ -86,70 +85,43 @@ Strictly enforced by `commitlint`. Commits will fail if format is incorrect.
 - **Conditionals**: Use ternary `foo ? <Bar/> : null` (avoid `foo && <Bar/>`).
 - **Styling**: TailwindCSS utility classes.
 
-## Documentation Guidelines
+## Environment
 
-### File Targets
-- `README.md`: User-facing (install, config, usage).
-- `ARCHITECTURE.md`: Developer-facing (concepts, system design).
-- `docs/*.md`: Deep dives into specific subsystems.
+- Use Node.js 22 (`nvm use 22`), even though `package.json` allows newer versions. `better-sqlite3` ships a binary pinned to the Node ABI, so do not raise the engine floor.
+- Use `npm ci` to get `node_modules`. Use `npm install` only to change dependencies on purpose.
+- Run occasional tools such as `promptfoo` through `npx -y <pkg>@<version>` in a `package.json` script instead of adding a dependency.
 
-### Writing Principles
-- **Tone**: Declarative, present tense.
-- **Focus**: "What it does", not "what it doesn't do".
-- **Diagrams**: Mermaid for workflows/state. No markdown formatting in diagram titles.
+## Checks
 
-## Logging Strategy
+- Run `npm run lint`, `npm run typecheck` and `npm test` before you push. The Husky hooks only run Biome on staged files and commitlint on the message; never bypass them.
+- `tsconfig.json` is incremental. Delete `.tsbuildinfo` before a typecheck you rely on, or a warm cache can hide errors that CI catches.
+- Run one test file with `npx vitest run <path>`.
 
-- **User Output**: `console.*` (CLI results).
-- **App Events**: `logger.info` (meaningful state changes).
-- **Debugging**: `logger.debug` (granular flow, disabled by default).
-- **Formats**: Prefix meaningful logs with emojis (e.g., `🔗`, `❌`, `✅`). **Never** use emojis in `debug` logs.
+## Git
 
-## Testing Approach
+- Branches: `<type>/<issue>-<desc>`, e.g. `feat/123-add-cache`.
+- Commits follow Conventional Commits, enforced by commitlint: `<type>(<scope>): <subject>`, with the subject in lower case, no trailing period, and the header under 100 characters.
+- Never commit secrets or `.env` files.
 
-### Philosophy
-- **Behavior-Driven**: Test observable contracts, not internal state.
-- **Levels**: E2E (highest value) > Integration > Unit (complex logic only).
-- **Files**:
-  - **Single File Policy**: `src/foo.ts` -> `src/foo.test.ts`. Combine unit and integration tests in one file.
-  - **No Fragmentation**: Do NOT create separate `*.integration.test.ts` or `*.spec.ts` files.
-  - **E2E**: Place system-wide end-to-end tests in `test/*-e2e.test.ts`.
+## Code
 
-### Best Practices
-- **Environment**: Node 22. Use `test/setup-env.ts` for polyfills.
-- **Isolation**: Each test should check **one** behavior.
-- **Performance**: Keep unit tests <100ms.
-- **Mocks**: Use `vi.mock()` sparingly; prefer real dependencies where feasible.
+- No `any` unless absolutely necessary, and no non-null assertions (`!`). Biome does not flag either.
+- Every exported function and class has TSDoc: a summary first, then params and returns.
+- Catch errors at API and CLI boundaries. The API answers with standard HTTP status codes.
+- Logging: `console.*` for CLI results, `logger.info` for state changes, `logger.debug` for flow details. Prefix info, warning and error messages with an emoji (`❌` for errors); debug messages have none. Keep binary content out of error logs.
+- The web UI follows `src/web/client/CONVENTIONS.md`.
 
-### Test Inventory
+## Tests
 
-Unit + integration tests live next to the code they cover (`src/foo.ts` ↔ `src/foo.test.ts`) — the single-file policy above. The table below catalogues the system-wide E2E suites under `test/`. Run a single suite with `npx vitest run test/<file>`.
+- Test observable behavior, not internal state. Prefer E2E, then integration tests; write unit tests for complex logic only. Use `vi.mock()` sparingly.
+- `src/foo.ts` is tested in `src/foo.test.ts`, unit and integration tests together. Do not add `*.integration.test.ts` or `*.spec.ts` files.
+- System-wide E2E suites live in `test/*-e2e.test.ts`. `test/README.md` describes the mock server, the crawl harness and the worker helpers.
+- Each test checks one behavior. Unit tests take under 100 ms.
+- `npm test` skips the live and Docker suites: run them with `npm run test:live` and `npm run test:docker`. After changing authentication or discovery, run the manual Clerk check (`npm run test:auth:clerk -- --app <app_id>`).
+- Reuse the fixtures in `test/fixtures/`.
 
-| Suite | Covers | Requirements | In default `npm test`? |
-|---|---|---|---|
-| `cli-e2e.test.ts` | CLI smoke: help, version, unknown-arg handling | none | yes |
-| `mcp-stdio-e2e.test.ts` | MCP server over stdio: spawn, protocol handshake, basic tools | none | yes |
-| `mcp-http-e2e.test.ts` | MCP server over HTTP/SSE (legacy `/sse` endpoint included) | none | yes |
-| `auth-e2e.test.ts` | OAuth2/OIDC end-to-end against a real provider | `.env` with auth config; skips otherwise | yes (skips if no env) |
-| `telemetry-e2e.test.ts` | `DOCS_MCP_TELEMETRY` env var controls PostHog init | none (parses debug logs) | yes |
-| `html-pipeline-basic-e2e.test.ts` | HTML scrape pipeline against stable endpoints (httpbin.org) | network | yes |
-| `html-pipeline-nonhtml-e2e.test.ts` | Non-HTML content (text/plain) bypasses Playwright cleanly | none | yes |
-| `html-pipeline-live-e2e.test.ts` | HTML pipeline against real documentation sites (anti-scrape, JS-heavy) | network; slow & flaky | **no** — `npm run test:live` (uses `vite.config.live.ts`) |
-| `refresh-pipeline-e2e.test.ts` | Refresh handling: 200/304/404, broken links, etag flow | none (mock server) | yes |
-| `scrape-progress-e2e.test.ts` | Progress counter semantics: the `pagesScraped`/`totalPages` invariant, `maxPages` bounding indexed pages, counters persisted to the job record and read back through `GetJobInfoTool` | none (mock server) | yes |
-| `unprocessable-content-e2e.test.ts` | Queue-time and fetch-time unprocessable-content gates: no request for filtered links, skips store nothing, skips stay out of `abortOnFailureRate` | none (mock server) | yes |
-| `empty-page-refresh-e2e.test.ts` | Empty page vs. extraction failure across refreshes: etag stored when genuinely empty, withheld when the pipeline errored, retried on the next refresh | none (mock server) | yes |
-| `markdown-identity-e2e.test.ts` | Markdown variant pages are recorded under the canonical URL, a site reachable as both `.md` and HTML indexes once, and a `.md` URL serving HTML keeps its own identity | none (mock server) | yes |
-| `version-resolution-e2e.test.ts` | Version label normalization and resolution against a real SQLite store: write-path parity across entry points, tag/semver/prerelease resolution, listing order | none | yes |
-| `archive-integration.test.ts` | `LocalFileStrategy` archive (zip) traversal and extraction | fixture archive | yes |
-| `local-file-pdf-e2e.test.ts` | PDF in a `file://` directory is indexed alongside `.txt`/`.md` (regression for issue #394) | Xberg native deps | yes |
-| `vector-persistence-e2e.test.ts` | Embeddings land in `documents_vec` virtual table | MSW-mocked OpenAI | yes |
-| `vector-search-e2e.test.ts` | Full pipeline: scrape → split → embed → index → search | MSW-mocked OpenAI | yes |
-| `github-private-repo-e2e.test.ts` | Auth flow for private GitHub repo scraping | `GITHUB_TOKEN`; skips otherwise | yes (skips if no token) |
-| `docker-e2e.test.ts` | Production image: non-root user, Chromium present, Playwright scrape, Xberg PDF, bind-mounted docs folder recursively indexed via `file:///` | Docker daemon; `DOCKER_IMAGE_TAG` to reuse a prebuilt image | **no** — `npm run test:docker` |
+## Documentation
 
-Notes:
-- The "live" and "docker" suites are excluded from `npm test` / `npm run test:e2e` because they need external network or a Docker daemon. CI runs `docker-e2e.test.ts` in a dedicated `docker-test` job.
-- The live suite is excluded in `vite.config.ts` so a bare `vitest` (and watch mode) never hits real sites. `--exclude` only *adds* globs and `mergeConfig` concatenates them, so nothing on the CLI can undo that — `npm run test:live` therefore points at `vite.config.live.ts`, which replaces the exclude list and drops the MSW mock-server setup that would otherwise intercept the real requests.
-- Suites that "skip gracefully" check for their required env at startup and short-circuit when it's missing — safe to leave in the default run.
-- Fixtures (sample PDF, docx, xlsx, archive, etc.) live in `test/fixtures/`. Reuse them rather than generating new files on the fly.
+- `README.md` is for users, `ARCHITECTURE.md` for developers, and `docs/` for deep dives into subsystems.
+- Write declaratively and in the present tense, about what the code does.
+- Use Mermaid for workflows and state, with no Markdown formatting in diagram titles.

@@ -1,37 +1,59 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { logger } from "../utils/logger";
+import { describe, expect, it, vi } from "vitest";
+import type { ApiClient } from "../services/apiClient";
 import { DocumentManagementClient } from "./DocumentManagementClient";
 
-const ping = vi.hoisted(() => vi.fn());
+function clientAnswering(query: ReturnType<typeof vi.fn>) {
+  return new DocumentManagementClient({
+    getEmbeddingConfig: { query },
+  } as unknown as ApiClient);
+}
 
-vi.mock("@trpc/client", () => ({
-  createTRPCProxyClient: vi.fn(() => ({ ping: { query: ping } })),
-  httpBatchLink: vi.fn(() => ({})),
-}));
+describe("DocumentManagementClient.getEmbeddingConfigInfo", () => {
+  const config = {
+    provider: "openai",
+    model: "text-embedding-3-small",
+    dimensions: 1536,
+  };
 
-vi.mock("../utils/logger", () => ({
-  logger: { debug: vi.fn() },
-}));
+  it("reports the worker's last known config while the worker does not answer", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce(config)
+      .mockRejectedValue(new Error("down"));
+    const client = clientAnswering(query);
 
-describe("DocumentManagementClient", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    await client.getEmbeddingConfigInfo();
+
+    await expect(client.getEmbeddingConfigInfo()).resolves.toEqual(config);
   });
 
-  it("does not expose the configured endpoint or raw failure during initialization", async () => {
-    const endpoint = "http://private-worker.internal:8080/api";
-    const rawFailure = "raw connection cause";
-    ping.mockRejectedValue(new Error(rawFailure));
-    const client = new DocumentManagementClient(endpoint);
+  it("gives up on a worker that does not answer in time", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce(config)
+      .mockImplementation(
+        (_input: unknown, opts: { signal: AbortSignal }) =>
+          new Promise((_, reject) =>
+            opts.signal.addEventListener("abort", () => reject(opts.signal.reason)),
+          ),
+      );
+    const client = clientAnswering(query);
+    await client.getEmbeddingConfigInfo();
+    vi.useFakeTimers();
 
-    const error = await client.initialize().catch((caughtError: unknown) => caughtError);
+    try {
+      const lookup = client.getEmbeddingConfigInfo();
+      await vi.advanceTimersByTimeAsync(3000);
 
-    const output = JSON.stringify({
-      error: error instanceof Error ? error.message : error,
-      logs: vi.mocked(logger.debug).mock.calls,
-    });
-    expect(output).not.toContain(endpoint);
-    expect(output).not.toContain(rawFailure);
-    expect(output).not.toContain("private-worker.internal");
+      await expect(lookup).resolves.toEqual(config);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("fails when the worker has never answered", async () => {
+    const client = clientAnswering(vi.fn().mockRejectedValue(new Error("down")));
+
+    await expect(client.getEmbeddingConfigInfo()).rejects.toThrow("down");
   });
 });

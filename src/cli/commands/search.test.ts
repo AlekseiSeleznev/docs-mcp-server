@@ -8,8 +8,12 @@ import { createSearchCommand } from "./search";
 
 const stdoutWriteMock = vi.fn();
 
-vi.mock("../../store", () => ({
-  createDocumentManagement: vi.fn(async () => ({ shutdown: vi.fn() })),
+vi.mock("../../telemetry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../telemetry")>()),
+  telemetry: { track: vi.fn() },
+}));
+vi.mock("../../services/backend", () => ({
+  openBackend: vi.fn(async () => ({ docService: {}, close: vi.fn() })),
 }));
 vi.mock("../../tools", () => ({
   SearchTool: vi.fn().mockImplementation(function () {
@@ -85,14 +89,14 @@ describe("search command", () => {
     expect(stdoutWriteMock).toHaveBeenCalledWith("[]\n");
   });
 
-  it("does not send the Search Query to telemetry", async () => {
+  it("sends the query length to telemetry instead of the query", async () => {
     const parser = yargs().scriptName("test");
     createSearchCommand(parser);
 
-    await parser.parse("search react 'private Search Query'");
+    await parser.parse(["search", "react", "secret roadmap"]);
 
-    expect(JSON.stringify(vi.mocked(telemetry.track).mock.calls)).not.toContain(
-      "private Search Query",
-    );
+    const [, properties] = vi.mocked(telemetry.track).mock.calls[0];
+    expect(properties).toMatchObject({ queryLength: 14 });
+    expect(JSON.stringify(properties)).not.toContain("secret");
   });
 });

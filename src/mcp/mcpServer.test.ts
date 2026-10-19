@@ -1,39 +1,49 @@
 /**
- * Tests for MCP server read-only mode functionality
+ * Tests for the MCP server factory: read-only mode, server identity (name, title,
+ * version), and the instructions sent to clients during initialization.
  */
 
 import { createHash } from "node:crypto";
+import fs from "node:fs";
 import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import os, { tmpdir } from "node:os";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { describe, expect, it, vi } from "vitest";
+import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSourceArtifactReleaseFixture } from "../../test/test-helpers";
 import { createArtifactId } from "../contracts";
+import { VersionAlreadyExistsError } from "../store/errors";
 import { telemetry } from "../telemetry";
 import { ListSourceArtifactsTool, ReadSourceArtifactTool } from "../tools";
 import type { AppConfig } from "../utils/config";
 import { logger } from "../utils/logger";
-import { createMcpServerInstance } from "./mcpServer";
+import { buildDefaultInstructions } from "./defaultInstructions";
+import { createMcpServerFactory, resolveServerInstructions } from "./mcpServer";
+
+const createMcpServerInstance = (tools: McpServerTools, config: AppConfig) =>
+  createMcpServerFactory(tools, config)();
+
 import { createReadOnlyMcpServer } from "./readOnlyMcpServer";
 import type { McpServerTools } from "./tools";
 
-vi.mock("../telemetry", () => ({
-  TelemetryEvent: { TOOL_USED: "tool_used" },
+vi.mock("../telemetry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../telemetry")>()),
   telemetry: { track: vi.fn() },
 }));
 
 // Mock config
 const mockConfig = {
   app: { readOnly: false },
+  server: { name: "docs-mcp-server" },
   scraper: { maxPages: 100, maxDepth: 3 },
 } as unknown as AppConfig;
 
 const mockReadOnlyConfig = {
   app: { readOnly: true },
+  server: { name: "docs-mcp-server" },
   scraper: { maxPages: 100, maxDepth: 3 },
 } as unknown as AppConfig;
 
@@ -129,7 +139,34 @@ const mockTools: McpServerTools = {
   remove: {
     execute: vi.fn(async () => ({ message: "Removed" })),
   } as any,
+  listPages: {
+    execute: vi.fn(async () => ({
+      library: "test",
+      version: "",
+      total: 0,
+      pages: [],
+      limit: 50,
+      offset: 0,
+      hasMore: false,
+    })),
+  } as any,
+  readPage: {
+    execute: vi.fn(async () => ({
+      url: "https://example.com",
+      title: "Test",
+      contentType: "text/markdown",
+      content: "# Test",
+      startChunk: 0,
+      totalChunks: 1,
+      nextChunk: null,
+    })),
+  } as any,
 };
+
+/** Creates a server the way the entry points do: through the factory, with instructions resolved from the config. */
+function createServer(config: AppConfig): McpServer {
+  return createMcpServerFactory(mockTools, config)();
+}
 
 describe("MCP Server Read-Only Mode", () => {
   it("advertises get_source_artifact as an artifactId-only closed-world read", async () => {
@@ -980,12 +1017,12 @@ describe("MCP Server Read-Only Mode", () => {
   });
 
   it("should create server instance in normal mode", () => {
-    const server = createMcpServerInstance(mockTools, mockConfig);
+    const server = createServer(mockConfig);
     expect(server).toBeInstanceOf(McpServer);
   });
 
   it("should create server instance in read-only mode", () => {
-    const server = createMcpServerInstance(mockTools, mockReadOnlyConfig);
+    const server = createServer(mockReadOnlyConfig);
     expect(server).toBeInstanceOf(McpServer);
   });
 
@@ -1003,7 +1040,9 @@ describe("MCP Server Read-Only Mode", () => {
         "find_version",
         "get_source_artifact",
         "list_libraries",
+        "list_pages",
         "list_source_artifacts",
+        "read_page",
         "search_docs",
       ]);
       expect(result.tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
@@ -1187,7 +1226,7 @@ describe("MCP Server Read-Only Mode", () => {
     // This test verifies that the server can be created successfully
     // without advertising prompts capability, which was the root cause
     // of the issue with some MCP clients failing to connect
-    const server = createMcpServerInstance(mockTools, mockConfig);
+    const server = createServer(mockConfig);
     expect(server).toBeInstanceOf(McpServer);
 
     // Verify the server has the expected name and can be instantiated
@@ -1195,7 +1234,7 @@ describe("MCP Server Read-Only Mode", () => {
     expect(server).toBeDefined();
   });
 
-  it("should register scrape_docs with clean and preserveHashes support and propagate them", async () => {
+  it("should register scrape_docs with replace and preserveHashes support and propagate them", async () => {
     const server = createMcpServerInstance(mockTools, mockConfig);
     const scrapeTool = (server as any)._registeredTools.scrape_docs;
 
@@ -1205,23 +1244,23 @@ describe("MCP Server Read-Only Mode", () => {
     const parsed = scrapeTool.inputSchema.parse({
       url: "https://example.com/#/guide",
       library: "example-lib",
-      clean: true,
+      replace: true,
       preserveHashes: true,
     });
-    expect(parsed.clean).toBe(true);
+    expect(parsed.replace).toBe(true);
     expect(parsed.preserveHashes).toBe(true);
 
     await scrapeTool.handler({
       url: "https://example.com/#/guide",
       library: "example-lib",
-      clean: true,
+      replace: true,
       preserveHashes: true,
     });
 
     expect(mockTools.scrape.execute).toHaveBeenCalledWith(
       expect.objectContaining({
+        replace: true,
         options: expect.objectContaining({
-          clean: true,
           preserveHashes: true,
         }),
       }),
@@ -1229,7 +1268,7 @@ describe("MCP Server Read-Only Mode", () => {
   });
 
   it("should normalize includePatterns/excludePatterns to string arrays", async () => {
-    const server = createMcpServerInstance(mockTools, mockConfig);
+    const server = createServer(mockConfig);
     const scrapeTool = (server as any)._registeredTools.scrape_docs;
 
     // Single pattern passed as a string stays whole, commas preserved
@@ -1271,7 +1310,7 @@ describe("MCP Server Read-Only Mode", () => {
   });
 
   it("should split comma-separated pattern strings without breaking regex constructs", () => {
-    const server = createMcpServerInstance(mockTools, mockConfig);
+    const server = createServer(mockConfig);
     const scrapeTool = (server as any)._registeredTools.scrape_docs;
     const parse = (includePatterns: string) =>
       scrapeTool.inputSchema.parse({
@@ -1303,5 +1342,323 @@ describe("MCP Server Read-Only Mode", () => {
       "/version-v0.3/",
       "/version-v0.2/",
     ]);
+  });
+
+  it("should pass replace to ScrapeTool and default it to false", async () => {
+    const server = createServer(mockConfig);
+    const scrapeTool = (server as any)._registeredTools.scrape_docs;
+
+    expect(
+      scrapeTool.inputSchema.parse({ url: "https://example.com", library: "lib" })
+        .replace,
+    ).toBe(false);
+
+    await scrapeTool.handler(
+      scrapeTool.inputSchema.parse({
+        url: "https://example.com",
+        library: "lib",
+        replace: true,
+      }),
+    );
+
+    expect(mockTools.scrape.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ replace: true }),
+    );
+  });
+
+  it("should return an existing-version conflict as a tool error naming the remedy", async () => {
+    const server = createServer(mockConfig);
+    const scrapeTool = (server as any)._registeredTools.scrape_docs;
+    vi.mocked(mockTools.scrape.execute).mockRejectedValueOnce(
+      new VersionAlreadyExistsError("React", ""),
+    );
+
+    const result = await scrapeTool.handler(
+      scrapeTool.inputSchema.parse({ url: "https://example.com", library: "react" }),
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("replace: true");
+  });
+});
+
+describe("MCP versions resource", () => {
+  const listedLibraries = {
+    libraries: [
+      { name: "React", versions: [{ version: "19.0.0" }] },
+      { name: "@tanstack/query", versions: [{ version: "5.0.0" }] },
+    ],
+  };
+
+  async function readVersions(uri: string) {
+    vi.mocked(mockTools.listLibraries.execute).mockResolvedValue(listedLibraries as any);
+    const client = await connectClient(createServer(mockConfig));
+    const result = await client.readResource({ uri });
+    return result.contents.map((content) => ("text" in content ? content.text : ""));
+  }
+
+  it("matches a library name case-insensitively", async () => {
+    expect(await readVersions("docs://libraries/react/versions")).toEqual(["19.0.0"]);
+  });
+
+  it("decodes a percent-encoded name containing a slash", async () => {
+    expect(await readVersions("docs://libraries/%40tanstack%2Fquery/versions")).toEqual([
+      "5.0.0",
+    ]);
+  });
+});
+
+/**
+ * Lists tools the way a 2026-07-28 client sees them: a real `tools/list`
+ * request through the SDK's HTTP handler, so the assertions cover the
+ * advertised JSON Schema rather than the server's internal registry.
+ */
+async function listToolsOverTheWire(config: AppConfig) {
+  const handler = createMcpHandler(createMcpServerFactory(mockTools, config));
+  const response = await handler.fetch(
+    new Request("http://127.0.0.1/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": "tools/list",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+        params: {
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+          },
+        },
+      }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  const body = (await response.json()) as {
+    result: {
+      tools: Array<{
+        name: string;
+        description?: string;
+        inputSchema: Record<string, any>;
+      }>;
+    };
+  };
+  return body.result.tools;
+}
+
+describe("MCP tool advertisement over protocol 2026-07-28", () => {
+  it("advertises every tool in normal mode", async () => {
+    const tools = await listToolsOverTheWire(mockConfig);
+
+    expect(tools.map((tool) => tool.name).sort()).toEqual([
+      "cancel_job",
+      "fetch_url",
+      "find_version",
+      "get_job_info",
+      "get_source_artifact",
+      "list_jobs",
+      "list_libraries",
+      "list_pages",
+      "list_source_artifacts",
+      "read_page",
+      "refresh_version",
+      "remove_docs",
+      "scrape_docs",
+      "search_docs",
+    ]);
+  });
+
+  it("advertises only read tools in read-only mode", async () => {
+    const tools = await listToolsOverTheWire(mockReadOnlyConfig);
+
+    expect(tools.map((tool) => tool.name).sort()).toEqual([
+      "find_version",
+      "get_source_artifact",
+      "list_libraries",
+      "list_pages",
+      "list_source_artifacts",
+      "read_page",
+      "search_docs",
+    ]);
+  });
+
+  it("advertises pattern arguments as a string or an array of strings", async () => {
+    const tools = await listToolsOverTheWire(mockConfig);
+    const scrape = tools.find((tool) => tool.name === "scrape_docs");
+    const includePatterns = scrape?.inputSchema.properties.includePatterns;
+
+    expect(includePatterns.anyOf).toEqual([
+      { type: "string" },
+      { type: "array", items: { type: "string" } },
+    ]);
+  });
+
+  it("keeps argument descriptions in the advertised schema", async () => {
+    const tools = await listToolsOverTheWire(mockConfig);
+    const scrape = tools.find((tool) => tool.name === "scrape_docs");
+    const search = tools.find((tool) => tool.name === "search_docs");
+
+    expect(scrape?.inputSchema.properties.url.description).toBe(
+      "Documentation root URL to scrape.",
+    );
+    expect(scrape?.inputSchema.properties.includePatterns.description).toMatch(
+      /^Patterns for including URLs during scraping/,
+    );
+    for (const [name, property] of Object.entries(search?.inputSchema.properties ?? {})) {
+      expect((property as { description?: string }).description, name).toBeTruthy();
+    }
+  });
+});
+
+/**
+ * Connects a real MCP client to the server over an in-memory transport so the
+ * initialize handshake can be observed end to end.
+ */
+async function connectClient(server: McpServer): Promise<Client> {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "test-client", version: "1.0.0" });
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  return client;
+}
+
+describe("MCP Server identity", () => {
+  it("reports the configured server name and the package version", async () => {
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs" },
+    } as unknown as AppConfig;
+
+    const client = await connectClient(createServer(config));
+
+    expect(client.getServerVersion()).toEqual({
+      name: "acme-docs",
+      version: __APP_VERSION__,
+    });
+  });
+
+  it("reports the configured server title alongside the name", async () => {
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs", title: "Acme Internal Docs" },
+    } as unknown as AppConfig;
+
+    const client = await connectClient(createServer(config));
+
+    expect(client.getServerVersion()).toEqual({
+      name: "acme-docs",
+      title: "Acme Internal Docs",
+      version: __APP_VERSION__,
+    });
+  });
+
+  it("sends the given instructions to the client", async () => {
+    const config = {
+      ...mockConfig,
+      server: {
+        name: "docs-mcp-server",
+        instructions: "Search acme docs before answering.",
+      },
+    } as unknown as AppConfig;
+
+    const client = await connectClient(createServer(config));
+
+    expect(client.getInstructions()).toBe("Search acme docs before answering.");
+  });
+
+  it("sends the built-in instructions when none are configured", async () => {
+    const client = await connectClient(createServer(mockConfig));
+
+    expect(client.getInstructions()).toBe(buildDefaultInstructions(false));
+  });
+
+  it.each([
+    { mode: "normal", config: mockConfig },
+    { mode: "read-only", config: mockReadOnlyConfig },
+  ])(
+    "names only registered tools in the built-in instructions ($mode mode)",
+    async ({ config }) => {
+      const client = await connectClient(createServer(config));
+      const { tools } = await client.listTools();
+      const registered = tools.map((tool) => tool.name);
+
+      // Tool names are the backtick-quoted snake_case words; parameters like `version` are not.
+      const named = [
+        ...(client.getInstructions() ?? "").matchAll(/`([a-z]+(?:_[a-z]+)+)`/g),
+      ].map((match) => match[1]);
+
+      expect(named.length).toBeGreaterThan(0);
+      for (const name of named) {
+        expect(registered).toContain(name);
+      }
+    },
+  );
+});
+
+describe("resolveServerInstructions", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-mcp-instructions-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns configured inline instructions in place of the built-in text", () => {
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs", instructions: "Search acme docs before answering." },
+    } as unknown as AppConfig;
+
+    expect(resolveServerInstructions(config)).toBe("Search acme docs before answering.");
+  });
+
+  it("returns the configured file contents in place of the built-in text", () => {
+    const instructionsFile = path.join(tmpDir, "instructions.md");
+    fs.writeFileSync(instructionsFile, "# Acme docs\n\nAlways search first.\n");
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs", instructionsFile },
+    } as unknown as AppConfig;
+
+    expect(resolveServerInstructions(config)).toBe(
+      "# Acme docs\n\nAlways search first.\n",
+    );
+  });
+
+  it("returns the built-in instructions for the current mode when none are configured", () => {
+    expect(resolveServerInstructions(mockConfig)).toBe(buildDefaultInstructions(false));
+    expect(resolveServerInstructions(mockReadOnlyConfig)).toBe(
+      buildDefaultInstructions(true),
+    );
+  });
+
+  it("fails when both inline instructions and an instructions file are set", () => {
+    const instructionsFile = path.join(tmpDir, "instructions.md");
+    fs.writeFileSync(instructionsFile, "from file");
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs", instructions: "inline", instructionsFile },
+    } as unknown as AppConfig;
+
+    expect(() => resolveServerInstructions(config)).toThrow(
+      /server\.instructions.*server\.instructionsFile/,
+    );
+  });
+
+  it("fails when the instructions file cannot be read", () => {
+    const instructionsFile = path.join(tmpDir, "missing.md");
+    const config = {
+      ...mockConfig,
+      server: { name: "acme-docs", instructionsFile },
+    } as unknown as AppConfig;
+
+    expect(() => resolveServerInstructions(config)).toThrow(/instructions file/i);
   });
 });

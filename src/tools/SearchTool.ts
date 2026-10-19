@@ -9,7 +9,7 @@ import {
   VersionNotFoundInStoreError,
 } from "../store/errors";
 import type { IDocumentManagement } from "../store/trpc/interfaces";
-import type { StoreSearchResult } from "../store/types";
+import { libraryNamesMatch, type StoreSearchResult } from "../store/types";
 import { logger } from "../utils/logger";
 import {
   createSourceArtifactResourceUri,
@@ -160,12 +160,14 @@ export class SearchTool {
         await this.docService.validateLibraryExists(library);
         failureStage = "version resolution";
         const allLibraries = await this.docService.listLibraries();
-        const libraryInfo = allLibraries.find((lib) => lib.library === library);
+        const libraryInfo = allLibraries.find((lib) =>
+          libraryNamesMatch(lib.library, library),
+        );
         const availableVersions = libraryInfo
           ? libraryInfo.versions.map((v) => v.ref.version)
           : [];
         throw new VersionNotFoundInStoreError(
-          library,
+          libraryInfo?.library ?? library,
           version ?? "latest",
           availableVersions,
         );

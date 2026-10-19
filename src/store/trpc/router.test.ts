@@ -2,8 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventBusService } from "../../events";
 import type { Chunk } from "../../splitter/types";
 import { loadConfig } from "../../utils/config";
-import type { DocumentManagementService } from "../DocumentManagementService";
-import { createLocalDocumentManagement } from "../index";
+import { DocumentManagementService } from "../DocumentManagementService";
 import { dataRouter } from "./router";
 
 /**
@@ -32,7 +31,8 @@ describe("dataRouter - chunk explorer procedures", () => {
     appConfig.app.embeddingModel = ""; // FTS-only: no external credentials required
 
     const eventBus = new EventBusService();
-    docService = await createLocalDocumentManagement(eventBus, appConfig);
+    docService = new DocumentManagementService(eventBus, appConfig);
+    await docService.initialize();
     caller = dataRouter.createCaller({ docService });
 
     // Page 1: two chunks
@@ -112,19 +112,30 @@ describe("dataRouter - chunk explorer procedures", () => {
     });
 
     it("defaults limit to 50 when omitted", async () => {
+      await docService.addScrapeResult("router-test-lib", "1.0.0", 1, {
+        url: "https://example.com/page3",
+        title: "Page 3",
+        sourceContentType: "text/html",
+        contentType: "text/html",
+        textContent: "irrelevant",
+        links: [],
+        errors: [],
+        chunks: buildChunks(Array.from({ length: 48 }, (_, i) => `Filler chunk ${i}`)),
+      });
+
       const result = await caller.listVersionChunks({
         library: "router-test-lib",
         version: "1.0.0",
       });
 
-      expect(result.total).toBe(3);
-      expect(result.chunks).toHaveLength(3);
+      expect(result.total).toBe(51);
+      expect(result.chunks).toHaveLength(50);
     });
 
     it("rejects an empty library name via zod validation", async () => {
       await expect(
         caller.listVersionChunks({ library: "", version: "1.0.0" }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
   });
 
@@ -164,6 +175,83 @@ describe("dataRouter - chunk explorer procedures", () => {
       const result = await caller.compact({ force: true });
       expect(result.skipped).toBe(true);
       expect(result.vacuumed).toBe(false);
+    });
+  });
+
+  describe("getPageContent", () => {
+    it("retrieves full page content through tRPC wire procedure", async () => {
+      const result = await caller.getPageContent({
+        library: "router-test-lib",
+        version: "1.0.0",
+        pathOrUrl: "https://example.com/page1",
+      });
+
+      expect(result.url).toBe("https://example.com/page1");
+      expect(result.title).toBe("Page 1");
+      expect(result.content).toContain("Alpha content about routers");
+      expect(result.content).toContain("Beta content about switches");
+      expect(result.totalChunks).toBe(2);
+      expect(result.nextChunk).toBeNull();
+    });
+
+    it("returns a window of whole chunks and where to continue", async () => {
+      const result = await caller.getPageContent({
+        library: "router-test-lib",
+        version: "1.0.0",
+        pathOrUrl: "/page1",
+        options: { maxChars: 20 },
+      });
+
+      expect(result.url).toBe("https://example.com/page1");
+      expect(result.content).toBe("Alpha content about routers");
+      expect(result.nextChunk).toBe(1);
+    });
+
+    it("rejects empty library or pathOrUrl via zod validation", async () => {
+      await expect(
+        caller.getPageContent({ library: "", pathOrUrl: "/page1" }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      await expect(
+        caller.getPageContent({ library: "router-test-lib", pathOrUrl: "" }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("rejects a whitespace-only pathOrUrl instead of passing it on as empty", async () => {
+      await expect(
+        caller.getPageContent({ library: "router-test-lib", pathOrUrl: "   " }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+  });
+
+  describe("listPages", () => {
+    it("returns indexed pages and pagination metadata through tRPC procedure", async () => {
+      const result = await caller.listPages({
+        library: "router-test-lib",
+        version: "1.0.0",
+        options: {
+          limit: 10,
+          offset: 0,
+        },
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.pages).toHaveLength(2);
+      expect(result.pages.some((p) => p.url === "https://example.com/page1")).toBe(true);
+      expect(result.pages.some((p) => p.url === "https://example.com/page2")).toBe(true);
+      expect(result.hasMore).toBe(false);
+    });
+
+    it("applies the contains filter through tRPC procedure", async () => {
+      const result = await caller.listPages({
+        library: "router-test-lib",
+        version: "1.0.0",
+        options: {
+          contains: "page2",
+        },
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.pages[0].url).toBe("https://example.com/page2");
     });
   });
 });

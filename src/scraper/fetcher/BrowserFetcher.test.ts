@@ -1,6 +1,15 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import type { Route } from "playwright";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "../../utils/config";
-import { HttpStatusError, RedirectError, ScraperError } from "../../utils/errors";
+import { type AppConfig, DEFAULT_CONFIG } from "../../utils/config";
+import {
+  AccessPolicyError,
+  ChallengeError,
+  HttpStatusError,
+  RedirectError,
+  ScraperError,
+} from "../../utils/errors";
 import { MARKDOWN_PREFERRED_ACCEPT } from "./headers";
 
 vi.mock("playwright", () => ({
@@ -11,13 +20,47 @@ vi.mock("playwright", () => ({
 
 import { chromium } from "playwright";
 import { BrowserFetcher } from "./BrowserFetcher";
+import { FingerprintGenerator } from "./FingerprintGenerator";
+import { ManagedBrowser } from "./ManagedBrowser";
 import { FetchStatus } from "./types";
 
+/** The page Fastly serves in place of the document (pypi.org, trimmed). */
+const FASTLY_CHALLENGE_PAGE = readFileSync(
+  path.join(__dirname, "../../../test/fixtures/fastly-client-challenge.html"),
+  "utf-8",
+);
+
 /**
- * Builds a mocked Playwright page/context/browser tree. `pageOverrides` lets a
- * test replace individual page methods (e.g. a rejecting `goto`).
+ * The real scraper defaults, with the test host listed so the access policy
+ * accepts it without a DNS lookup. IP literals are still checked against the
+ * special-use ranges.
+ */
+function makeScraperConfig(): AppConfig["scraper"] {
+  return {
+    ...DEFAULT_CONFIG.scraper,
+    security: {
+      ...DEFAULT_CONFIG.scraper.security,
+      network: {
+        ...DEFAULT_CONFIG.scraper.security.network,
+        allowedHosts: ["example.com"],
+      },
+    },
+  };
+}
+
+/**
+ * Builds a mocked Playwright page/context/browser tree and makes it the browser
+ * every launch returns. `pageOverrides` lets a test replace individual page
+ * methods (e.g. a rejecting `goto`).
  */
 function mockBrowser(pageOverrides: Record<string, unknown> = {}) {
+  const mocks = buildBrowser(pageOverrides);
+  vi.mocked(chromium.launch).mockResolvedValue(mocks.browser as never);
+  return mocks;
+}
+
+/** Builds a mocked Playwright page/context/browser tree without launching it. */
+function buildBrowser(pageOverrides: Record<string, unknown> = {}) {
   const page = {
     setViewportSize: vi.fn().mockResolvedValue(undefined),
     setExtraHTTPHeaders: vi.fn().mockResolvedValue(undefined),
@@ -43,20 +86,38 @@ function mockBrowser(pageOverrides: Record<string, unknown> = {}) {
   };
   const browser = {
     newContext: vi.fn().mockResolvedValue(context),
+    // The CDP session ManagedBrowser checks redirects in.
+    newBrowserCDPSession: vi.fn().mockResolvedValue({
+      on: vi.fn(),
+      send: vi.fn().mockResolvedValue({}),
+      detach: vi.fn().mockResolvedValue(undefined),
+    }),
     close: vi.fn().mockResolvedValue(undefined),
+    isConnected: vi.fn().mockReturnValue(true),
   };
-  vi.mocked(chromium.launch).mockResolvedValue(browser as never);
   return { page, context, browser };
+}
+
+/** Builds a mocked browser whose Chromium exits as soon as a page is opened. */
+function crashingBrowser() {
+  const { browser } = buildBrowser();
+  browser.newContext.mockImplementation(async () => {
+    browser.isConnected.mockReturnValue(false);
+    throw new Error(
+      "browser.newContext: Target page, context or browser has been closed",
+    );
+  });
+  return browser;
 }
 
 describe("BrowserFetcher", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("uses broad invalid TLS override for the browser context", async () => {
     const { browser } = mockBrowser();
-    const config = loadConfig().scraper;
+    const config = makeScraperConfig();
     config.security.network.allowInvalidTls = true;
     const fetcher = new BrowserFetcher(config);
 
@@ -69,7 +130,7 @@ describe("BrowserFetcher", () => {
 
   it("restores fingerprint headers and desktop viewport", async () => {
     const { page } = mockBrowser();
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await fetcher.fetch("https://example.com", { headers: { "X-Test": "1" } });
 
     expect(page.setViewportSize).toHaveBeenCalledWith({ width: 1920, height: 1080 });
@@ -80,7 +141,7 @@ describe("BrowserFetcher", () => {
 
   it("preserves caller-supplied Accept headers", async () => {
     const { page } = mockBrowser();
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await fetcher.fetch("https://example.com", { headers: { accept: "text/html" } });
 
     expect(page.setExtraHTTPHeaders).toHaveBeenCalledWith(
@@ -89,6 +150,59 @@ describe("BrowserFetcher", () => {
     expect(page.setExtraHTTPHeaders).toHaveBeenCalledWith(
       expect.not.objectContaining({ Accept: MARKDOWN_PREFERRED_ACCEPT }),
     );
+  });
+
+  it("keeps Sec-Fetch headers off the page so Chromium sets its own", async () => {
+    // Overridden Sec-Fetch-* headers make Chromium fail the page's scripts and
+    // other sub-resources while requests are intercepted.
+    const generateHeaders = vi
+      .spyOn(FingerprintGenerator.prototype, "generateHeaders")
+      .mockReturnValue({
+        "user-agent": "Fingerprint/1.0",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-dest": "document",
+      });
+    try {
+      const { page } = mockBrowser();
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+      await fetcher.fetch("https://example.com", {
+        headers: { "Sec-Fetch-Site": "none", "X-Test": "1" },
+      });
+
+      const [headers] = vi.mocked(page.setExtraHTTPHeaders).mock.calls[0];
+      expect(Object.keys(headers).map((name) => name.toLowerCase())).not.toEqual(
+        expect.arrayContaining([expect.stringMatching(/^sec-fetch-/)]),
+      );
+      expect(headers).toEqual(
+        expect.objectContaining({ "user-agent": "Fingerprint/1.0", "X-Test": "1" }),
+      );
+    } finally {
+      generateHeaders.mockRestore();
+    }
+  });
+
+  it("keeps connection-level headers off the page so Chromium can navigate", async () => {
+    // Chromium fails a navigation that carries one of these; generated
+    // Firefox fingerprints include TE.
+    const generateHeaders = vi
+      .spyOn(FingerprintGenerator.prototype, "generateHeaders")
+      .mockReturnValue({ "user-agent": "Fingerprint/1.0", te: "trailers" });
+    try {
+      const { page } = mockBrowser();
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+      await fetcher.fetch("https://example.com", {
+        headers: { Connection: "upgrade", "Transfer-Encoding": "chunked", "X-Test": "1" },
+      });
+
+      const [headers] = vi.mocked(page.setExtraHTTPHeaders).mock.calls[0];
+      expect(headers).toEqual({
+        "user-agent": "Fingerprint/1.0",
+        "X-Test": "1",
+        Accept: MARKDOWN_PREFERRED_ACCEPT,
+      });
+    } finally {
+      generateHeaders.mockRestore();
+    }
   });
 
   it("returns raw response body for Markdown responses instead of rendered HTML", async () => {
@@ -101,7 +215,7 @@ describe("BrowserFetcher", () => {
       url: vi.fn().mockReturnValue("https://example.com/readme.md"),
     });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com/readme.md");
 
     expect(page.content).not.toHaveBeenCalled();
@@ -128,7 +242,7 @@ describe("BrowserFetcher", () => {
     });
     const { page } = mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com/automation/index.md");
 
     expect(requestGet).toHaveBeenCalledWith(
@@ -154,13 +268,35 @@ describe("BrowserFetcher", () => {
     });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const error = await fetcher
       .fetch("https://example.com/automation/index.md")
       .catch((e) => e);
 
     expect(error).toBeInstanceOf(ScraperError);
     expect((error as InstanceType<typeof ScraperError>).isRetryable).toBe(true);
+  });
+
+  it("rejects a challenge page the request-API fallback receives with status 200", async () => {
+    const goto = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("page.goto: net::ERR_ABORTED"))
+      .mockResolvedValue({ status: () => 200, headers: () => ({}) });
+    const requestGet = vi.fn().mockResolvedValue({
+      ok: () => true,
+      status: () => 200,
+      headers: () => ({ "content-type": "text/html; charset=utf-8" }),
+      body: vi.fn().mockResolvedValue(Buffer.from(FASTLY_CHALLENGE_PAGE)),
+    });
+    mockBrowser({ goto, request: { get: requestGet } });
+
+    const fetcher = new BrowserFetcher(makeScraperConfig());
+    const error = await fetcher
+      .fetch("https://example.com/automation/index.md")
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(ChallengeError);
+    expect(error).toMatchObject({ statusCode: 200, challengeType: "fastly" });
   });
 
   it("rejects a request-API redirect to a disallowed host before fetching it", async () => {
@@ -176,7 +312,7 @@ describe("BrowserFetcher", () => {
     });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await expect(
       fetcher.fetch("https://example.com/automation/index.md"),
     ).rejects.toThrow();
@@ -204,7 +340,7 @@ describe("BrowserFetcher", () => {
       });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com/automation/index.md");
 
     expect(requestGet).toHaveBeenCalledTimes(2);
@@ -230,7 +366,7 @@ describe("BrowserFetcher", () => {
     });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const error = await fetcher
       .fetch("https://example.com/automation/index.md", { followRedirects: false })
       .catch((e) => e);
@@ -251,7 +387,7 @@ describe("BrowserFetcher", () => {
       }),
     });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const error = await fetcher
       .fetch("https://example.com", { followRedirects: false })
       .catch((e) => e);
@@ -263,6 +399,15 @@ describe("BrowserFetcher", () => {
   });
 
   it("sends the same fingerprint/Accept headers to the request-API fallback as the page navigation", async () => {
+    // The page leaves Sec-Fetch-* to Chromium; the request API is Playwright's
+    // own client, so it sends them to look like the same browser.
+    const generateHeaders = vi
+      .spyOn(FingerprintGenerator.prototype, "generateHeaders")
+      .mockReturnValue({
+        "user-agent": "Fingerprint/1.0",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-dest": "document",
+      });
     const goto = vi
       .fn()
       .mockRejectedValueOnce(new Error("page.goto: net::ERR_ABORTED"))
@@ -275,15 +420,60 @@ describe("BrowserFetcher", () => {
     });
     const { page } = mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await fetcher.fetch("https://example.com/automation/index.md", {
       headers: { "X-Test": "1" },
     });
 
+    generateHeaders.mockRestore();
     const [pageHeaders] = page.setExtraHTTPHeaders.mock.calls[0];
     const [, requestOptions] = requestGet.mock.calls[0];
-    expect(requestOptions.headers).toEqual(pageHeaders);
+    expect(requestOptions.headers).toEqual({
+      ...pageHeaders,
+      "sec-fetch-mode": "navigate",
+      "sec-fetch-dest": "document",
+    });
     expect(requestOptions.headers).toEqual(expect.objectContaining({ "X-Test": "1" }));
+  });
+
+  it("does not fetch through the request API when the page was detached mid-navigation", async () => {
+    // Chromium reports a navigation cut off by a closing browser as ERR_ABORTED
+    // too; fetching the resource again there only adds a request.
+    const goto = vi
+      .fn()
+      .mockRejectedValue(
+        new Error("page.goto: net::ERR_ABORTED; maybe frame was detached?"),
+      );
+    const requestGet = vi.fn();
+    mockBrowser({ goto, request: { get: requestGet } });
+
+    const fetcher = new BrowserFetcher(makeScraperConfig());
+    await expect(fetcher.fetch("https://example.com/page")).rejects.toThrow(
+      /ERR_ABORTED/,
+    );
+    expect(requestGet).not.toHaveBeenCalled();
+  });
+
+  it("fetches a file the browser downloads through the request API", async () => {
+    // With requests routed, Playwright reports a download as "Download is
+    // starting" rather than a network error.
+    const goto = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("page.goto: Download is starting"))
+      .mockResolvedValue({ status: () => 200, headers: () => ({}) });
+    const requestGet = vi.fn().mockResolvedValue({
+      ok: () => true,
+      status: () => 200,
+      headers: () => ({ "content-type": "application/x-yaml" }),
+      body: vi.fn().mockResolvedValue(Buffer.from("key: value")),
+    });
+    mockBrowser({ goto, request: { get: requestGet } });
+
+    const fetcher = new BrowserFetcher(makeScraperConfig());
+    const result = await fetcher.fetch("https://example.com/openapi.yaml");
+
+    expect(result.status).toBe(FetchStatus.SUCCESS);
+    expect(result.content.toString()).toBe("key: value");
   });
 
   it("rejects a blocked page instead of returning the block page as content", async () => {
@@ -297,8 +487,22 @@ describe("BrowserFetcher", () => {
       content: vi.fn().mockResolvedValue("<html><body>Access denied</body></html>"),
     });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await expect(fetcher.fetch("https://example.com")).rejects.toThrow(/status 403/);
+  });
+
+  it("rejects a challenge page the browser did not get past, though its status is 200", async () => {
+    // The challenge fallback sends Fastly-challenged urls here; a page still
+    // showing the challenge once the load settles must not be indexed.
+    mockBrowser({
+      content: vi.fn().mockResolvedValue(FASTLY_CHALLENGE_PAGE),
+    });
+
+    const fetcher = new BrowserFetcher(makeScraperConfig());
+    const error = await fetcher.fetch("https://example.com").catch((e) => e);
+
+    expect(error).toBeInstanceOf(ChallengeError);
+    expect(error).toMatchObject({ statusCode: 200, challengeType: "fastly" });
   });
 
   it("reports a browser 404 as NOT_FOUND rather than success", async () => {
@@ -309,7 +513,7 @@ describe("BrowserFetcher", () => {
       }),
     });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com");
 
     expect(result.status).toBe(FetchStatus.NOT_FOUND);
@@ -320,7 +524,7 @@ describe("BrowserFetcher", () => {
     // the value the caller actually sends.
     const { browser } = mockBrowser();
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     await fetcher.fetch("https://example.com", {
       headers: { "user-agent": "CustomAgent/1.0" },
     });
@@ -345,7 +549,7 @@ describe("BrowserFetcher", () => {
     });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com/docs/page.md");
 
     expect(result.status).toBe(FetchStatus.NOT_FOUND);
@@ -364,7 +568,7 @@ describe("BrowserFetcher", () => {
     });
     mockBrowser({ goto, request: { get: requestGet } });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const error = await fetcher.fetch("https://example.com/docs/page.md").catch((e) => e);
 
     expect(error).toBeInstanceOf(HttpStatusError);
@@ -404,10 +608,201 @@ describe("BrowserFetcher", () => {
       }
     });
 
-    const fetcher = new BrowserFetcher(loadConfig().scraper);
+    const fetcher = new BrowserFetcher(makeScraperConfig());
     const result = await fetcher.fetch("https://example.com");
 
     expect(result.status).toBe(FetchStatus.SUCCESS);
     expect(result.etag).toBe("real-etag");
+  });
+
+  describe("access policy", () => {
+    const METADATA_URL = "http://169.254.169.254/latest/meta-data/";
+
+    /** A route for a request to `url` that records how it was resolved. */
+    function fakeRoute(url: string) {
+      return {
+        request: () => ({ url: () => url }),
+        abort: vi.fn().mockResolvedValue(undefined),
+        continue: vi.fn().mockResolvedValue(undefined),
+      };
+    }
+
+    /** Fetches a page and returns the route handler it registered. */
+    async function captureRouteHandler(page: ReturnType<typeof mockBrowser>["page"]) {
+      await new BrowserFetcher(makeScraperConfig()).fetch("https://example.com");
+      const handler = page.route.mock.calls[0]?.[1];
+      if (typeof handler !== "function") throw new Error("no route handler registered");
+      return (route: ReturnType<typeof fakeRoute>) => handler(route as unknown as Route);
+    }
+
+    it.each([
+      ["cloud metadata", METADATA_URL],
+      ["a loopback service", "http://127.0.0.1:8080/admin"],
+    ])("blocks a request the page makes to %s", async (_label, url) => {
+      const { page } = mockBrowser();
+      const handleRoute = await captureRouteHandler(page);
+      const route = fakeRoute(url);
+
+      await handleRoute(route);
+
+      expect(route.abort).toHaveBeenCalledWith("blockedbyclient");
+      expect(route.continue).not.toHaveBeenCalled();
+    });
+
+    it("lets a request to an allowed host through", async () => {
+      const { page } = mockBrowser();
+      const handleRoute = await captureRouteHandler(page);
+      const route = fakeRoute("https://example.com/app.js");
+
+      await handleRoute(route);
+
+      expect(route.continue).toHaveBeenCalled();
+      expect(route.abort).not.toHaveBeenCalled();
+    });
+
+    it("reports a navigation stopped at a blocked redirect as an access policy error", async () => {
+      // The browser fails the hop (see ManagedBrowser); the fetch names it.
+      const failed: Array<(request: unknown) => void> = [];
+      const mainFrame = {};
+      const { page } = mockBrowser({
+        mainFrame: vi.fn().mockReturnValue(mainFrame),
+        on: vi.fn((event: string, handler: (request: unknown) => void) => {
+          if (event === "requestfailed") failed.push(handler);
+        }),
+      });
+      page.goto.mockImplementation(async () => {
+        for (const handler of failed) {
+          handler({
+            url: () => METADATA_URL,
+            frame: () => mainFrame,
+            isNavigationRequest: () => true,
+            failure: () => ({ errorText: "net::ERR_BLOCKED_BY_CLIENT" }),
+          });
+        }
+        throw new Error(
+          "page.goto: net::ERR_BLOCKED_BY_CLIENT at https://example.com/moved",
+        );
+      });
+
+      const error = await new BrowserFetcher(makeScraperConfig())
+        .fetch("https://example.com/moved")
+        .catch((e) => e);
+
+      expect(error).toBeInstanceOf(AccessPolicyError);
+      expect(error.message).toContain(METADATA_URL);
+    });
+
+    it("rejects a page that ended up at a private address", async () => {
+      const { page } = mockBrowser({ url: vi.fn().mockReturnValue(METADATA_URL) });
+
+      const error = await new BrowserFetcher(makeScraperConfig())
+        .fetch("https://example.com")
+        .catch((e) => e);
+
+      expect(error).toBeInstanceOf(AccessPolicyError);
+      expect(page.content).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Chromium exiting mid-fetch", () => {
+    it("retries a page once on a new browser when Chromium exits during the fetch", async () => {
+      const { browser } = mockBrowser();
+      vi.mocked(chromium.launch).mockResolvedValueOnce(crashingBrowser() as never);
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+
+      const result = await fetcher.fetch("https://example.com");
+
+      expect(result.status).toBe(FetchStatus.SUCCESS);
+      expect(browser.newContext).toHaveBeenCalledTimes(1);
+    });
+
+    it("gives up after one retry when the new browser exits too", async () => {
+      vi.mocked(chromium.launch).mockImplementation(
+        async () => crashingBrowser() as never,
+      );
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+
+      await expect(fetcher.fetch("https://example.com")).rejects.toThrow(ScraperError);
+      expect(chromium.launch).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not retry a failure while the browser is still connected", async () => {
+      const { browser } = mockBrowser();
+      browser.newContext.mockRejectedValue(new Error("context failed"));
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+
+      await expect(fetcher.fetch("https://example.com")).rejects.toThrow(ScraperError);
+      expect(chromium.launch).toHaveBeenCalledTimes(1);
+      expect(browser.newContext).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries when another user retired the shared browser, before it reports disconnected", async () => {
+      // On Linux the navigation fails with "frame was detached" while the
+      // retired browser is still closing and still reports connected.
+      const managed = new ManagedBrowser(makeScraperConfig());
+      const { browser: retired } = buildBrowser();
+      retired.newContext.mockImplementation(async () => {
+        void managed.retire(retired as never, "replaced by the renderer");
+        throw new Error("page.goto: net::ERR_ABORTED; maybe frame was detached?");
+      });
+      const { browser: replacement } = buildBrowser();
+      vi.mocked(chromium.launch)
+        .mockResolvedValueOnce(retired as never)
+        .mockResolvedValueOnce(replacement as never);
+      const fetcher = new BrowserFetcher(makeScraperConfig(), managed);
+
+      const result = await fetcher.fetch("https://example.com");
+
+      expect(result.status).toBe(FetchStatus.SUCCESS);
+      expect(replacement.newContext).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry when the fetch was aborted, even though the browser is gone", async () => {
+      // The crawl aborts its items and then closes the shared browser; a retry
+      // would launch a new one after that cleanup.
+      const controller = new AbortController();
+      const browser = crashingBrowser();
+      browser.newContext.mockImplementation(async () => {
+        controller.abort();
+        browser.isConnected.mockReturnValue(false);
+        throw new Error(
+          "browser.newContext: Target page, context or browser has been closed",
+        );
+      });
+      vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+      const fetcher = new BrowserFetcher(makeScraperConfig());
+
+      await expect(
+        fetcher.fetch("https://example.com", { signal: controller.signal }),
+      ).rejects.toThrow("Browser fetch cancelled");
+      expect(chromium.launch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("stops a page that is still loading when the fetch is aborted", async () => {
+    // Closing the context ends the navigation at once; otherwise an aborted
+    // fetch would wait for the navigation timeout.
+    let failNavigation: (error: Error) => void = () => undefined;
+    const goto = vi.fn(
+      () =>
+        new Promise((_resolve, reject) => {
+          failNavigation = reject;
+        }),
+    );
+    const { context } = mockBrowser({ goto });
+    context.close.mockImplementation(async () => {
+      failNavigation(
+        new Error("page.goto: Target page, context or browser has been closed"),
+      );
+    });
+    const controller = new AbortController();
+    const fetcher = new BrowserFetcher(makeScraperConfig());
+
+    const fetching = fetcher.fetch("https://example.com", { signal: controller.signal });
+    await vi.waitFor(() => expect(goto).toHaveBeenCalled());
+    controller.abort();
+
+    await expect(fetching).rejects.toThrow("Browser fetch cancelled");
+    expect(context.close).toHaveBeenCalled();
   });
 });

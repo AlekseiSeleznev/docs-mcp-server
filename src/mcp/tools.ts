@@ -13,7 +13,9 @@ import {
   GetJobInfoTool,
   ListJobsTool,
   ListLibrariesTool,
+  ListPagesTool,
   ListSourceArtifactsTool,
+  ReadPageTool,
   ReadSourceArtifactTool,
   RefreshVersionTool,
   RemoveTool,
@@ -32,6 +34,8 @@ export interface ReadOnlyMcpTools {
 }
 
 export interface McpServerTools extends ReadOnlyMcpTools {
+  listPages: ListPagesTool;
+  readPage: ReadPageTool;
   scrape: ScrapeTool;
   refresh: RefreshVersionTool;
   listJobs: ListJobsTool;
@@ -58,6 +62,8 @@ export async function initializeTools(
 ): Promise<McpServerTools> {
   const tools: McpServerTools = {
     listLibraries: new ListLibrariesTool(docService),
+    listPages: new ListPagesTool(docService),
+    readPage: new ReadPageTool(docService),
     findVersion: new FindVersionTool(docService),
     scrape: new ScrapeTool(pipeline, config.scraper),
     refresh: new RefreshVersionTool(pipeline),

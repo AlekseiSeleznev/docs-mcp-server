@@ -8,6 +8,7 @@ import {
   camelToUpperSnake,
   collectLeafPaths,
   defaults,
+  getConfigMappedCliKeys,
   getConfigValue,
   isValidConfigPath,
   isVectorDimensionExplicit,
@@ -30,12 +31,28 @@ vi.mock("./paths", () => ({
   getProjectRoot: vi.fn().mockReturnValue(undefined), // Default to undefined to rely on explicit searchDirs
 }));
 
+// vite.config.ts points DOCS_MCP_CONFIG at a missing file for every test run.
+// These tests cover config path resolution, including the managed default path,
+// so they start without it. Several describes below replace `process.env`
+// wholesale, which `vi.stubEnv` does not follow, so this edits it directly.
+let testRunConfigPath: string | undefined;
+
+beforeEach(() => {
+  testRunConfigPath = process.env.DOCS_MCP_CONFIG;
+  delete process.env.DOCS_MCP_CONFIG;
+});
+
+afterEach(() => {
+  if (testRunConfigPath !== undefined) {
+    process.env.DOCS_MCP_CONFIG = testRunConfigPath;
+  }
+});
+
 const managedConfigPath = path.join(process.cwd(), ".vitest-config-mock", "config.yaml");
 const managedConfigFixture = fs.readFileSync(
   path.join(process.cwd(), "test", "fixtures", "managed-default-config.yaml"),
   "utf8",
 );
-
 describe("Configuration Loading", () => {
   let tmpDir: string;
   let originalEnv: NodeJS.ProcessEnv;
@@ -50,14 +67,17 @@ describe("Configuration Loading", () => {
     });
 
     // Clear relevant env vars
-    delete process.env.DOCS_MCP_CONFIG;
     delete process.env.DOCS_MCP_TELEMETRY;
     delete process.env.DOCS_MCP_READ_ONLY;
     delete process.env.DOCS_MCP_STORE_PATH;
     delete process.env.DOCS_MCP_AUTH_ENABLED;
     delete process.env.DOCS_MCP_SERVER_PUBLIC_ORIGIN;
-    delete process.env.DOCS_MCP_ARTIFACT_ROOT;
-    delete process.env.DOCS_MCP_MAX_ARTIFACT_BYTES;
+    delete process.env.DOCS_MCP_SERVER_NAME;
+    delete process.env.DOCS_MCP_SERVER_TITLE;
+    delete process.env.DOCS_MCP_SERVER_INSTRUCTIONS;
+    delete process.env.DOCS_MCP_SERVER_INSTRUCTIONS_FILE;
+    delete process.env.DOCS_MCP_SERVER_PUBLIC_URL;
+    delete process.env.DOCS_MCP_SERVER_ALLOWED_ORIGINS;
   });
 
   afterEach(() => {
@@ -191,6 +211,115 @@ describe("Configuration Loading", () => {
       expect(config.server.publicOrigin).toBeUndefined();
     });
 
+    it("defaults server.name to docs-mcp-server", () => {
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "none.yaml") });
+
+      expect(config.server.name).toBe("docs-mcp-server");
+    });
+
+    it("applies server.name precedence from CLI over env and config file", () => {
+      const configPath = path.join(tmpDir, "server-name.yaml");
+      fs.writeFileSync(configPath, "server:\n  name: file-name\n");
+      process.env.DOCS_MCP_SERVER_NAME = "env-name";
+
+      const config = loadConfig({ serverName: "cli-name" }, { configPath });
+
+      expect(config.server.name).toBe("cli-name");
+    });
+
+    it("applies server.title precedence from CLI over env and config file", () => {
+      const configPath = path.join(tmpDir, "server-title.yaml");
+      fs.writeFileSync(configPath, "server:\n  title: File Title\n");
+      process.env.DOCS_MCP_SERVER_TITLE = "Env Title";
+
+      const config = loadConfig({ serverTitle: "CLI Title" }, { configPath });
+
+      expect(config.server.title).toBe("CLI Title");
+    });
+
+    it("leaves server.title unset by default and treats an empty env var as absent", () => {
+      process.env.DOCS_MCP_SERVER_TITLE = " ";
+
+      const config = loadConfig(
+        {},
+        { configPath: path.join(tmpDir, "empty-title.yaml") },
+      );
+
+      expect(config.server.title).toBeUndefined();
+    });
+
+    it("applies server.instructions precedence from CLI over env and config file", () => {
+      const configPath = path.join(tmpDir, "server-instructions.yaml");
+      fs.writeFileSync(configPath, "server:\n  instructions: from file\n");
+      process.env.DOCS_MCP_SERVER_INSTRUCTIONS = "from env";
+
+      const config = loadConfig({ serverInstructions: "from cli" }, { configPath });
+
+      expect(config.server.instructions).toBe("from cli");
+    });
+
+    it("applies server.instructionsFile precedence from CLI over env and config file", () => {
+      const configPath = path.join(tmpDir, "server-instructions-file.yaml");
+      fs.writeFileSync(configPath, "server:\n  instructionsFile: /from/file.md\n");
+      process.env.DOCS_MCP_SERVER_INSTRUCTIONS_FILE = "/from/env.md";
+
+      const config = loadConfig(
+        { serverInstructionsFile: "/from/cli.md" },
+        { configPath },
+      );
+
+      expect(config.server.instructionsFile).toBe("/from/cli.md");
+    });
+
+    it("treats an empty server.name env var as absent", () => {
+      process.env.DOCS_MCP_SERVER_NAME = "";
+
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "empty-name.yaml") });
+
+      expect(config.server.name).toBe("docs-mcp-server");
+    });
+
+    it("treats empty server.instructions and server.instructionsFile env vars as absent", () => {
+      process.env.DOCS_MCP_SERVER_INSTRUCTIONS = "";
+      process.env.DOCS_MCP_SERVER_INSTRUCTIONS_FILE = "  ";
+
+      const config = loadConfig(
+        {},
+        { configPath: path.join(tmpDir, "empty-instructions.yaml") },
+      );
+
+      expect(config.server.instructions).toBeUndefined();
+      expect(config.server.instructionsFile).toBeUndefined();
+    });
+
+    it("leaves server.instructions and server.instructionsFile unset by default", () => {
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "none.yaml") });
+
+      expect(config.server.instructions).toBeUndefined();
+      expect(config.server.instructionsFile).toBeUndefined();
+    });
+
+    it("never writes instructions into the auto-saved default config file", () => {
+      const config = loadConfig({}, {}); // No args -> Default System Path, auto-saved
+
+      const saved = fs.readFileSync(
+        path.join(process.cwd(), ".vitest-config-mock", "config.yaml"),
+        "utf8",
+      );
+      expect(config.server.instructions).toBeUndefined();
+      expect(saved).not.toMatch(/^\s*instructions:/m);
+    });
+
+    it("applies server.name from env over config file", () => {
+      const configPath = path.join(tmpDir, "server-name-env.yaml");
+      fs.writeFileSync(configPath, "server:\n  name: file-name\n");
+      process.env.DOCS_MCP_SERVER_NAME = "env-name";
+
+      const config = loadConfig({}, { configPath });
+
+      expect(config.server.name).toBe("env-name");
+    });
+
     it.each([
       "ftp://docs.example.com",
       "https://docs.example.com/path",
@@ -203,6 +332,121 @@ describe("Configuration Loading", () => {
           { configPath: path.join(tmpDir, "invalid-public-origin.yaml") },
         ),
       ).toThrow("server.publicOrigin");
+    });
+
+    it("loads server.publicUrl with its path from the config file", () => {
+      const configPath = path.join(tmpDir, "public-url.yaml");
+      fs.writeFileSync(configPath, "server:\n  publicUrl: https://example.com/docs/\n");
+
+      const config = loadConfig({}, { configPath });
+
+      expect(config.server.publicUrl).toBe("https://example.com/docs");
+    });
+
+    it("loads server.publicUrl from DOCS_MCP_SERVER_PUBLIC_URL", () => {
+      process.env.DOCS_MCP_SERVER_PUBLIC_URL = "https://example.com/docs";
+
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "env-url.yaml") });
+
+      expect(config.server.publicUrl).toBe("https://example.com/docs");
+    });
+
+    it("loads server.publicUrl from the CLI over env", () => {
+      process.env.DOCS_MCP_SERVER_PUBLIC_URL = "https://env.example.com/docs";
+
+      const config = loadConfig(
+        { publicUrl: "https://cli.example.com/tools" },
+        { configPath: path.join(tmpDir, "cli-url.yaml") },
+      );
+
+      expect(config.server.publicUrl).toBe("https://cli.example.com/tools");
+    });
+
+    it.each([
+      "https://example.com/docs?x=1",
+      "ftp://example.com/docs",
+      "https://example.com/mcp",
+    ])(
+      "rejects invalid server.publicUrl %s instead of resetting to defaults",
+      (publicUrl) => {
+        expect(() =>
+          loadConfig(
+            { publicUrl },
+            { configPath: path.join(tmpDir, "invalid-url.yaml") },
+          ),
+        ).toThrow("server.publicUrl");
+      },
+    );
+
+    it("keeps both publicUrl and publicOrigin when both are set", () => {
+      const configPath = path.join(tmpDir, "both.yaml");
+      fs.writeFileSync(configPath, "server:\n  publicOrigin: https://old.example.com\n");
+
+      const config = loadConfig(
+        { publicUrl: "https://example.com/docs" },
+        { configPath },
+      );
+
+      expect(config.server.publicUrl).toBe("https://example.com/docs");
+      expect(config.server.publicOrigin).toBe("https://old.example.com");
+    });
+
+    it("defaults server.allowedOrigins to an empty list", () => {
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "no-origins.yaml") });
+
+      expect(config.server.allowedOrigins).toEqual([]);
+    });
+
+    it("loads server.allowedOrigins from a JSON array env var", () => {
+      process.env.DOCS_MCP_SERVER_ALLOWED_ORIGINS =
+        '["https://inspector.example.com/", "http://localhost:3000"]';
+
+      const config = loadConfig(
+        {},
+        { configPath: path.join(tmpDir, "env-origins.yaml") },
+      );
+
+      expect(config.server.allowedOrigins).toEqual([
+        "https://inspector.example.com",
+        "http://localhost:3000",
+      ]);
+    });
+
+    it("rejects an allowed origin with a path", () => {
+      const configPath = path.join(tmpDir, "bad-origins.yaml");
+      fs.writeFileSync(
+        configPath,
+        "server:\n  allowedOrigins:\n    - https://inspector.example.com/app\n",
+      );
+
+      expect(() => loadConfig({}, { configPath })).toThrow("server.allowedOrigins");
+    });
+
+    it("loads server.heartbeatMs from a config file", () => {
+      const configPath = path.join(tmpDir, "heartbeat.yaml");
+      fs.writeFileSync(configPath, "server:\n  heartbeatMs: 15000\n  host: file-host\n");
+
+      const config = loadConfig({}, { configPath });
+
+      expect(config.server.host).toBe("file-host");
+      expect(config.server.heartbeatMs).toBe(15000);
+    });
+
+    it("loads scraper.jobHeartbeatMs from DOCS_MCP_SCRAPER_JOB_HEARTBEAT_MS", () => {
+      process.env.DOCS_MCP_SCRAPER_JOB_HEARTBEAT_MS = "250";
+
+      const config = loadConfig({}, { configPath: path.join(tmpDir, "absent.yaml") });
+
+      expect(config.scraper.jobHeartbeatMs).toBe(250);
+    });
+
+    it("falls back to the default for a scraper.jobHeartbeatMs that is not positive", () => {
+      const configPath = path.join(tmpDir, "job-heartbeat.yaml");
+      fs.writeFileSync(configPath, "scraper:\n  jobHeartbeatMs: 0\n");
+
+      const config = loadConfig({}, { configPath });
+
+      expect(config.scraper.jobHeartbeatMs).toBe(15_000);
     });
   });
 
@@ -351,6 +595,16 @@ describe("Environment Variable Helpers", () => {
 });
 
 describe("Config CLI Helpers", () => {
+  describe("getConfigMappedCliKeys", () => {
+    it("lists the CLI options that map onto settings", () => {
+      const keys = getConfigMappedCliKeys();
+
+      expect(keys).toContain("authEnabled");
+      expect(keys).toContain("readOnly");
+      expect(keys).toContain("protocol");
+    });
+  });
+
   describe("isValidConfigPath", () => {
     it("returns true for valid paths", () => {
       expect(isValidConfigPath("scraper.maxPages")).toBe(true);
