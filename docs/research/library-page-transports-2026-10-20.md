@@ -30,7 +30,7 @@ The local extension manifest/version is **3.3.1**; the remote extension is **4.0
 | Local built bundle over a real stdio client against seeded SQLite (`smoke:mcpb -- --bundle`) | PASS |
 | Remote Linux x64 MCPB packaging and authenticated HTTP-to-stdio smoke | PASS |
 | Remote smoke: actual list/read arguments, pagination, next-chunk hint, publication metadata, artifact resource bytes, templates, rejected write call | PASS |
-| Windows/macOS native packages and runners | NOT_CHECKED locally; matching GitHub Actions runners are required |
+| Windows/macOS native packages and runners | PASS on native CI at `38ce9ae` |
 | Interactive Claude Desktop application on Windows/macOS | NOT_CHECKED |
 
 The cross-platform packaging guard remains enabled. Linux cannot produce native Windows/macOS artifacts through the supported build scripts. Run `mcpb.yml` and `remote-mcpb.yml` on the final revision for native acceptance.
@@ -49,4 +49,4 @@ The local runtime package now includes `psl` at the application's locked version
 
 Vitest global setup now uses the command shell on Windows to launch the npm shim; Unix execution remains direct. No test or native packaging check is disabled.
 
-Correction checks: three focused suites / 13 tests PASS, TypeScript PASS, `git diff --check` PASS. Native reruns on the corrected revision remain required before claiming Windows/macOS acceptance.
+Correction checks: three focused suites / 13 tests PASS, TypeScript PASS, `git diff --check` PASS. Native reruns at `38ce9ae` pass: [local extension, all three targets](https://github.com/AlekseiSeleznev/docs-mcp-server/actions/runs/39331884491) and [remote extension, all four targets](https://github.com/AlekseiSeleznev/docs-mcp-server/actions/runs/39331888677). The unpacked Linux remote package also passes against the deployed server: seven read-only tools, page reading, byte/hash equality between artifact retrieval and resource reading, and rejected writes. Interactive desktop GUI acceptance remains outside these protocol checks.
