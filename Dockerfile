@@ -60,6 +60,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/dist ./dist
 
+# Source archives may be extracted under a restrictive umask. Runtime code
+# remains root-owned and readable by the unprivileged node user.
+RUN chmod -R a+rX db public dist
+
 # Set data directory for the container
 ENV DOCS_MCP_STORE_PATH=/data
 ENV XDG_CONFIG_HOME=/config
