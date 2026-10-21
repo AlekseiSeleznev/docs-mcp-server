@@ -1,7 +1,7 @@
 interface:
-  display_name: "Создание быстрых библиотечных навыков"
-  short_description: "Создаёт и сравнивает профили lib-*"
-  default_prompt: "Используй $lib-skill-creator, чтобы безопасно создать, перенести или ускорить навык lib-* с сравнительными тестами."
+  display_name: "Создание библиотечных навыков"
+  short_description: "Создаёт, обновляет и проверяет lib-*"
+  default_prompt: "Используй $lib-skill-creator, чтобы создать или обновить навык lib-* и проверить его структуру и поведение."
 
 dependencies:
   tools:

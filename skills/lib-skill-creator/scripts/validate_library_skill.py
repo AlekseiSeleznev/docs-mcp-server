@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 def validate(skill_dir: Path) -> list[str]:
@@ -30,8 +33,54 @@ def validate(skill_dir: Path) -> list[str]:
     guide = skill_dir / "references" / "indexed-pages.md"
     if "references/indexed-pages.md" not in text or not guide.is_file():
         errors.append("page-reading route must link a bundled indexed-pages.md")
-    elif not all(word in guide.read_text() for word in ("list_pages", "read_page", "nextChunk", "startChunk", "find_version")):
+    elif not all(word in guide.read_text() for word in ("list_pages", "read_page", "startChunk", "find_version")):
         errors.append("page-reading guide must cover navigation, continuation and versions")
+
+    # A standalone skill must carry every locally linked reference.
+    root = skill_dir.resolve()
+    prose = re.sub(r"(?ms)^(`{3,}|~{3,})[^\n]*\n.*?^\1[ \t]*$", "", text)
+    prose = re.sub(r"(`+).*?\1", "", prose, flags=re.DOTALL)
+    for link in re.findall(r"\[[^\]]*\]\(([^)]+)\)", prose):
+        href = link.strip().strip("<>")
+        try:
+            parsed = urlsplit(href)
+        except ValueError:
+            errors.append("invalid reference URL")
+            continue
+        if parsed.scheme or not parsed.path:
+            continue
+        relative = unquote(parsed.path)
+        target = (root / relative).resolve()
+        if not target.is_relative_to(root) or not target.is_file():
+            errors.append(f"missing or external bundled reference: {relative}")
+
+    version = re.search(r'^  version:\s*"(\d+\.\d+\.\d+)"\s*$', text, re.MULTILINE)
+    if "references/skill-update.md" in text:
+        if not version:
+            errors.append("published updater requires metadata.version in X.Y.Z format")
+        for relative in ("references/skill-update.md", "scripts/update-skill.py"):
+            if not (root / relative).is_file():
+                errors.append(f"missing updater resource: {relative}")
+
+    # A completed release records exact bytes; client UI metadata remains local.
+    record = root / "release.json"
+    if record.exists():
+        try:
+            release = json.loads(record.read_text(encoding="utf-8"))
+            name = re.search(r"^name:\s*(lib-[a-z0-9-]+)\s*$", text, re.MULTILINE)
+            if not isinstance(release, dict) or not name or release.get("name") != name.group(1) or not version or release.get("version") != version.group(1):
+                raise ValueError("release identity differs from skill")
+            files = release.get("files")
+            if not isinstance(files, dict) or "SKILL.md" not in files:
+                raise ValueError("release inventory is missing")
+            for relative, expected in files.items():
+                target = root / relative
+                if not target.resolve().is_relative_to(root) or not target.is_file():
+                    errors.append(f"missing or external release file: {relative}")
+                elif relative != "agents/openai.yaml" and hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+                    errors.append(f"release file changed: {relative}; rebuild with a new version")
+        except (OSError, ValueError, TypeError):
+            errors.append("release.json identity or inventory is invalid")
 
     artifact = "get_source_artifact" in text or "list_source_artifacts" in text
     catalog = (skill_dir / "references" / "libraries.yaml").is_file()
